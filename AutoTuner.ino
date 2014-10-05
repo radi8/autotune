@@ -133,12 +133,17 @@ void courseSteps(boolean C_or_L) {
   int lastSWR[3] = {0,0,0}; // 0 = fwd pwr, 1 = rev pwr, 2 = VSWR
   int tempSWR;
   int SWRout = 100;
+  int out_0, out_7; //Equal to Capacitor relay bank if C_or_L true otherwise inductor relay bank.
   
   analogWrite(PWMtest, SWRout);
   if (C_or_L) { // We are working on "C" relay set here
     clearRelays(false, true); // Reset all capacitor relays
+    out_0 = OUTC_0;
+    out_7 = OUTC_7;
   } else {      // We are working on "L" relay set here
     clearRelays(true, false); // Reset all inductor relays
+    out_0 = OUTL_0;
+    out_7 = OUTL_7;    
     SWRout = 60; //Debug testing value
   }
   SWRout = swrWrite(Dn, SWRout); // Set SWR voltage on pin D11 with this call and restore
@@ -152,38 +157,25 @@ void courseSteps(boolean C_or_L) {
   Serial.println();
   SWRout = swrWrite(Dn, SWRout); //Set swr for next relay
 
-/*
-  for(int i = OUT_0; i <= OUT_7; i++){ 
+
+  for(int i = out_0; i <= out_7; i++){ 
     Serial.print("Running through loop at i value = ");
     Serial.println(i);
     // For all but the first relay we need to switch off the previous one
-    if (i > OUT_0) digitalWrite(i-1, LOW);
+    if (i > out_0) digitalWrite(i-1, LOW);
     digitalWrite(i, HIGH);
-    if (C_or_L) { // True if C, false if L
-      Serial.println("Strobing C");
-      digitalWrite(C_strobe, HIGH); // 10 mSec C strobe pulse
-      delay(strobeDELAY);
-      digitalWrite(C_strobe, LOW);
-    } else {
-      Serial.println("Strobing l");
-      digitalWrite(L_strobe, HIGH); // 10 mSec C strobe pulse
-      delay(strobeDELAY);
-      digitalWrite(L_strobe, LOW);
-    }
     delay(DELAY); // Give relay time to operate & previous relay to release
+    
     // read new SWR and compare to lastSWR. If better step again
     // if worse go back to previous relay and exit
-    
-    tempSWR = checkSWR(lastSWR[2]);
-    Serial.println();
-    
+    tempSWR = checkSWR(lastSWR[2]);    
     if (tempSWR < lastSWR[2]+10) {
       lastSWR[2] = tempSWR;
-      if (i < 5) {
-      SWRout = swrWrite(Dn, SWRout);  //Set swr down for next relay
-      } else {
-        SWRout = swrWrite(Up, SWRout);  //Set to simulate worse swr for next relay
-      }
+      if (i < 5) { // Debug artificially
+      SWRout = swrWrite(Dn, SWRout);  //Debug set swr down for next relay
+      } else { //Debug
+        SWRout = swrWrite(Up, SWRout);  //Debug set to simulate worse swr for next relay
+      } //Debug
     } else {
       digitalWrite(i, LOW); // Turn off current relay and turn on previous one.
       digitalWrite(i-1, HIGH); // lastSWR[2] is holding the previous swr which
@@ -203,7 +195,7 @@ void courseSteps(boolean C_or_L) {
       break;
     }
   }
-*/
+
   Serial.println();
 }
 
