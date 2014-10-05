@@ -6,23 +6,26 @@
 /////////////////////////////////////////////////////////////////
 
 //Digital outputs for L & C Latches
-#define OUT_0          2  // Must be contiguous
-#define OUT_1          3
-#define OUT_2          4
-#define OUT_3          5
-#define OUT_4          6
-#define OUT_5          7
-#define OUT_6          8
-#define OUT_7          9
+#define OUTC_0         2  // Must be contiguous
+#define OUTC_1         3
+#define OUTC_2         4
+#define OUTC_3         5
+#define OUTC_4         6
+#define OUTC_5         7
+#define OUTC_6         8
+#define OUTC_7         9
 
 #define BUTTON_PIN    10   // Push Button
 #define PWMtest       11   // Debug temporary for testing swr
 
-#define L_strobe      A0   // Pin 11 of 74ls373
-#define C_strobe      A1   // Pin 11 of 74ls373
-#define outCtl        A2   // Pin 1 of 74ls373's
-#define testOut1      A3
-#define testOut2      A4
+#define OUTL_0        12  // Must be contiguous
+#define OUTL_1        13
+#define OUTL_2        14
+#define OUTL_3        15
+#define OUTL_4        16
+#define OUTL_5        17
+#define OUTL_6        18
+#define OUTL_7        19
 
 #define forward       A6  // Measure forward SWR on this pin
 #define reverse       A7  // Measure reverse SWR on this pin
@@ -42,20 +45,24 @@ int  _revSWR   = 0;
 
 void setup() { 
  // initialize the digital pins as outputs.
-  pinMode(outCtl, OUTPUT);
-  digitalWrite(outCtl, HIGH); // Latches outputs high ZDisable l so no relays operate
+//  pinMode(outCtl, OUTPUT);
+//  digitalWrite(outCtl, HIGH); // Latches outputs high ZDisable l so no relays operate
   analogWrite(PWMtest, 0);   // turn analog out to 0 Volts
-  for(int i = OUT_0; i <= OUT_7; i++){ // Set all latch driver signals to output
+  for(int i = OUTC_0; i <= OUTC_7; i++){ // Set all C Relay signals to output
     pinMode(i, OUTPUT);
-  }   
-  pinMode(L_strobe, OUTPUT);
-  pinMode(C_strobe, OUTPUT);
-  pinMode(testOut1, OUTPUT);
-  pinMode(testOut2, OUTPUT);
-  digitalWrite(L_strobe, LOW);
-  digitalWrite(C_strobe, LOW);
-  digitalWrite(testOut1, HIGH);
-  digitalWrite(testOut2, LOW);
+  }
+
+  for(int i = OUTL_0; i <= OUTL_7; i++){ // Set all L Relay signals to output
+    pinMode(i, OUTPUT);
+  }  
+//  pinMode(L_strobe, OUTPUT);
+//  pinMode(C_strobe, OUTPUT);
+//  pinMode(testOut1, OUTPUT);
+//  pinMode(testOut2, OUTPUT);
+//  digitalWrite(L_strobe, LOW);
+//  digitalWrite(C_strobe, LOW);
+//  digitalWrite(testOut1, HIGH);
+//  digitalWrite(testOut2, LOW);
 
   pinMode(BUTTON_PIN, INPUT);
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
@@ -67,7 +74,7 @@ void setup() {
   }
   clearRelays(true, true); // Set all of both C & L relays to off
   
-  digitalWrite(outCtl, LOW); // Enable latch outputs
+//  digitalWrite(outCtl, LOW); // Enable latch outputs
 } 
 
 void loop(){
