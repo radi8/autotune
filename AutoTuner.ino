@@ -55,14 +55,6 @@ void setup() {
   for(int i = OUTL_0; i <= OUTL_7; i++){ // Set all L Relay signals to output
     pinMode(i, OUTPUT);
   }  
-//  pinMode(L_strobe, OUTPUT);
-//  pinMode(C_strobe, OUTPUT);
-//  pinMode(testOut1, OUTPUT);
-//  pinMode(testOut2, OUTPUT);
-//  digitalWrite(L_strobe, LOW);
-//  digitalWrite(C_strobe, LOW);
-//  digitalWrite(testOut1, HIGH);
-//  digitalWrite(testOut2, LOW);
 
   pinMode(BUTTON_PIN, INPUT);
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
@@ -72,9 +64,7 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  clearRelays(true, true); // Set all of both C & L relays to off
-  
-//  digitalWrite(outCtl, LOW); // Enable latch outputs
+  clearRelays(true, true); // Set both C & L relay sets to off
 } 
 
 void loop(){
@@ -85,15 +75,6 @@ void loop(){
     courseSteps(C); // Step through each relay in turn
     courseSteps(L); // looking for best SWR
   }
-  /*
-  // do other things
-  Serial.print(button_pressed ? "^" : ".");
-
-  // add newline sometimes
-  static int counter = 0;
-  if ((++counter & 0x3f) == 0)
-    Serial.println();
-  */
   delay(DELAY);
 }
 
@@ -113,26 +94,25 @@ boolean handle_button() {
 }
 
 void clearRelays(boolean clearL, boolean clearC) {
-  Serial.print("Relay number cleared = "); // Debug message
-  for(int i = OUT_0; i <= OUT_7; i++){ 
-    digitalWrite(i, LOW);   // Initially set all relays off
-    Serial.print(i);  // Debug message
-    Serial.print(", ");  // Debug message
+  if (clearC) {
+    Serial.print("Relay number cleared = "); // Debug message
+    for(int i = OUTC_0; i <= OUTC_7; i++){ 
+      digitalWrite(i, LOW);   // Set all Capacitor relays off
+      Serial.print(i - 2);  // Debug message
+      Serial.print(", ");  // Debug message
+    }
+    Serial.println("Capacitor Relays cleared");
   }
   if (clearL) {
-    digitalWrite(L_strobe, HIGH); // 10 mSec L strobe pulse
-    delay(strobeDELAY);  // Debug message. Change to 10
-    Serial.print("Strobed L, ");  // Debug message
-    digitalWrite(L_strobe, LOW);
-    if (!clearC) Serial.println();
-  }
-  if (clearC) {
-    digitalWrite(C_strobe, HIGH); // 10 mSec C strobe pulse
-    delay(strobeDELAY);  // Debug message. Change to 10
-    Serial.println("Strobed C");  // Debug message
-    digitalWrite(C_strobe, LOW);
-  }
-    delay(DELAY);  // Give relays time to release before returning
+    Serial.print("Relay number cleared = "); // Debug message
+    for(int i = OUTL_0; i <= OUTL_7; i++){ 
+      digitalWrite(i, LOW);   // Set all Inductortor relays off
+      Serial.print(i - 12);  // Debug message
+      Serial.print(", ");  // Debug message
+    }
+    Serial.println("Inductor Relays cleared");   
+  }  
+  delay(DELAY);  // Give relays time to release before returning
 }
 
 void fineSteps_C(boolean dir) {
@@ -157,22 +137,22 @@ void courseSteps(boolean C_or_L) {
   analogWrite(PWMtest, SWRout);
   if (C_or_L) { // We are working on "C" relay set here
     clearRelays(false, true); // Reset all capacitor relays
-    SWRout = swrWrite(Dn, SWRout); // Set swr with no capacitor or inductor relays.
-    SWRout = swrWrite(Up, SWRout);
-    Serial.print("Initial capacitors value = "); // Debug Message
-    lastSWR[2] = checkSWR(lastSWR[2]); // Get SWR with no capacitor relays operated
-    Serial.println();
-    SWRout = swrWrite(Dn, SWRout); //Set swr for next relay
   } else {      // We are working on "L" relay set here
     clearRelays(true, false); // Reset all inductor relays
-    SWRout = 60;
-    SWRout = swrWrite(Dn, SWRout); // Set with Capacitor relays but no Inductor
-    SWRout = swrWrite(Up, SWRout);
-    Serial.print("Initial inductors value = "); // Debug Message    
-    lastSWR[2] = checkSWR(lastSWR[2]); // Get SWR with no inductor relays operated
-    Serial.println();
-    SWRout = swrWrite(Dn, SWRout);  //Set swr for next relay
+    SWRout = 60; //Debug testing value
   }
+  SWRout = swrWrite(Dn, SWRout); // Set SWR voltage on pin D11 with this call and restore
+  SWRout = swrWrite(Up, SWRout); // to original voltage with this call.
+  if (C_or_L) {
+    Serial.print("Initial capacitors no operated relays swr value = "); // Debug Message
+  } else {
+    Serial.print("Initial inductors value = "); // Debug Message
+  }
+  lastSWR[2] = checkSWR(lastSWR[2]); // Get SWR with no relays operated
+  Serial.println();
+  SWRout = swrWrite(Dn, SWRout); //Set swr for next relay
+
+/*
   for(int i = OUT_0; i <= OUT_7; i++){ 
     Serial.print("Running through loop at i value = ");
     Serial.println(i);
@@ -223,6 +203,7 @@ void courseSteps(boolean C_or_L) {
       break;
     }
   }
+*/
   Serial.println();
 }
 
