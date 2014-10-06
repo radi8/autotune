@@ -16,27 +16,26 @@
 #define OUTC_7         9
 
 #define BUTTON_PIN    10   // Push Button
-#define PWMtest       11   // Debug temporary for testing swr
+#define PWMtest       11   // Debug temp for testing swr. Will become "C" c/o relay
 
 #define OUTL_0        12  // Must be contiguous
 #define OUTL_1        13
-#define OUTL_2        14
-#define OUTL_3        15
-#define OUTL_4        16
-#define OUTL_5        17
-#define OUTL_6        18
-#define OUTL_7        19
+#define OUTL_2        14  // A0
+#define OUTL_3        15  // A1
+#define OUTL_4        16  // A2
+#define OUTL_5        17  // A3
+#define OUTL_6        18  // A4
+#define OUTL_7        19  // A5
 
 #define forward       A6  // Measure forward SWR on this pin
 #define reverse       A7  // Measure reverse SWR on this pin
 
 #define DELAY         20  // Delay per loop in ms
-#define strobeDELAY   10  // Delay time for strobing latches
 
-#define C             true
-#define L             false
-#define Up            true
-#define Dn            false
+#define C             true    // Capacitor relay set
+#define L             false   // Inductor relay set
+#define Up            true    // Debug item, remove in final
+#define Dn            false   // Debug item, remove in final
 
 // Global variables
 byte _C_Relays = 0; // Holds map of operated relays with
@@ -130,7 +129,7 @@ void fineSteps_C(boolean dir) {
 // is used to choose which relay set we are working on. True = C, false = L.
 
 void courseSteps(boolean C_or_L) {
-  int lastSWR[3] = {0,0,0}; // 0 = fwd pwr, 1 = rev pwr, 2 = VSWR
+  unsigned int lastSWR[3] = {0,0,0}; // 0 = fwd pwr, 1 = rev pwr, 2 = VSWR
   int tempSWR;
   int SWRout = 100;
   int out_0, out_7; //Equal to Capacitor relay bank if C_or_L true otherwise inductor relay bank.
@@ -151,7 +150,7 @@ void courseSteps(boolean C_or_L) {
   if (C_or_L) {
     Serial.print("Initial capacitors no operated relays swr value = "); // Debug Message
   } else {
-    Serial.print("Initial inductors value = "); // Debug Message
+    Serial.print("Initial inductors no operated relays swr value = "); // Debug Message
   }
   lastSWR[2] = checkSWR(lastSWR[2]); // Get SWR with no relays operated
   Serial.println();
@@ -171,7 +170,7 @@ void courseSteps(boolean C_or_L) {
     tempSWR = checkSWR(lastSWR[2]);    
     if (tempSWR < lastSWR[2]+10) {
       lastSWR[2] = tempSWR;
-      if (i < 5) { // Debug artificially
+      if (i < (out_0 + 3)) { // Debug artificially
       SWRout = swrWrite(Dn, SWRout);  //Debug set swr down for next relay
       } else { //Debug
         SWRout = swrWrite(Up, SWRout);  //Debug set to simulate worse swr for next relay
@@ -180,17 +179,8 @@ void courseSteps(boolean C_or_L) {
       digitalWrite(i, LOW); // Turn off current relay and turn on previous one.
       digitalWrite(i-1, HIGH); // lastSWR[2] is holding the previous swr which
                                // now become the current reading
-      if (C_or_L) {
-        digitalWrite(C_strobe, HIGH); // 10 mSec C strobe pulse
-        delay(strobeDELAY);
-        digitalWrite(C_strobe, LOW);
-      } else {
-        digitalWrite(L_strobe, HIGH); // 10 mSec C strobe pulse
-        delay(strobeDELAY);
-        digitalWrite(L_strobe, LOW);
-      }
-      Serial.print("SWR was greater than previous reading at position ");
-      Serial.println(i);
+      Serial.print("SWR was greater than previous reading so operated relay = ");
+      Serial.println(i-1);
       delay(DELAY);
       break;
     }
@@ -202,28 +192,28 @@ void courseSteps(boolean C_or_L) {
 /* Here I am writing code to send a reducing swr each 6 times called, then increase
     for the 7th time
 */
-int checkSWR(int lastSWR) {
-  float fwdPwr;
-  float revPwr;
-  float swr;
-  float temp;
+unsigned int checkSWR(int lastSWR) {
+  long fwdPwr;
+  long revPwr;
+  unsigned int swr;
   
   revPwr = analogRead(reverse);
 //  fwdPwr = analogRead(forward);
-  fwdPwr = 512; // Debug Fixed fwdPwr for testing purposes only
+  fwdPwr = 512L; // Debug Fixed fwdPwr for testing purposes only
   if (fwdPwr <= revPwr) revPwr = fwdPwr - 1; //Avoid division by zero or negative.
-  swr = (fwdPwr + revPwr) / (fwdPwr - revPwr) * 1000;
-  
-  Serial.print("SWR readings fwd, rev, swr, int(swr) = ");
+//  swr = (fwdPwr + revPwr) / (fwdPwr - revPwr) * 1000;
+  swr = ((fwdPwr + revPwr) * 1000) / (fwdPwr - revPwr);
+  Serial.print("SWR readings fwd, rev, fwd+rev*1000, swr = ");
   Serial.print(fwdPwr);
   Serial.print(", ");
   Serial.print(revPwr);
   Serial.print(", ");
-  Serial.print(swr);
+  Serial.print((fwdPwr + revPwr) * 1000);
   Serial.print(", ");
-  Serial.println(int(swr));
+  Serial.println(swr);
   
-  return int(swr);
+//  return int(swr);
+  return swr;
 }
 
 int swrWrite(boolean up_dn, int swr) {  // Up is true, Dn is false
