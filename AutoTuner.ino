@@ -54,6 +54,9 @@ void setup() {
 
   pinMode(BUTTON_PIN, INPUT);
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
+  // Debug The coRelay will be an output in final. Used to detect C or L relays to be stepped
+  pinMode(coRelay, INPUT);
+  digitalWrite(coRelay, HIGH); // pull-up activated
   
   //Initialize serial and wait for port to open:
   Serial.begin(9600); 
@@ -64,13 +67,53 @@ void setup() {
 } 
 
 void loop(){
+  // The button press will step the Capacitor relays
   // handle button
   boolean button_pressed = handle_button();
   if (button_pressed) {
     Serial.println("button_pressed");
-    courseSteps(C); // Step through each relay in turn
-    courseSteps(L); // looking for best SWR
+    if (digitalRead(coRelay)){
+      stepC();
+    } else {
+      stepL();
+    }
   }
+  delay(DELAY);
+}
+
+void stepC() {
+  static int nextRelay = 0;
+  
+  Serial.print("Operating Capacitor relay number ");
+  Serial.println(nextRelay);
+  int current = OUTC_0 + nextRelay;
+  nextRelay++;
+  if (nextRelay > 7) nextRelay = 0;
+  if (current == OUTC_0) {          //Clear the previous relay
+    digitalWrite(current + 7, LOW);
+  } else {
+    digitalWrite(current - 1, LOW);
+  }
+  delay(DELAY);
+  digitalWrite(current, HIGH);      //Turn on next relay
+  delay(DELAY);
+}
+
+void stepL() {
+  static int nextRelay = 0;
+  
+  Serial.print("Operating Inductor relay number ");
+  Serial.println(nextRelay);
+  int current = OUTL_0 + nextRelay;
+  nextRelay++;
+  if (nextRelay > 7) nextRelay = 0;
+  if (current == OUTL_0) {
+    digitalWrite(current + 7, LOW);
+  } else {
+    digitalWrite(current - 1, LOW);
+  }
+  delay(DELAY);
+  digitalWrite(current, HIGH);
   delay(DELAY);
 }
 
