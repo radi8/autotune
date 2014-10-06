@@ -1,7 +1,10 @@
 autotune
 ========
 
-Arduino software to control an autotener
+Arduino software to control an autotuner
+
+Licenced under GNU GENERAL PUBLIC LICENSE
+Version 2, June 1991
 
 The autotuner is the kitset from the EB104.com website.
 Any tuner of the LC type with 8 shunt capacitors and 8
@@ -16,9 +19,10 @@ connected to the forward and reverse power inputs
 The 8 capacitor relays are driven from D2 ... D9 via
 a ULN2003 driver chip
 
-The 8 inductor relays are driven from D12 ... D13 plus
-A0 ... A5 which are set up as digital outputs. Again
-the relays are interfaced via a ULN2003 driver chip.
+The 8 inductor relays are driven from D12 ... D19 pins.
+(D14 ... D19 = A0 ... A5) which are set up as digital
+outputs. Again the relays are interfaced via a ULN2003
+driver chip.
 
 D10 is connected to a pushbutton to initiate a tuning
 sequence. RF should be applied to the tuner then the
@@ -27,6 +31,9 @@ where the capacitors are stepped first looking for
 best SWR and holding on best capacitor. The inductors
 are similarly stepped and held on the inductor prodicing
 the lowest SWR.
+
+D11 is an output to change the capacitor relay set from
+end to end of the series inductors.
 
 A fine tune sequence is established to set exact capacitor
 value followed by best inductor. A reiteration is done
