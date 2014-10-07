@@ -67,7 +67,7 @@ void setup() {
 } 
 
 void loop(){
-  // The button press will step the Capacitor relays
+  // The button press will step the selected Capacitor or Inductor relays
   // handle button
   boolean button_pressed = handle_button();
   if (button_pressed) {
@@ -82,39 +82,46 @@ void loop(){
 }
 
 void stepC() {
-  static int nextRelay = 0;
+  // The first time called no relays would have been operated so we want to operate #1
+  static int nextRelay = 1; // Zero = no relays operated
   
   Serial.print("Operating Capacitor relay number ");
   Serial.println(nextRelay);
-  int current = OUTC_0 + nextRelay;
-  nextRelay++;
-  if (nextRelay > 7) nextRelay = 0;
-  if (current == OUTC_0) {          //Clear the previous relay
-    digitalWrite(current + 7, LOW);
+  
+  int current = OUTC_0 + nextRelay - 1; //OUTC_0..7 mapped from 1 ..8
+  nextRelay++; // Increment for next time through
+  if (nextRelay == 1) {
+    clearRelays(false, true);
   } else {
-    digitalWrite(current - 1, LOW);
+    if (nextRelay > 8) nextRelay = 0;
+    if (current != OUTC_0) {           // Don't release previous relay if doing relay 1
+      digitalWrite(current - 1, LOW);  
+      delay(DELAY);
+    }
+    digitalWrite(current, HIGH);      //Turn on next relay in sequence
+    delay(DELAY);
   }
-  delay(DELAY);
-  digitalWrite(current, HIGH);      //Turn on next relay
-  delay(DELAY);
 }
 
 void stepL() {
-  static int nextRelay = 0;
+  static int nextRelay = 1;
   
   Serial.print("Operating Inductor relay number ");
   Serial.println(nextRelay);
-  int current = OUTL_0 + nextRelay;
-  nextRelay++;
-  if (nextRelay > 7) nextRelay = 0;
-  if (current == OUTL_0) {
-    digitalWrite(current + 7, LOW);
+  
+  int current = OUTL_0 + nextRelay - 1; //OUTC_0..7 mapped from 1 ..8
+  nextRelay++; // Increment for next time through
+  if (nextRelay == 1) {
+    clearRelays(true, false);
   } else {
-    digitalWrite(current - 1, LOW);
+    if (nextRelay > 8) nextRelay = 0;
+    if (current != OUTL_0) {           // Don't release previous relay if doing relay 1
+      digitalWrite(current - 1, LOW);  
+      delay(DELAY);
+    }
+    digitalWrite(current, HIGH);      //Turn on next relay in sequence
+    delay(DELAY);
   }
-  delay(DELAY);
-  digitalWrite(current, HIGH);
-  delay(DELAY);
 }
 
 boolean handle_button() {
