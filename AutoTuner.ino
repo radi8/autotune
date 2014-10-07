@@ -83,24 +83,45 @@ void loop(){
 
 void stepC() {
   // The first time called no relays would have been operated so we want to operate #1
-  static int nextRelay = 1; // Zero = no relays operated
+  int lastRelay;   // Relays currently operated. Zero = no relays operated
+  int nextRelay;   // Relays to be operated by this function
+  byte count = 0;  // General loop counter etc.
   
-  Serial.print("Operating Capacitor relay number ");
+  // Loop to find which bit is set. If no bits are set, counter will get to 8
+  for(count = 0; count < 8; count++){    // Find which bit is set
+    if(bitRead(_C_Relays, count)) break;
+  }
+  Serial.print("The value of count = ");
+  Serial.println(count);
+
+  if(count > 8) count = 0; // no bits were set if count got past 8
+  lastRelay = count;
+  nextRelay = lastRelay + 1;
+  
+  Serial.print("lastRelay and nextRelay values =   ");
+  Serial.print(lastRelay);
+  Serial.print(", ");
   Serial.println(nextRelay);
   
-  int current = OUTC_0 + nextRelay - 1; //OUTC_0..7 mapped from 1 ..8
-  nextRelay++; // Increment for next time through
-  if (nextRelay == 1) {
+  // Clear the previously operated relay and its associated bit in _C_Relays
+  if(lastRelay > 7){
     clearRelays(false, true);
+    _C_Relays = 0;
   } else {
-    if (nextRelay > 8) nextRelay = 0;
-    if (current != OUTC_0) {           // Don't release previous relay if doing relay 1
-      digitalWrite(current - 1, LOW);  
-      delay(DELAY);
-    }
-    digitalWrite(current, HIGH);      //Turn on next relay in sequence
-    delay(DELAY);
+    digitalWrite(OUTC_0 + lastRelay, LOW);
+    bitClear(_C_Relays, lastRelay);
   }
+  // Set the current relay and its associated bit in _C_Relays
+  if (nextRelay > 7){
+    clearRelays(false, true);
+    _C_Relays = 0;
+  } else {
+    digitalWrite(OUTC_0 + nextRelay, HIGH);
+    bitSet(_C_Relays, nextRelay);
+  }
+  delay(DELAY);
+  Serial.print("The value of _C_Relays is now ... ");
+  Serial.println(_C_Relays);
 }
 
 void stepL() {
