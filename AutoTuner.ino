@@ -63,7 +63,8 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  clearRelays(true, true); // Set both C & L relay sets to off
+  setRelays(OUTC_0, C); // Switch off all the Capacitor relays ( _C_Relays = 0 )
+  setRelays(OUTL_0, L); // Switch off all the Inductor relays ( _L_Relays = 0 )
 } 
 
 void loop(){
@@ -75,11 +76,11 @@ void loop(){
     if (digitalRead(coRelay)){
       Serial.print(", doing C relays, digitalRead(coRelay) = ");
       Serial.println(digitalRead(coRelay));
-      step_CorL(true); // Do capacitor relays
+      step_CorL(C); // Do capacitor relays
     } else {
       Serial.print(", doing L relays, digitalRead(coRelay) = ");
       Serial.println(digitalRead(coRelay));
-      step_CorL(false);  // Do Inductor relays
+      step_CorL(L);  // Do Inductor relays
     }
   }
   delay(DELAY);
@@ -159,8 +160,9 @@ void setRelays(int offset, boolean relaySet) {
   Serial.print(offset);
   Serial.print(" || ");
   Serial.println(relays);
+  delay(DELAY);
 }
-
+/*
 void stepL() {
   static int nextRelay = 1;
   
@@ -181,7 +183,7 @@ void stepL() {
     delay(DELAY);
   }
 }
-
+*/
 boolean handle_button() {
   static boolean button_was_pressed = false;
   boolean event;
@@ -196,7 +198,7 @@ boolean handle_button() {
   button_was_pressed = button_now_pressed;
   return event;
 }
-
+/*
 void clearRelays(boolean clearL, boolean clearC) {
   if (clearC) {
     Serial.print("Relay number cleared = "); // Debug message
@@ -218,7 +220,7 @@ void clearRelays(boolean clearL, boolean clearC) {
   }  
   delay(DELAY);  // Give relays time to release before returning
 }
-
+*/
 void fineSteps_C(boolean dir) {
   /*
  if (data & (1<<y)) {
@@ -238,7 +240,7 @@ void courseSteps(boolean C_or_L) {
   unsigned int tempSWR;
   int SWRout = 100;
   int out_0, out_7; //Maps to Capacitor relay bank if C_or_L true, else inductor relay bank.
-  
+/*  
   if (C_or_L) { // We are working on "C" relay set here
     clearRelays(false, true); // Reset all capacitor relays
     out_0 = OUTC_0;
@@ -280,6 +282,7 @@ void courseSteps(boolean C_or_L) {
     }
   }
   Serial.println();
+  */
 }
 
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
