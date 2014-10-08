@@ -40,7 +40,6 @@
 // Global variables
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
-int  _revSWR   = 0;
 
 void setup() { 
   // initialize the digital pins as outputs.
@@ -89,8 +88,6 @@ void loop(){
 // relaySet = true, do Capacitor relay set
 void step_CorL(boolean relaySet) {
   // The first time called no relays would have been operated so we want to operate #1
-  byte lastRelay;   // Relays currently operated. Zero = no relays operated
-  byte nextRelay;   // Relays to be operated by this function
   int count = 0;  // General loop counter etc.
   byte relays;
   byte offset;
@@ -102,21 +99,25 @@ void step_CorL(boolean relaySet) {
     relays = _L_Relays;
     offset = OUTL_0;
   }
-  Serial.print("The value of relays = ");
-  Serial.println(relays);
-  Serial.print("The value of offset = ");
-  Serial.println(offset);
-  // Loop to find which bit is set. If no bits are set, count will get to 8
-  for(count = 0; count < 8; count++){    // Find which bit is set
-    Serial.print("The value of bitRead(relays, count) = ");
-    Serial.println(bitRead(relays, count));
+  Serial.println("Arrived at step_CorL(boolean relaySet)");
+  Serial.println();
+  
+  Serial.println("Relay# 1 2 3 4 5 6 7 8");
+  Serial.println("       ");
+  // Get the current state of the relays as 0 .. 7 or 8 if no relays on.
+   for(count = 0; count < 8; count++){    // Find which bit is set
+    Serial.print(bitRead(relays, count));
+    Serial.print(" ");
     if(bitRead(relays, count) == 1) break;
   }
-  count++; // Step to next relay
-  Serial.print("The value of count = ");
-  Serial.println(count);
-
-  if(count == 9) count = 0; // Set to 1st bit as nothing set last time.
+  // count now points to currently operated relay (0 .. 7) or 8 if no relays.
+  count++; // Step to next relay. count - (1 .. 8) or 9
+  // if count is 9, we had been in the no relays operated state so we want to
+  if(count == 9) count = 0; // operate the first relay in the 0 .. 7 sequence.
+  Serial.print("The value of count = "); // If previously the last relay was
+  Serial.println(count);                 // operated count will now be 8 which
+                                         // is the no relays operated indicator.
+  // count is now 0 ..7 or 8 if no relays are to be operated
   if(relaySet){
     _C_Relays = 0;
     if(count < 8) bitSet(_C_Relays, count); // If 8 we clear relays only
@@ -124,9 +125,6 @@ void step_CorL(boolean relaySet) {
     _L_Relays = 0;
     if(count < 8) bitSet(_L_Relays, count);
   }
-//  lastRelay = count;
-//  nextRelay = lastRelay + 1;
-//  relays = count + 1;
   Serial.print("_C_Relays, _L_Relays values =   ");
   Serial.print(_C_Relays);
   Serial.print(",   ");
@@ -135,8 +133,6 @@ void step_CorL(boolean relaySet) {
   setRelays(offset, relaySet);
 
   delay(DELAY);
-  Serial.print("The operation was performed on relay ... ");
-  Serial.println((count + 1));
   Serial.println("--------------------------------------------------------------------------------");
 }
 
