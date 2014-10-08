@@ -103,13 +103,14 @@ void step_CorL(boolean relaySet) {
   Serial.println();
   
   Serial.println("Relay# 1 2 3 4 5 6 7 8");
-  Serial.println("       ");
+  Serial.print("       ");
   // Get the current state of the relays as 0 .. 7 or 8 if no relays on.
    for(count = 0; count < 8; count++){    // Find which bit is set
     Serial.print(bitRead(relays, count));
     Serial.print(" ");
     if(bitRead(relays, count) == 1) break;
   }
+  Serial.println();
   // count now points to currently operated relay (0 .. 7) or 8 if no relays.
   count++; // Step to next relay. count - (1 .. 8) or 9
   // if count is 9, we had been in the no relays operated state so we want to
@@ -153,12 +154,13 @@ void setRelays(int offset, boolean relaySet) {
     Serial.println(offset);
   }
   Serial.println("Relay# 1 2 3 4 5 6 7 8");
-  Serial.println("       ");
+  Serial.print("       ");
   for(int x = offset; x < (offset + 8); x++){
     digitalWrite(x, bitRead(relays, (x - offset)));
     Serial.print(bitRead(relays, (x - offset)));
     Serial.print(" ");
   }
+  Serial.println();
   Serial.println();
   delay(DELAY);
 }
