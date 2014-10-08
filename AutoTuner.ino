@@ -71,57 +71,94 @@ void loop(){
   // handle button
   boolean button_pressed = handle_button();
   if (button_pressed) {
-    Serial.println("button_pressed");
+    Serial.print("button_pressed");
     if (digitalRead(coRelay)){
-      stepC();
+      Serial.print(", doing C relays, digitalRead(coRelay) = ");
+      Serial.println(digitalRead(coRelay));
+      step_CorL(true); // Do capacitor relays
     } else {
-      stepL();
+      Serial.print(", doing L relays, digitalRead(coRelay) = ");
+      Serial.println(digitalRead(coRelay));
+      step_CorL(false);  // Do Inductor relays
     }
   }
   delay(DELAY);
 }
 
-void stepC() {
+// relaySet = true, do Capacitor relay set
+void step_CorL(boolean relaySet) {
   // The first time called no relays would have been operated so we want to operate #1
-  int lastRelay;   // Relays currently operated. Zero = no relays operated
-  int nextRelay;   // Relays to be operated by this function
-  byte count = 0;  // General loop counter etc.
+  byte lastRelay;   // Relays currently operated. Zero = no relays operated
+  byte nextRelay;   // Relays to be operated by this function
+  int count = 0;  // General loop counter etc.
+  byte relays;
+  byte offset;
   
-  // Loop to find which bit is set. If no bits are set, counter will get to 8
-  for(count = 0; count < 8; count++){    // Find which bit is set
-    if(bitRead(_C_Relays, count)) break;
+  if(relaySet){
+    relays = _C_Relays;
+    offset = OUTC_0;
+  } else {
+    relays = _L_Relays;
+    offset = OUTL_0;
   }
+  Serial.print("The value of relays = ");
+  Serial.println(relays);
+  Serial.print("The value of offset = ");
+  Serial.println(offset);
+  // Loop to find which bit is set. If no bits are set, count will get to 8
+  for(count = 0; count < 8; count++){    // Find which bit is set
+    Serial.print("The value of bitRead(relays, count) = ");
+    Serial.println(bitRead(relays, count));
+    if(bitRead(relays, count) == 1) break;
+  }
+  count++; // Step to next relay
   Serial.print("The value of count = ");
   Serial.println(count);
 
-  if(count > 8) count = 0; // no bits were set if count got past 8
-  lastRelay = count;
-  nextRelay = lastRelay + 1;
-  
-  Serial.print("lastRelay and nextRelay values =   ");
-  Serial.print(lastRelay);
-  Serial.print(", ");
-  Serial.println(nextRelay);
-  
-  // Clear the previously operated relay and its associated bit in _C_Relays
-  if(lastRelay > 7){
-    clearRelays(false, true);
+  if(count == 9) count = 0; // Set to 1st bit as nothing set last time.
+  if(relaySet){
     _C_Relays = 0;
+    if(count < 8) bitSet(_C_Relays, count); // If 8 we clear relays only
   } else {
-    digitalWrite(OUTC_0 + lastRelay, LOW);
-    bitClear(_C_Relays, lastRelay);
+    _L_Relays = 0;
+    if(count < 8) bitSet(_L_Relays, count);
   }
-  // Set the current relay and its associated bit in _C_Relays
-  if (nextRelay > 7){
-    clearRelays(false, true);
-    _C_Relays = 0;
-  } else {
-    digitalWrite(OUTC_0 + nextRelay, HIGH);
-    bitSet(_C_Relays, nextRelay);
-  }
+//  lastRelay = count;
+//  nextRelay = lastRelay + 1;
+//  relays = count + 1;
+  Serial.print("_C_Relays, _L_Relays values =   ");
+  Serial.print(_C_Relays);
+  Serial.print(",   ");
+  Serial.println(_L_Relays);
+  
+  setRelays(offset, relaySet);
+
   delay(DELAY);
-  Serial.print("The value of _C_Relays is now ... ");
-  Serial.println(_C_Relays);
+  Serial.print("The operation was performed on relay ... ");
+  Serial.println((count + 1));
+  Serial.println("--------------------------------------------------------------------------------");
+}
+
+// Sets or clears a set of 8 contiguous data pins starting at offset. The bits are
+// read 0 .. 7 from _C_Relays or _L_Relays globals depending on option. True = L.
+// The bits are written to digital outputs starting at "offset".
+void setRelays(int offset, boolean relaySet) {
+  int relays;
+  
+  if(relaySet){
+    relays = _C_Relays;
+  } else {
+    relays = _L_Relays;
+  }
+  Serial.print("Wrote pattern (0 .. 7  ");
+  for(int x = offset; x < (offset + 8); x++){
+    digitalWrite(x, bitRead(relays, (x - offset)));
+    Serial.print(bitRead(relays, (x - offset)));
+    Serial.print(", ");
+  }
+  Serial.print(offset);
+  Serial.print(" || ");
+  Serial.println(relays);
 }
 
 void stepL() {
