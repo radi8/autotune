@@ -140,26 +140,30 @@ void step_CorL(boolean relaySet) {
   Serial.println("--------------------------------------------------------------------------------");
 }
 
-// Sets or clears a set of 8 contiguous data pins starting at offset. The bits are
-// read 0 .. 7 from _C_Relays or _L_Relays globals depending on option. True = L.
-// The bits are written to digital outputs starting at "offset".
+// Writes to a set of 8 contiguous data pins starting at offset. The bits setting the relay
+// state are read 0 .. 7 from _C_Relays or _L_Relays globals depending on "relaySet" value
+// where true = C. The bits are written to the digital outputs starting at "offset".
 void setRelays(int offset, boolean relaySet) {
   int relays;
   
+  Serial.println("Function = setRelays(int offset, boolean relaySet)");
   if(relaySet){
     relays = _C_Relays;
+    Serial.print("Writing to _C_Relays using offset of ");
+    Serial.println(offset);
   } else {
     relays = _L_Relays;
+    Serial.print("Writing to _L_Relays using offset of ");
+    Serial.println(offset);
   }
-  Serial.print("Wrote pattern (0 .. 7  ");
+  Serial.println("Relay# 1 2 3 4 5 6 7 8");
+  Serial.println("       ");
   for(int x = offset; x < (offset + 8); x++){
     digitalWrite(x, bitRead(relays, (x - offset)));
     Serial.print(bitRead(relays, (x - offset)));
-    Serial.print(", ");
+    Serial.print(" ");
   }
-  Serial.print(offset);
-  Serial.print(" || ");
-  Serial.println(relays);
+  Serial.println();
   delay(DELAY);
 }
 /*
