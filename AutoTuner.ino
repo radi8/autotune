@@ -233,58 +233,75 @@ void fineSteps_C(boolean dir) {
  */
 }
 
-// We set each relay (either L or C) in turn and check to see if SWR is better or
-// worse. If better do the next relay, if worse go back to previous relay. "C_or_L"
-// is used to choose which relay set we are working on. True = C, false = L.
+// We set each relay in turn and check to see if SWR is better or worse. If better do
+// the next relay, if worse go back to previous relay. Find best "C" relay first then
+// best "L" relay. Retry with capacitor relays at other end if inductors
 
-void courseSteps(boolean C_or_L) {
-  unsigned int lastSWR;
-  unsigned int tempSWR;
-  int SWRout = 100;
-  int out_0, out_7; //Maps to Capacitor relay bank if C_or_L true, else inductor relay bank.
-/*  
-  if (C_or_L) { // We are working on "C" relay set here
-    clearRelays(false, true); // Reset all capacitor relays
-    out_0 = OUTC_0;
-    out_7 = OUTC_7;
-  } else {      // We are working on "L" relay set here
-    clearRelays(true, false); // Reset all inductor relays
-    out_0 = OUTL_0;
-    out_7 = OUTL_7;    
-  }
-  if (C_or_L) {
-    Serial.print("Initial capacitors no operated relays swr value = "); // Debug Message
-  } else {
-    Serial.print("Initial inductors no operated relays swr value = "); // Debug Message
-  }
-  lastSWR = getSWR(); // Get SWR with no relays operated
-  Serial.println();
-
-  for(int i = out_0; i <= out_7; i++){ 
-    Serial.print("Running through loop at i value = ");
-    Serial.println(i);
-    // For all but the first relay we need to switch off the previous one
-    if (i > out_0) digitalWrite(i-1, LOW);
-    digitalWrite(i, HIGH);
-    delay(DELAY); // Give relay time to operate & previous relay to release
-    
-    // read new SWR and compare to lastSWR. If better step again
-    // if worse go back to previous relay and exit
-    tempSWR = getSWR();    
-    if (tempSWR < lastSWR + 10) {
-      lastSWR = tempSWR;
+void courseSteps() {
+  unsigned int bestSWR;
+  unsigned int temp;
+  unsigned int co_bestSWR;
+  byte bestC;
+  byte bestL;
+  byte co_bestL;
+  
+  
+  //Initialise with no relays operated, no changeover relay and SWR at this state
+  _C_Relays = 0;
+  _L_Relays = 0;
+  setRelays(OUTC_0, C); // Switch off all the Capacitor relays
+  setRelays(OUTL_0, L); // Switch off all the Inductor relays
+  digitalWrite(coRelay, LOW);
+  bestSWR = getSWR();
+  
+  // Need to insert a loop here to keep redoing this until SWR
+  // stops getting better. Could use ...
+  // if (bestSWR better than initialSWR ...
+  // or while(bestSWR better than initial ... 
+  
+  // Start with the capacitors
+  for(int i =0; i < 8; i++){
+    _C_Relays = 0;
+    bitSet(_C_Relays, i + OUTC_0);
+    setRelays(OUTC_0, C);
+    temp = getSWR();
+    if (temp < bestSWR) {
+     bestSWR = temp;
+     bestC = _C_Relays;
     } else {
-      digitalWrite(i, LOW); // Turn off current relay and turn on previous one.
-      digitalWrite(i-1, HIGH); // lastSWR[2] is holding the previous swr which
-                               // now become the current reading
-      Serial.print("SWR was greater than previous reading so operated relay = ");
-      Serial.println(i-1);
-      delay(DELAY);
-      break;
+      break; // Break when SWR gets worse leaving best swr settings stored
     }
   }
-  Serial.println();
-  */
+  // Now the inductors
+  for(int i =0; i < 8; i++){
+    _L_Relays = 0;
+    bitSet(_L_Relays, i);
+    setRelays(OUTL_0, L);
+    temp = getSWR();
+    if (temp < bestSWR) { 
+     bestSWR = temp; 
+     bestL = _L_Relays;
+    } else {    // As soon as SWR gets worse, stop adding L and
+      break;    // exit leaving best swr settings.
+    }
+  }
+  // Now swap ends with C and retry the inductors
+  digitalWrite(coRelay, HIGH);
+  co_bestSWR = bestSWR;
+  for(int i =0; i < 8; i++){
+    _L_Relays = 0;
+    bitSet(_L_Relays, i);
+    setRelays(OUTL_0, L);
+    temp = getSWR();
+    if (temp < co_bestSWR) {
+     co_bestSWR = temp;
+     co_bestL = _L_Relays;
+    }
+    if(co_bestSWR < bestSWR) {
+      bestSWR = co_bestSWR;
+      _L_Relays = co_bestL;
+    } else digitalWrite(coRelay, HIGH);
+  }
 }
 
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
