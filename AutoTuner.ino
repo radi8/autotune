@@ -254,6 +254,9 @@ void courseSteps() {
   digitalWrite(coRelay, LOW);
   bestSWR = getSWR();
   
+  Serial.print("Initial swr reading  = ");
+  Serial.println(bestSWR);
+  
   // Need to insert a loop here to keep redoing this until SWR
   // stops getting better. Could use ...
   // if (bestSWR better than initialSWR ...
@@ -272,6 +275,10 @@ void courseSteps() {
       break; // Break when SWR gets worse leaving best swr settings stored
     }
   }
+  
+  Serial.print("SWR after capacitors = ");
+  Serial.println(bestSWR);
+  
   // Now the inductors
   for(int i =0; i < 8; i++){
     _L_Relays = 0;
@@ -285,6 +292,10 @@ void courseSteps() {
       break;    // exit leaving best swr settings.
     }
   }
+  
+  Serial.print("SWR after inductors  = ");
+  Serial.println(bestSWR);
+  
   // Now swap ends with C and retry the inductors
   digitalWrite(coRelay, HIGH);
   co_bestSWR = bestSWR;
@@ -300,8 +311,15 @@ void courseSteps() {
     if(co_bestSWR < bestSWR) {
       bestSWR = co_bestSWR;
       _L_Relays = co_bestL;
-    } else digitalWrite(coRelay, HIGH);
+      Serial.println("C/O relay operated");
+    } else {
+      digitalWrite(coRelay, LOW);
+      Serial.println("C/O relay released");
+    }
   }
+  
+  Serial.print("SWR after c/o relay  = ");
+  Serial.println(bestSWR);
 }
 
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
@@ -313,7 +331,7 @@ unsigned int getSWR() {
   
   revPwr = analogRead(reverse);
   fwdPwr = analogRead(forward);
-  if (fwdPwr <= revPwr) revPwr = fwdPwr - 1; //Avoid division by zero or negative.
+  if (fwdPwr <= revPwr) revPwr = (fwdPwr - 1); //Avoid division by zero or negative.
   swr = ((fwdPwr + revPwr) * 1000) / (fwdPwr - revPwr);// Multiply by 1000 avoids floats
   Serial.print("SWR readings fwd, rev, fwd+rev*1000, swr = "); // & keeps precision.
   Serial.print(fwdPwr);
