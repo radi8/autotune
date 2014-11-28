@@ -144,28 +144,7 @@ void setRelays(boolean relaySet) {
   Serial.println();
   delay(DELAY);
 }
-/*
-void stepL() {
-  static int nextRelay = 1;
-  
-  Serial.print("Operating Inductor relay number ");
-  Serial.println(nextRelay);
-  
-  int current = OUTL_0 + nextRelay - 1; //OUTC_0..7 mapped from 1 ..8
-  nextRelay++; // Increment for next time through
-  if (nextRelay == 1) {
-    clearRelays(true, false);
-  } else {
-    if (nextRelay > 8) nextRelay = 0;
-    if (current != OUTL_0) {           // Don't release previous relay if doing relay 1
-      digitalWrite(current - 1, LOW);  
-      delay(DELAY);
-    }
-    digitalWrite(current, HIGH);      //Turn on next relay in sequence
-    delay(DELAY);
-  }
-}
-*/
+
 boolean handle_button() {
   static boolean button_was_pressed = false;
   boolean event;
@@ -180,29 +159,7 @@ boolean handle_button() {
   button_was_pressed = button_now_pressed;
   return event;
 }
-/*
-void clearRelays(boolean clearL, boolean clearC) {
-  if (clearC) {
-    Serial.print("Relay number cleared = "); // Debug message
-    for(int i = OUTC_0; i <= OUTC_7; i++){ 
-      digitalWrite(i, LOW);   // Set all Capacitor relays off
-      Serial.print(i - 2);  // Debug message
-      Serial.print(", ");  // Debug message
-    }
-    Serial.println("Capacitor Relays cleared");
-  }
-  if (clearL) {
-    Serial.print("Relay number cleared = "); // Debug message
-    for(int i = OUTL_0; i <= OUTL_7; i++){ 
-      digitalWrite(i, LOW);   // Set all Inductortor relays off
-      Serial.print(i - 12);  // Debug message
-      Serial.print(", ");  // Debug message
-    }
-    Serial.println("Inductor Relays cleared");   
-  }  
-  delay(DELAY);  // Give relays time to release before returning
-}
-*/
+
 void fineSteps_C(boolean dir) {
   /*
  if (data & (1<<y)) {
@@ -258,7 +215,7 @@ void courseSteps() {
   
   Serial.print("SWR after capacitors = ");
   Serial.println(bestSWR);
-  
+/*  
   // Now the inductors
   for(int i =0; i < 8; i++){
     _L_Relays = 0;
@@ -300,6 +257,7 @@ void courseSteps() {
   
   Serial.print("SWR after c/o relay  = ");
   Serial.println(bestSWR);
+*/  
 }
 
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
