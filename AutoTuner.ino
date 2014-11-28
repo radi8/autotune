@@ -5,27 +5,14 @@
 //Course stepping through L & C for best SWR
 /////////////////////////////////////////////////////////////////
 
-//Digital outputs for L & C Latches
-#define OUTC_0         2  // Must be contiguous
-#define OUTC_1         3
-#define OUTC_2         4
-#define OUTC_3         5
-#define OUTC_4         6
-#define OUTC_5         7
-#define OUTC_6         8
-#define OUTC_7         9
+//Shift Register for L & C driver Pin assign
+#define Cdata 2
+#define Cclock 3
+#define Ldata 4
+#define Lclock 5
 
 #define BUTTON_PIN    10   // Push Button
 #define coRelay       11   // Capacitor set c/o relay
-
-#define OUTL_0        12  // Must be contiguous
-#define OUTL_1        13
-#define OUTL_2        14  // A0
-#define OUTL_3        15  // A1
-#define OUTL_4        16  // A2
-#define OUTL_5        17  // A3
-#define OUTL_6        18  // A4
-#define OUTL_7        19  // A5
 
 #define forward       A6  // Measure forward SWR on this pin
 #define reverse       A7  // Measure reverse SWR on this pin
@@ -42,14 +29,10 @@ byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
 
 void setup() { 
-  // initialize the digital pins as outputs.
-  for(int i = OUTC_0; i <= OUTC_7; i++){ // Set all C Relay signals to output
-    pinMode(i, OUTPUT);
-  }
-
-  for(int i = OUTL_0; i <= OUTL_7; i++){ // Set all L Relay signals to output
-    pinMode(i, OUTPUT);
-  }  
+  pinMode(Cclock, OUTPUT); // make the Capacitor clock pin an output
+  pinMode(Cdata , OUTPUT); // make the Capacitor data pin an output
+  pinMode(Lclock, OUTPUT); // make the Inductor clock pin an output
+  pinMode(Ldata , OUTPUT); // make the Inductor data pin an output  
 
   pinMode(BUTTON_PIN, INPUT);
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
