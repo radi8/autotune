@@ -45,8 +45,8 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  setRelays(OUTC_0, C); // Switch off all the Capacitor relays ( _C_Relays = 0 )
-  setRelays(OUTL_0, L); // Switch off all the Inductor relays ( _L_Relays = 0 )
+  setRelays(C); // Switch off all the Capacitor relays ( _C_Relays = 0 )
+  setRelays(L); // Switch off all the Inductor relays ( _L_Relays = 0 )
 } 
 
 void loop(){
@@ -73,14 +73,11 @@ void step_CorL(boolean relaySet) {
   // The first time called no relays would have been operated so we want to operate #1
   int count = 0;  // General loop counter etc.
   byte relays;
-  byte offset;
   
   if(relaySet){
     relays = _C_Relays;
-    offset = OUTC_0;
   } else {
     relays = _L_Relays;
-    offset = OUTL_0;
   }
   Serial.println("Arrived at step_CorL(boolean relaySet)");
   Serial.println();
@@ -114,33 +111,33 @@ void step_CorL(boolean relaySet) {
   Serial.print(",   ");
   Serial.println(_L_Relays);
   
-  setRelays(offset, relaySet);
+  setRelays(relaySet);
 
   delay(DELAY);
   Serial.println("--------------------------------------------------------------------------------");
 }
 
-// Writes to a set of 8 contiguous data pins starting at offset. The bits setting the relay
-// state are read 0 .. 7 from _C_Relays or _L_Relays globals depending on "relaySet" value
-// where true = C. The bits are written to the digital outputs starting at "offset".
-void setRelays(int offset, boolean relaySet) {
-  int relays;
+// Writes a byte either _C_Relays or _L_Relays to a shift register. The shift register chosen
+// depends on "relaySet" value where true = C and false = L.
+void setRelays(boolean relaySet) {
+  byte relays;
   
-  Serial.println("Function = setRelays(int offset, boolean relaySet)");
+  Serial.println("Function = setRelays(byte value, boolean relaySet)");
   if(relaySet){
     relays = _C_Relays;
-    Serial.print("Writing to _C_Relays using offset of ");
-    Serial.println(offset);
+    shiftOut(Cdata, Cclock, LSBFIRST, relays); // send this binary value to the Capacitor shift register
+    Serial.print("Writing to _C_Relays using value of ");
+    Serial.println(relays);
   } else {
     relays = _L_Relays;
-    Serial.print("Writing to _L_Relays using offset of ");
-    Serial.println(offset);
+    shiftOut(Ldata, Lclock, LSBFIRST, relays); // send this binary value to the Inductor shift register
+    Serial.print("Writing to _L_Relays using value of ");
+    Serial.println(relays);
   }
   Serial.println("Relay# 1 2 3 4 5 6 7 8");
   Serial.print("       ");
-  for(int x = offset; x < (offset + 8); x++){
-    digitalWrite(x, bitRead(relays, (x - offset)));
-    Serial.print(bitRead(relays, (x - offset)));
+  for(int x = 0; x < 8; x++){
+    Serial.print(bitRead(relays, x));
     Serial.print(" ");
   }
   Serial.println();
@@ -232,8 +229,8 @@ void courseSteps() {
   //Initialise with no relays operated, no changeover relay and SWR at this state
   _C_Relays = 0;
   _L_Relays = 0;
-  setRelays(OUTC_0, C); // Switch off all the Capacitor relays
-  setRelays(OUTL_0, L); // Switch off all the Inductor relays
+  setRelays(C); // Switch off all the Capacitor relays
+  setRelays(L); // Switch off all the Inductor relays
   digitalWrite(coRelay, LOW);
   bestSWR = getSWR();
   
@@ -248,8 +245,8 @@ void courseSteps() {
   // Start with the capacitors
   for(int i =0; i < 8; i++){
     _C_Relays = 0;
-    bitSet(_C_Relays, i + OUTC_0);
-    setRelays(OUTC_0, C);
+    bitSet(_C_Relays, i);
+    setRelays(C);
     temp = getSWR();
     if (temp < bestSWR) {
      bestSWR = temp;
@@ -266,7 +263,7 @@ void courseSteps() {
   for(int i =0; i < 8; i++){
     _L_Relays = 0;
     bitSet(_L_Relays, i);
-    setRelays(OUTL_0, L);
+    setRelays(L);
     temp = getSWR();
     if (temp < bestSWR) { 
      bestSWR = temp; 
@@ -285,7 +282,7 @@ void courseSteps() {
   for(int i =0; i < 8; i++){
     _L_Relays = 0;
     bitSet(_L_Relays, i);
-    setRelays(OUTL_0, L);
+    setRelays(L);
     temp = getSWR();
     if (temp < co_bestSWR) {
      co_bestSWR = temp;
