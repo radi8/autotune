@@ -8,6 +8,7 @@
 // Debug Defines
 #define DEBUG_RELAY_STATE
 #define DEBUG_CURRENT_FUNCTION
+//#define DEBUG_SWR_VALUES
 // Shift Register for L & C driver Pin assign
 #define Cdata 2
 #define Cclock 3
@@ -30,18 +31,17 @@
 // Global variables
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
+unsigned int _SWR;
 
 void setup() { 
   pinMode(Cclock, OUTPUT); // make the Capacitor clock pin an output
   pinMode(Cdata , OUTPUT); // make the Capacitor data pin an output
   pinMode(Lclock, OUTPUT); // make the Inductor clock pin an output
   pinMode(Ldata , OUTPUT); // make the Inductor data pin an output  
-
+  pinMode(coRelay, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
-  // Debug The coRelay will be an output in final. Used to detect C or L relays to be stepped
-  pinMode(coRelay, INPUT);
-  digitalWrite(coRelay, HIGH); // pull-up activated
+  digitalWrite(coRelay, LOW); // Set capacitor C/O relay to input side
   
   //Initialize serial and wait for port to open:
   Serial.begin(9600); 
@@ -58,18 +58,145 @@ void loop(){
   boolean button_pressed = handle_button();
   if (button_pressed) {
     Serial.print("button_pressed");
-    if (digitalRead(coRelay)){
-      Serial.print(", doing C relays, digitalRead(coRelay) = ");
-      Serial.println(digitalRead(coRelay));
-      step_CorL(C); // Do capacitor relays
-    } else {
-      Serial.print(", doing L relays, digitalRead(coRelay) = ");
-      Serial.println(digitalRead(coRelay));
-      step_CorL(L);  // Do Inductor relays
-    }
+    doRelayCourseSteps();
   }
   delay(DELAY);
 }
+
+void doRelayCourseSteps(){
+  unsigned int currentSWR;
+  unsigned int bestSWR;
+  unsigned int co_bestSWR;
+  byte bestC;
+  byte bestL;
+  byte bestCnt = 0;
+  byte cnt = 0;
+  
+  // Initialise with no relays operated, no changeover relay and SWR at this state
+  _C_Relays = 0;
+  _L_Relays = 0;
+  setRelays(L); // Switch off all the Inductor relays
+  setRelays(C); // Switch off all the Capacitor relays
+  digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
+  currentSWR = getSWR();
+  bestSWR = currentSWR + 1; // Dummy value to force bestSWR to be written from
+                            // currentSWR first time through for loop
+/*  
+  Serial.print("cnt = ");
+  Serial.print(cnt);
+  Serial.print(",  _C_Relays = ");
+  Serial.print(_C_Relays);
+  Serial.print(",  currentSWR = ");
+  Serial.print(currentSWR);
+  Serial.print(",  bestSWR = ");
+  Serial.println(bestSWR);
+  Serial.println("******************************************************");
+  cnt = 1;
+*/  
+  // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
+  // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
+  // the lowest SWR
+  for(cnt = 0; cnt < 9; cnt++){
+    if(cnt > 0){
+      _C_Relays = 0;
+      bitSet(_C_Relays,cnt - 1);
+      setRelays(C); // Stepping through the Capacitor relays
+      currentSWR = getSWR();
+    }
+        // debug
+    if(cnt == 6) currentSWR = bestSWR - 20; // Make currentSWR worse than bestSWR
+    if(currentSWR < bestSWR){
+      bestSWR = currentSWR;
+      bestCnt = cnt;
+    }
+    Serial.print("cnt = ");
+    Serial.print(cnt);
+    Serial.print(",  bestCnt = ");
+    Serial.print(bestCnt);
+    Serial.print(",  _C_Relays = ");
+    Serial.print(_C_Relays);
+    Serial.print(",  currentSWR = ");
+    Serial.print(currentSWR);
+    Serial.print(",  bestSWR = ");
+    Serial.println(bestSWR);
+    Serial.println("******************************************************");
+//    cnt++;    
+//    if(cnt > 7){
+//     cnt++;
+//     break;
+//    }
+  } // while(currentSWR < (previousSWR + 10));
+  Serial.print("############## Current value of cnt = ");
+  Serial.println(cnt);
+  _C_Relays = 0;
+  if(bestCnt > 0) bitSet(_C_Relays, bestCnt - 1);
+  setRelays(C); // Leave capacitors with best capacitor set
+/*
+  if((cnt - 2) > 0) bitSet(_C_Relays, (cnt - 2));
+  setRelays(C); // Set the best SWR relay
+  currentSWR = getSWR();
+  bestSWR = currentSWR; // SWR readings ready for finding best L
+  
+  Serial.print("_C_Relays value = ");
+  Serial.print(_C_Relays);
+  Serial.print(",  currentSWR = ");
+  Serial.println(currentSWR);
+  // At this point we have found the capacitor which gives the lowest SWR. Now try Inductors.
+  cnt = 1;
+  do{
+    _L_Relays = 1 << (cnt - 1);
+    setRelays(L); // Step through the Inductor relays
+    previousSWR = currentSWR;
+    currentSWR = getSWR();
+    // debug
+//    if(cnt == 5) previousSWR = currentSWR - 20;
+    Serial.print("cnt = ");
+    Serial.print(cnt);
+    Serial.print(",  _L_Relays = ");
+    Serial.print(_L_Relays);
+    Serial.print(",  previousSWR = ");
+    Serial.print(previousSWR);
+    Serial.print(",  currentSWR = ");
+    Serial.println(currentSWR);
+    Serial.println("******************************************************");
+    cnt++;    
+    if(cnt > 8){
+     cnt++;
+     break;
+    }
+  } while(currentSWR < (previousSWR + 10));
+  _L_Relays = 1 << (cnt - 3);
+  setRelays(L); // Set the best SWR relay
+  currentSWR = getSWR();
+  previousSWR = currentSWR; // SWR readings ready for finding if coRelay needed
+*/  
+}
+
+// Writes a byte either _C_Relays or _L_Relays to a shift register. The shift register chosen
+// depends on "relaySet" value where true = C and false = L.
+void setRelays(boolean relaySet) {
+  byte relays;
+  
+  #ifdef DEBUG_CURRENT_FUNCTION
+    Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
+    Serial.print(relaySet);
+    Serial.print(" and _C_Relays = ");
+    Serial.println(_C_Relays);
+  #endif
+  if(relaySet){
+    relays = _C_Relays;
+    shiftOut(Cdata, Cclock, MSBFIRST, relays); // send this binary value to the Capacitor shift register
+  } else {
+    relays = _L_Relays;
+    shiftOut(Ldata, Lclock, MSBFIRST, relays); // send this binary value to the Inductor shift register
+  }
+  #ifdef DEBUG_RELAY_STATE
+    dbugRelayState();
+  #endif
+  Serial.println();
+  delay(DELAY);
+}
+
 
 // relaySet = true, do Capacitor relay set
 void step_CorL(boolean relaySet) {
@@ -121,29 +248,6 @@ void step_CorL(boolean relaySet) {
 
   delay(DELAY);
   Serial.println("--------------------------------------------------------------------------------");
-}
-
-// Writes a byte either _C_Relays or _L_Relays to a shift register. The shift register chosen
-// depends on "relaySet" value where true = C and false = L.
-void setRelays(boolean relaySet) {
-  byte relays;
-  
-  #ifdef DEBUG_CURRENT_FUNCTION
-    Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
-    Serial.println(relaySet);
-  #endif
-  if(relaySet){
-    relays = _C_Relays;
-    shiftOut(Cdata, Cclock, MSBFIRST, relays); // send this binary value to the Capacitor shift register
-  } else {
-    relays = _L_Relays;
-    shiftOut(Ldata, Lclock, MSBFIRST, relays); // send this binary value to the Inductor shift register
-  }
-  #ifdef DEBUG_RELAY_STATE
-    dbugRelayState();
-  #endif
-  Serial.println();
-  delay(DELAY);
 }
 
 boolean handle_button() {
@@ -272,14 +376,16 @@ unsigned int getSWR() {
   fwdPwr = analogRead(forward);
   if (fwdPwr <= revPwr) revPwr = (fwdPwr - 1); //Avoid division by zero or negative.
   swr = ((fwdPwr + revPwr) * 1000) / (fwdPwr - revPwr);// Multiply by 1000 avoids floats
-  Serial.print("SWR readings fwd, rev, fwd+rev*1000, swr = "); // & keeps precision.
-  Serial.print(fwdPwr);
-  Serial.print(", ");
-  Serial.print(revPwr);
-  Serial.print(", ");
-  Serial.print((fwdPwr + revPwr) * 1000);
-  Serial.print(", ");
-  Serial.println(swr);
+  #ifdef DEBUG_SWR_VALUES
+    Serial.print("SWR readings fwd, rev, fwd+rev*1000, swr = "); // & keeps precision.
+    Serial.print(fwdPwr);
+    Serial.print(", ");
+    Serial.print(revPwr);
+    Serial.print(", ");
+    Serial.print((fwdPwr + revPwr) * 1000);
+    Serial.print(", ");
+    Serial.println(swr);
+  #endif
   
   return swr;
 }
