@@ -5,7 +5,10 @@
 //Course stepping through L & C for best SWR
 /////////////////////////////////////////////////////////////////
 
-//Shift Register for L & C driver Pin assign
+// Debug Defines
+#define DEBUG_RELAY_STATE
+#define DEBUG_CURRENT_FUNCTION
+// Shift Register for L & C driver Pin assign
 #define Cdata 2
 #define Cclock 3
 #define Ldata 4
@@ -74,13 +77,16 @@ void step_CorL(boolean relaySet) {
   int count = 0;  // General loop counter etc.
   byte relays;
   
+  #ifdef DEBUG_CURRENT_FUNCTION
+    Serial.println("Arrived at step_CorL(boolean relaySet) with value of relaySet = ");
+    Serial.println(relaySet);
+  #endif
+  
   if(relaySet){
-    relays = _C_Relays;
+    relays = _C_Relays; // _C_Relays is a byte holding the state of the capacitor relay set
   } else {
-    relays = _L_Relays;
+    relays = _L_Relays; // _L_Relays is a byte holding the state of the inductor relay set
   }
-  Serial.println("Arrived at step_CorL(boolean relaySet)");
-  Serial.println();
   
   Serial.println("Relay# 1 2 3 4 5 6 7 8");
   Serial.print("       ");
@@ -111,7 +117,7 @@ void step_CorL(boolean relaySet) {
   Serial.print(",   ");
   Serial.println(_L_Relays);
   
-  setRelays(relaySet);
+  setRelays(relaySet); // Operate the appropriate relay
 
   delay(DELAY);
   Serial.println("--------------------------------------------------------------------------------");
@@ -122,25 +128,20 @@ void step_CorL(boolean relaySet) {
 void setRelays(boolean relaySet) {
   byte relays;
   
-  Serial.println("Function = setRelays(byte value, boolean relaySet)");
+  #ifdef DEBUG_CURRENT_FUNCTION
+    Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
+    Serial.println(relaySet);
+  #endif
   if(relaySet){
     relays = _C_Relays;
-    shiftOut(Cdata, Cclock, LSBFIRST, relays); // send this binary value to the Capacitor shift register
-    Serial.print("Writing to _C_Relays using value of ");
-    Serial.println(relays);
+    shiftOut(Cdata, Cclock, MSBFIRST, relays); // send this binary value to the Capacitor shift register
   } else {
     relays = _L_Relays;
-    shiftOut(Ldata, Lclock, LSBFIRST, relays); // send this binary value to the Inductor shift register
-    Serial.print("Writing to _L_Relays using value of ");
-    Serial.println(relays);
+    shiftOut(Ldata, Lclock, MSBFIRST, relays); // send this binary value to the Inductor shift register
   }
-  Serial.println("Relay# 1 2 3 4 5 6 7 8");
-  Serial.print("       ");
-  for(int x = 0; x < 8; x++){
-    Serial.print(bitRead(relays, x));
-    Serial.print(" ");
-  }
-  Serial.println();
+  #ifdef DEBUG_RELAY_STATE
+    dbugRelayState();
+  #endif
   Serial.println();
   delay(DELAY);
 }
@@ -283,3 +284,21 @@ unsigned int getSWR() {
   return swr;
 }
 
+void dbugRelayState(){
+  Serial.print("_C_Relays value = ");
+  Serial.print(_C_Relays);
+  Serial.print("      ... _L_Relays value = ");
+  Serial.println(_L_Relays);
+  Serial.println("C Relay# 1 2 3 4 5 6 7 8 ... L Relay# 1 2 3 4 5 6 7 8");
+  Serial.print("         ");
+  for(int x = 0; x < 8; x++){
+    Serial.print(bitRead(_C_Relays, x));
+    Serial.print(" ");
+  }
+  Serial.print("             ");
+  for(int x = 0; x < 8; x++){
+    Serial.print(bitRead(_L_Relays, x));
+    Serial.print(" ");
+  }
+  Serial.println();
+}
