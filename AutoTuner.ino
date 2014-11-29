@@ -81,18 +81,6 @@ void doRelayCourseSteps(){
   currentSWR = getSWR();
   bestSWR = currentSWR + 1; // Dummy value to force bestSWR to be written from
                             // currentSWR first time through for loop
-/*  
-  Serial.print("cnt = ");
-  Serial.print(cnt);
-  Serial.print(",  _C_Relays = ");
-  Serial.print(_C_Relays);
-  Serial.print(",  currentSWR = ");
-  Serial.print(currentSWR);
-  Serial.print(",  bestSWR = ");
-  Serial.println(bestSWR);
-  Serial.println("******************************************************");
-  cnt = 1;
-*/  
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
   // the lowest SWR
@@ -120,56 +108,46 @@ void doRelayCourseSteps(){
     Serial.print(",  bestSWR = ");
     Serial.println(bestSWR);
     Serial.println("******************************************************");
-//    cnt++;    
-//    if(cnt > 7){
-//     cnt++;
-//     break;
-//    }
-  } // while(currentSWR < (previousSWR + 10));
+  }
   Serial.print("############## Current value of cnt = ");
   Serial.println(cnt);
   _C_Relays = 0;
   if(bestCnt > 0) bitSet(_C_Relays, bestCnt - 1);
   setRelays(C); // Leave capacitors with best capacitor set
-/*
-  if((cnt - 2) > 0) bitSet(_C_Relays, (cnt - 2));
-  setRelays(C); // Set the best SWR relay
-  currentSWR = getSWR();
-  bestSWR = currentSWR; // SWR readings ready for finding best L
-  
-  Serial.print("_C_Relays value = ");
-  Serial.print(_C_Relays);
-  Serial.print(",  currentSWR = ");
-  Serial.println(currentSWR);
+
   // At this point we have found the capacitor which gives the lowest SWR. Now try Inductors.
-  cnt = 1;
-  do{
-    _L_Relays = 1 << (cnt - 1);
-    setRelays(L); // Step through the Inductor relays
-    previousSWR = currentSWR;
-    currentSWR = getSWR();
-    // debug
-//    if(cnt == 5) previousSWR = currentSWR - 20;
+  // Inductor relays are all released and we have bestSWR for this state.
+  bestCnt = 0;
+  for(cnt = 0; cnt < 9; cnt++){
+    if(cnt > 0){
+      _L_Relays = 0;
+      bitSet(_L_Relays,cnt - 1);
+      setRelays(L); // Stepping through the Capacitor relays
+      currentSWR = getSWR();
+    }
+        // debug
+    if(cnt == 1) currentSWR = bestSWR - 20; // Make currentSWR worse than bestSWR
+    if(currentSWR < bestSWR){
+      bestSWR = currentSWR;
+      bestCnt = cnt;
+    }
     Serial.print("cnt = ");
     Serial.print(cnt);
+    Serial.print(",  bestCnt = ");
+    Serial.print(bestCnt);
     Serial.print(",  _L_Relays = ");
     Serial.print(_L_Relays);
-    Serial.print(",  previousSWR = ");
-    Serial.print(previousSWR);
     Serial.print(",  currentSWR = ");
-    Serial.println(currentSWR);
+    Serial.print(currentSWR);
+    Serial.print(",  bestSWR = ");
+    Serial.println(bestSWR);
     Serial.println("******************************************************");
-    cnt++;    
-    if(cnt > 8){
-     cnt++;
-     break;
-    }
-  } while(currentSWR < (previousSWR + 10));
-  _L_Relays = 1 << (cnt - 3);
-  setRelays(L); // Set the best SWR relay
-  currentSWR = getSWR();
-  previousSWR = currentSWR; // SWR readings ready for finding if coRelay needed
-*/  
+  }
+  Serial.print("############## Current value of bestCnt = ");
+  Serial.println(bestCnt);
+  _L_Relays = 0;
+  if(bestCnt > 0) bitSet(_L_Relays, bestCnt - 1);
+  setRelays(L); // Best Inductor now set and we are ready for finding if coRelay needed  
 }
 
 // Writes a byte either _C_Relays or _L_Relays to a shift register. The shift register chosen
