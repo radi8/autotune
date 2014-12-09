@@ -8,7 +8,7 @@
 // Debug Defines
 #define DEBUG_RELAY_STATE
 #define DEBUG_CURRENT_FUNCTION
-//#define DEBUG_SWR_VALUES
+#define DEBUG_SWR_VALUES
 // Shift Register for L & C driver Pin assign
 #define Cdata 2
 #define Cclock 3
@@ -44,7 +44,7 @@ void setup() {
   digitalWrite(coRelay, LOW); // Set capacitor C/O relay to input side
   
   //Initialize serial and wait for port to open:
-  Serial.begin(9600); 
+  Serial.begin(115200); 
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
@@ -64,9 +64,9 @@ void loop(){
 }
 
 void doRelayCourseSteps(){
-  unsigned int currentSWR;
-  unsigned int bestSWR;
-  unsigned int co_bestSWR;
+  float currentSWR;
+  float bestSWR;
+  float co_bestSWR;
   byte bestC;
   byte bestL;
   byte bestCnt = 0;
@@ -92,7 +92,7 @@ void doRelayCourseSteps(){
       currentSWR = getSWR();
     }
         // debug
-    if(cnt == 6) currentSWR = bestSWR - 20; // Make currentSWR worse than bestSWR
+    if(cnt == 6) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
     if(currentSWR < bestSWR){
       bestSWR = currentSWR;
       bestCnt = cnt;
@@ -126,7 +126,7 @@ void doRelayCourseSteps(){
       currentSWR = getSWR();
     }
         // debug
-    if(cnt == 1) currentSWR = bestSWR - 20; // Make currentSWR worse than bestSWR
+    if(cnt == 1) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
     if(currentSWR < bestSWR){
       bestSWR = currentSWR;
       bestCnt = cnt;
@@ -158,7 +158,7 @@ void setRelays(boolean relaySet) {
   #ifdef DEBUG_CURRENT_FUNCTION
     Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
     Serial.print(relaySet);
-    Serial.print(" and _C_Relays = ");
+    Serial.print(" and _C_Relays value = ");
     Serial.println(_C_Relays);
   #endif
   if(relaySet){
@@ -171,11 +171,11 @@ void setRelays(boolean relaySet) {
   #ifdef DEBUG_RELAY_STATE
     dbugRelayState();
   #endif
-  Serial.println();
+//  Serial.println();
   delay(DELAY);
 }
 
-
+/*
 // relaySet = true, do Capacitor relay set
 void step_CorL(boolean relaySet) {
   // The first time called no relays would have been operated so we want to operate #1
@@ -227,7 +227,7 @@ void step_CorL(boolean relaySet) {
   delay(DELAY);
   Serial.println("--------------------------------------------------------------------------------");
 }
-
+*/
 boolean handle_button() {
   static boolean button_was_pressed = false;
   boolean event;
@@ -252,7 +252,7 @@ void fineSteps_C(boolean dir) {
  }
  */
 }
-
+/*
 // We set each relay in turn and check to see if SWR is better or worse. If better do
 // the next relay, if worse go back to previous relay. Find best "C" relay first then
 // best "L" relay. Retry with capacitor relays at other end if inductors
@@ -340,28 +340,30 @@ void courseSteps() {
   
   Serial.print("SWR after c/o relay  = ");
   Serial.println(bestSWR);
-*/  
+  
 }
-
+*/
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
 // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
-unsigned int getSWR() {
-  long fwdPwr;
-  long revPwr;
+float getSWR() {
+  float fwdPwr;
+  float revPwr;
   unsigned int swr;
   
   revPwr = analogRead(reverse);
   fwdPwr = analogRead(forward);
-  if (fwdPwr <= revPwr) revPwr = (fwdPwr - 1); //Avoid division by zero or negative.
-  swr = ((fwdPwr + revPwr) * 1000) / (fwdPwr - revPwr);// Multiply by 1000 avoids floats
+  if(fwdPwr == 0) fwdPwr = 0.01; // Keep away from values causing divide by 0 errors
+  if(revPwr == 0) revPwr = 0.01;
+  if (fwdPwr <= revPwr) fwdPwr = (revPwr + 0.001); //Avoid division by zero or negative.
+  swr = (fwdPwr + revPwr) / (fwdPwr - revPwr);// Multiply by 1000 avoids floats
   #ifdef DEBUG_SWR_VALUES
-    Serial.print("SWR readings fwd, rev, fwd+rev*1000, swr = "); // & keeps precision.
+    Serial.print("SWR readings fwd, rev, swr = "); // & keeps precision.
     Serial.print(fwdPwr);
     Serial.print(", ");
     Serial.print(revPwr);
     Serial.print(", ");
-    Serial.print((fwdPwr + revPwr) * 1000);
-    Serial.print(", ");
+//    Serial.print((fwdPwr + revPwr) * 1000);
+//    Serial.print(", ");
     Serial.println(swr);
   #endif
   
