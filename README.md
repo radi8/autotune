@@ -39,3 +39,6 @@ A fine tune sequence is established to set exact capacitor
 value followed by best inductor. A reiteration is done
 to get the final values and the tuner waits for another
 button press.
+
+Bit out of date now. Will sort out readme soon.
+
