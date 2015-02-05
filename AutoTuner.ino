@@ -10,16 +10,17 @@
 #define DEBUG_CURRENT_FUNCTION
 #define DEBUG_SWR_VALUES
 // Shift Register for L & C driver Pin assign
-#define Cdata 2
-#define Cclock 3
-#define Ldata 4
-#define Lclock 5
+#define Cclock 2
+#define Cdata 3
+#define Lclock 4
+#define Ldata 5
 
 #define BUTTON_PIN    10   // Push Button
-#define coRelay       11   // Capacitor set c/o relay
+#define coRelay       7    // Capacitor set c/o relay
+#define swrGain       8    //Switchable gain for swr amplifiers
 
-#define forward       A6  // Measure forward SWR on this pin
-#define reverse       A7  // Measure reverse SWR on this pin
+#define forward       A0  // Measure forward SWR on this pin
+#define reverse       A1  // Measure reverse SWR on this pin
 
 #define DELAY         20  // Delay per loop in ms
 
@@ -42,6 +43,7 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT);
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
   digitalWrite(coRelay, LOW); // Set capacitor C/O relay to input side
+  digitalWrite(swrGain, HIGH); // Start with lowest gain for amps.
   
   //Initialize serial and wait for port to open:
   Serial.begin(115200); 
