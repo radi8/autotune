@@ -6,24 +6,26 @@
 /////////////////////////////////////////////////////////////////
 
 // Debug Defines
-#define DEBUG_RELAY_STATE
-#define DEBUG_CURRENT_FUNCTION
-#define DEBUG_SWR_VALUES
+//#define DEBUG_RELAY_STATE
+//#define DEBUG_CURRENT_FUNCTION
+//#define DEBUG_SWR_VALUES
+#define DEBUG_SHIFT
 
 // Shift Register for L & C driver Pin assign
-#define Cclock 2
-#define Cdata 3
-#define Lclock 4
-#define Ldata 5
+#define Cclock 2 //Pin 8 of 74ls164 U4, pin 20 of Arduino nano
+#define Cdata 11  //Pins 1 & 2 of 74ls164 U4, pin 29 of Arduino nano
+#define Lclock 4 //Pin 8 of 74ls164 U3, pin 22 of Arduino nano
+#define Ldata 9  //Pins 1 & 2 of 74ls164 U3, pin 27 of Arduino nano
+#define LEDpin 13 //A LED is connected to this pin
 
 #define coRelay       7    // Capacitor set c/o relay
 #define swrGain       8    //Switchable gain for swr amplifiers
-#define BUTTON_PIN    10   // Push Button
+#define BUTTON_PIN    6    // Push Button
 
 #define forward       A0  // Measure forward SWR on this pin
 #define reverse       A1  // Measure reverse SWR on this pin
 
-#define DELAY         20  // Delay per loop in ms
+#define DELAY         50  // Delay per loop in ms
 
 #define C             true    // Capacitor relay set
 #define L             false   // Inductor relay set
@@ -43,29 +45,56 @@ void setup() {
   pinMode(Ldata , OUTPUT); // make the Inductor data pin an output  
   pinMode(coRelay, OUTPUT);
   pinMode(swrGain, OUTPUT);
+  pinMode(LEDpin, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
   
   digitalWrite(coRelay, LOW); // Set capacitor C/O relay to input side
   digitalWrite(swrGain, LOW); // Turns off fet shunting swr Start with highest gain for amps.voltages
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
+  digitalWrite(Cclock, LOW);
+  digitalWrite(LEDpin, LOW);
   
   //Initialize serial and wait for port to open:
   Serial.begin(115200); 
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
+  Serial.println("Arduino antenna tuner ver 0.1.0");
+  Serial.println("(C) 2015, Graeme Jury ZL2APV");
+  Serial.println();
   setRelays(C); // Switch off all the Capacitor relays ( _C_Relays = 0 )
   setRelays(L); // Switch off all the Inductor relays ( _L_Relays = 0 )
 } 
 /**********************************************************************************************************/
 
 void loop(){
+  byte C_RelaysTmp; // Holds map of operated relays with C/O on input
+  byte L_RelaysTmp; // 0 = released and 1 = operated
+  unsigned int SWRtmp;
   // The button press will step the selected Capacitor or Inductor relays
   // handle button
   boolean button_pressed = handle_button();
   if (button_pressed) {
-    Serial.print("button_pressed");
+    Serial.println("button_pressed");
+    digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
     doRelayCourseSteps();
+    //Save SWR and relay states and see if better with C/O relay on output
+    C_RelaysTmp = _C_Relays;
+    L_RelaysTmp = _L_Relays;
+    SWRtmp = _SWR;
+    digitalWrite(coRelay, HIGH); // Set capacitors to output side of L network
+    doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
+    //If not better restore relays to input state
+    if(SWRtmp >= _SWR) {
+      _C_Relays = C_RelaysTmp;
+      _L_Relays = L_RelaysTmp;
+      digitalWrite(coRelay, LOW);
+      setRelays(C);
+      setRelays(L);
+    }
+//    #ifdef DEBUG_RELAY_STATE
+      dbugRelayState();
+//    #endif
   }
   delay(DELAY);
 }
@@ -85,7 +114,7 @@ void doRelayCourseSteps(){
   _L_Relays = 0;
   setRelays(L); // Switch off all the Inductor relays
   setRelays(C); // Switch off all the Capacitor relays
-  digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
+//  digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
   currentSWR = getSWR();
   bestSWR = currentSWR + 1; // Dummy value to force bestSWR to be written from
                             // currentSWR first time through for loop
@@ -100,7 +129,7 @@ void doRelayCourseSteps(){
       currentSWR = getSWR();
     }
         // debug
-    if(cnt == 6) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
+//    if(cnt == 6) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
     if(currentSWR < bestSWR){
       bestSWR = currentSWR;
       bestCnt = cnt;
@@ -129,12 +158,12 @@ void doRelayCourseSteps(){
   for(cnt = 0; cnt < 9; cnt++){
     if(cnt > 0){
       _L_Relays = 0;
-      bitSet(_L_Relays,cnt - 1);
-      setRelays(L); // Stepping through the Capacitor relays
+      bitSet(_L_Relays, cnt - 1);
+      setRelays(L); // Stepping through the Inductor relays
       currentSWR = getSWR();
     }
         // debug
-    if(cnt == 1) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
+//    if(cnt == 1) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
     if(currentSWR < bestSWR){
       bestSWR = currentSWR;
       bestCnt = cnt;
@@ -168,25 +197,75 @@ void setRelays(boolean relaySet) {
 // Writes a byte either _C_Relays or _L_Relays to a shift register. The shift register chosen
 // depends on "relaySet" value where true = C and false = L.
 
-  byte relays;
+//  byte relays;
   
-  #ifdef DEBUG_CURRENT_FUNCTION
-    Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
-    Serial.print(relaySet);
-    Serial.print(" and _C_Relays value = ");
-    Serial.println(_C_Relays);
-  #endif
   if(relaySet){
-    relays = _C_Relays;
-    shiftOut(Cdata, Cclock, MSBFIRST, relays); // send this binary value to the Capacitor shift register
+//    relays = _C_Relays;
+    shiftOut(Cdata, Cclock, MSBFIRST, _C_Relays); // send this binary value to the Capacitor shift register
+    #ifdef DEBUG_CURRENT_FUNCTION
+      Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
+      Serial.print(relaySet);
+      Serial.print(" and _C_Relays value = ");
+      Serial.println(_C_Relays);
+    #endif    
   } else {
-    relays = _L_Relays;
-    shiftOut(Ldata, Lclock, MSBFIRST, relays); // send this binary value to the Inductor shift register
+//    relays = _L_Relays;
+    shiftOut(Ldata, Lclock, MSBFIRST, _L_Relays); // send this binary value to the Inductor shift register
+    #ifdef DEBUG_CURRENT_FUNCTION
+      Serial.print("Current function = setRelays(byte value, boolean relaySet) where relaySet = ");
+      Serial.print(relaySet);
+      Serial.print(" and _L_Relays value = ");
+      Serial.println(_L_Relays);
+    #endif    
   }
   #ifdef DEBUG_RELAY_STATE
     dbugRelayState();
   #endif
   delay(DELAY);
+}
+/**********************************************************************************************************/
+
+void shiftOutGJ(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, byte val)
+{
+      int i;
+      
+      #ifdef DEBUG_SHIFT
+        Serial.print("dataPin = ");
+        Serial.print(dataPin);
+        Serial.print(", ");
+        Serial.print("clockPin = ");
+        Serial.print(clockPin);
+        Serial.print(", ");
+        Serial.print("Entered with val = ");
+        Serial.println(val);
+      #endif  
+      digitalWrite(clockPin, LOW);
+      delayMicroseconds(45);
+      for (i = 0; i < 8; i++)  {
+            if (bitOrder == LSBFIRST) {
+                  digitalWrite(dataPin, !!(val & (1 << i)));
+                  delayMicroseconds(45);
+            }
+            else  {    
+                  digitalWrite(dataPin, !!(val & (1 << (7 - i))));
+                  #ifdef DEBUG_SHIFT
+                    Serial.print("i = ");
+                    Serial.print(i);
+                    Serial.print(", ");
+                    Serial.print("Shifted value of val = ");
+                    Serial.println(!!(val & (1 << (7 - i))));
+                  #endif
+                  delayMicroseconds(45);
+            }    
+            digitalWrite(clockPin, HIGH);
+            delayMicroseconds(45);
+            digitalWrite(clockPin, LOW);
+            delayMicroseconds(45);    
+      }
+      #ifdef DEBUG_SHIFT      
+        Serial.print("Exited with val  = ");
+        Serial.println(val);
+      #endif
 }
 /**********************************************************************************************************/
 
@@ -197,7 +276,7 @@ boolean handle_button() {
   int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
   event = button_now_pressed && !button_was_pressed;
   if (event) { // Check if button changed
-    delay(DELAY);
+    delay(10);
     int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
     event = button_now_pressed && !button_was_pressed;
   }
@@ -215,9 +294,11 @@ float getSWR() {
   unsigned int swr;
   
   digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
+  digitalWrite(LEDpin, HIGH);     // Indicate state of amplifier gain
   fwdPwr = analogRead(forward);
   if(fwdPwr > 950) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
+    digitalWrite(LEDpin, LOW);
     fwdPwr = analogRead(forward); // and re-read the forward power
   }
   revPwr = analogRead(reverse);
