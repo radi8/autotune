@@ -8,14 +8,16 @@
 // Debug Defines
 //#define DEBUG_RELAY_STATE
 //#define DEBUG_CURRENT_FUNCTION
-//#define DEBUG_SWR_VALUES
+#define DEBUG_SWR_VALUES
 #define DEBUG_SHIFT
 
+#define TX_LEVEL_THRESHOLD 5
+
 // Shift Register for L & C driver Pin assign
-#define Cclock 2 //Pin 8 of 74ls164 U4, pin 20 of Arduino nano
-#define Cdata 11  //Pins 1 & 2 of 74ls164 U4, pin 29 of Arduino nano
-#define Lclock 4 //Pin 8 of 74ls164 U3, pin 22 of Arduino nano
-#define Ldata 9  //Pins 1 & 2 of 74ls164 U3, pin 27 of Arduino nano
+#define Cclock 2  //Pin 8 of 74HC164 U4, pin 20 of Arduino nano
+#define Cdata 3   //Pin 2 of 74HC164 U4, pin 21 of Arduino nano
+#define Lclock 4  //Pin 8 of 74HC164 U3, pin 22 of Arduino nano
+#define Ldata 5   //Pins 1 & 2 of 74HC164 U3, pin 23 of Arduino nano
 #define LEDpin 13 //A LED is connected to this pin
 
 #define coRelay       7    // Capacitor set c/o relay
@@ -35,7 +37,7 @@
 // Global variables always start with an underscore
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
-unsigned int _SWR;
+float _SWR;
 /**********************************************************************************************************/
 
 void setup() { 
@@ -70,7 +72,7 @@ void setup() {
 void loop(){
   byte C_RelaysTmp; // Holds map of operated relays with C/O on input
   byte L_RelaysTmp; // 0 = released and 1 = operated
-  unsigned int SWRtmp;
+  float SWRtmp;
   // The button press will step the selected Capacitor or Inductor relays
   // handle button
   boolean button_pressed = handle_button();
@@ -82,18 +84,23 @@ void loop(){
     C_RelaysTmp = _C_Relays;
     L_RelaysTmp = _L_Relays;
     SWRtmp = _SWR;
-    digitalWrite(coRelay, HIGH); // Set capacitors to output side of L network
-    doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
-    //If not better restore relays to input state
-    if(SWRtmp >= _SWR) {
-      _C_Relays = C_RelaysTmp;
-      _L_Relays = L_RelaysTmp;
-      digitalWrite(coRelay, LOW);
-      setRelays(C);
-      setRelays(L);
+    if(_SWR > 1.05) {
+      digitalWrite(coRelay, HIGH); // Set capacitors to output side of L network
+      Serial.println("Set capacitors to output side of L network");
+      doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
+      //If not better restore relays to input state
+      if(SWRtmp >= _SWR) {
+        _C_Relays = C_RelaysTmp;
+        _L_Relays = L_RelaysTmp;
+        setRelays(C);
+        setRelays(L);
+      } else digitalWrite(coRelay, LOW);
     }
 //    #ifdef DEBUG_RELAY_STATE
+      Serial.print("SWR = ");
+      Serial.println(_SWR);
       dbugRelayState();
+      
 //    #endif
   }
   delay(DELAY);
@@ -116,11 +123,12 @@ void doRelayCourseSteps(){
   setRelays(C); // Switch off all the Capacitor relays
 //  digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
   currentSWR = getSWR();
-  bestSWR = currentSWR + 1; // Dummy value to force bestSWR to be written from
+  bestSWR = currentSWR + 0.0001; // Dummy value to force bestSWR to be written from
                             // currentSWR first time through for loop
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
   // the lowest SWR
+  Serial.println("Doing Capacitor sequence");
   for(cnt = 0; cnt < 9; cnt++){
     if(cnt > 0){
       _C_Relays = 0;
@@ -141,9 +149,9 @@ void doRelayCourseSteps(){
     Serial.print(",  _C_Relays = ");
     Serial.print(_C_Relays);
     Serial.print(",  currentSWR = ");
-    Serial.print(currentSWR);
+    Serial.print(currentSWR, 4);
     Serial.print(",  bestSWR = ");
-    Serial.println(bestSWR);
+    Serial.println(bestSWR, 4);
     Serial.println("******************************************************");
   }
   Serial.print("############## Current value of cnt = ");
@@ -154,6 +162,7 @@ void doRelayCourseSteps(){
 
   // At this point we have found the capacitor which gives the lowest SWR. Now try Inductors.
   // Inductor relays are all released and we have bestSWR for this state.
+  Serial.println("Doing Inductor sequence");
   bestCnt = 0;
   for(cnt = 0; cnt < 9; cnt++){
     if(cnt > 0){
@@ -175,9 +184,9 @@ void doRelayCourseSteps(){
     Serial.print(",  _L_Relays = ");
     Serial.print(_L_Relays);
     Serial.print(",  currentSWR = ");
-    Serial.print(currentSWR);
+    Serial.print(currentSWR, 4);
     Serial.print(",  bestSWR = ");
-    Serial.println(bestSWR);
+    Serial.println(bestSWR, 4);
     Serial.println("******************************************************");
   }
   Serial.print("############## Current value of bestCnt = ");
@@ -289,35 +298,33 @@ float getSWR() {
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
 // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
 
-  float fwdPwr;
-  float revPwr;
-  unsigned int swr;
+  int fwdVolts;
+  int revVolts;
   
   digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
   digitalWrite(LEDpin, HIGH);     // Indicate state of amplifier gain
-  fwdPwr = analogRead(forward);
-  if(fwdPwr > 950) {
+  fwdVolts = analogRead(forward);
+  if(fwdVolts > 950) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     digitalWrite(LEDpin, LOW);
-    fwdPwr = analogRead(forward); // and re-read the forward power
+    fwdVolts = analogRead(forward); // and re-read the forward power
   }
-  revPwr = analogRead(reverse);
-  if(fwdPwr == 0) fwdPwr = 0.01; // Keep away from values causing divide by 0 errors
-  if(revPwr == 0) revPwr = 0.01;
-  if (fwdPwr <= revPwr) fwdPwr = (revPwr + 0.001); //Avoid division by zero or negative.
-  swr = (fwdPwr + revPwr) / (fwdPwr - revPwr);
+  revVolts = analogRead(reverse);
+  if(fwdVolts > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
+    if (fwdVolts <= revVolts) revVolts = (fwdVolts - 1); //Avoid division by zero or negative.
+    _SWR = float((fwdVolts + revVolts)) / float((fwdVolts - revVolts));
+  } else {
+    _SWR = 100;
+  }
   #ifdef DEBUG_SWR_VALUES
-    Serial.print("SWR readings fwd, rev, swr = "); // & keeps precision.
-    Serial.print(fwdPwr);
+    Serial.print("getSWR: fwd, rev, swr = ");
+    Serial.print(fwdVolts);
     Serial.print(", ");
-    Serial.print(revPwr);
+    Serial.print(revVolts);
     Serial.print(", ");
-//    Serial.print((fwdPwr + revPwr) * 1000);
-//    Serial.print(", ");
-    Serial.println(swr);
+    Serial.println(_SWR, 4);
   #endif
-  
-  return swr;
+  return _SWR;
 }
 /**********************************************************************************************************/
 
