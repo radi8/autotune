@@ -7,11 +7,14 @@
 
 // Debug Defines
 //#define DEBUG_RELAY_STATE
+#define DEBUG_COARSE_TUNE_STATUS
 //#define DEBUG_CURRENT_FUNCTION
 #define DEBUG_SWR_VALUES
 #define DEBUG_SHIFT
 
 #define TX_LEVEL_THRESHOLD 5
+#define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
+#define CAPS_at_OUTPUT     HIGH
 
 // Shift Register for L & C driver Pin assign
 #define Cclock 2  //Pin 8 of 74HC164 U4, pin 20 of Arduino nano
@@ -38,6 +41,7 @@
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
 float _SWR;
+enum _C_STATE{C_at_Input, C_at_Output};
 /**********************************************************************************************************/
 
 void setup() { 
@@ -61,8 +65,8 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  Serial.println("Arduino antenna tuner ver 0.1.0");
-  Serial.println("(C) 2015, Graeme Jury ZL2APV");
+  Serial.println("Arduino antenna tuner ver 0.1.1");
+  Serial.println("Copyright (C) 2015, Graeme Jury ZL2APV");
   Serial.println();
   setRelays(C); // Switch off all the Capacitor relays ( _C_Relays = 0 )
   setRelays(L); // Switch off all the Inductor relays ( _L_Relays = 0 )
@@ -78,23 +82,21 @@ void loop(){
   boolean button_pressed = handle_button();
   if (button_pressed) {
     Serial.println("button_pressed");
-    digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
-    doRelayCourseSteps();
+    doRelayCourseSteps(C_at_Input);
     //Save SWR and relay states and see if better with C/O relay on output
     C_RelaysTmp = _C_Relays;
     L_RelaysTmp = _L_Relays;
     SWRtmp = _SWR;
     if(_SWR > 1.05) {
-      digitalWrite(coRelay, HIGH); // Set capacitors to output side of L network
-      Serial.println("Set capacitors to output side of L network");
-      doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
+      doRelayCourseSteps(C_at_Output); //Run it again and see if better with C/O relay operated
       //If not better restore relays to input state
-      if(SWRtmp >= _SWR) {
-        _C_Relays = C_RelaysTmp;
+      if(SWRtmp <= _SWR) {             //Capacitors on Input side gave best result so
+        _C_Relays = C_RelaysTmp;       // set relays back to where they were on input.
         _L_Relays = L_RelaysTmp;
+        digitalWrite(coRelay, CAPS_at_INPUT);
         setRelays(C);
         setRelays(L);
-      } else digitalWrite(coRelay, LOW);
+      }
     }
 //    #ifdef DEBUG_RELAY_STATE
       Serial.print("SWR = ");
@@ -107,7 +109,7 @@ void loop(){
 }
 /**********************************************************************************************************/
 
-void doRelayCourseSteps(){
+void doRelayCourseSteps(byte position){
   float currentSWR;
   float bestSWR;
   float co_bestSWR;
@@ -121,14 +123,37 @@ void doRelayCourseSteps(){
   _L_Relays = 0;
   setRelays(L); // Switch off all the Inductor relays
   setRelays(C); // Switch off all the Capacitor relays
-//  digitalWrite(coRelay, LOW); // Set capacitors to input side of L network
-  currentSWR = getSWR();
+  if(position == C_at_Input) {
+    digitalWrite(coRelay, CAPS_at_INPUT);
+    #ifdef DEBUG_COARSE_TUNE_STATUS
+      Serial.println("doRelayCourseSteps:  Doing Capacitor sequence");
+      Serial.print("cnt");
+      Serial.print("\t");
+      Serial.print("bestCnt");
+      Serial.print("\t");
+      Serial.print("_C_Relays");
+      Serial.print("\t");
+      Serial.print("_L_Relays");
+      Serial.print("\t");
+      Serial.print("curSWR");
+      Serial.print("\t");
+      Serial.println("bestSWR");
+    #endif
+  } else {
+    digitalWrite(coRelay, CAPS_at_OUTPUT); // Switch capacitors to output side of L network
+    #ifdef DEBUG_COARSE_TUNE_STATUS
+      Serial.println("Repeating with Capacitors on Output");
+    #endif
+  }
+  currentSWR = getSWR();  //Get SWR with no relays operated at this point.
   bestSWR = currentSWR + 0.0001; // Dummy value to force bestSWR to be written from
                             // currentSWR first time through for loop
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
   // the lowest SWR
-  Serial.println("Doing Capacitor sequence");
+  #ifdef DEBUG_COARSE_TUNE_STATUS
+//    Serial.println("Doing Capacitor sequence");
+  #endif  
   for(cnt = 0; cnt < 9; cnt++){
     if(cnt > 0){
       _C_Relays = 0;
@@ -136,64 +161,74 @@ void doRelayCourseSteps(){
       setRelays(C); // Stepping through the Capacitor relays
       currentSWR = getSWR();
     }
-        // debug
-//    if(cnt == 6) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
     if(currentSWR < bestSWR){
       bestSWR = currentSWR;
       bestCnt = cnt;
     }
-    Serial.print("cnt = ");
-    Serial.print(cnt);
-    Serial.print(",  bestCnt = ");
-    Serial.print(bestCnt);
-    Serial.print(",  _C_Relays = ");
-    Serial.print(_C_Relays);
-    Serial.print(",  currentSWR = ");
-    Serial.print(currentSWR, 4);
-    Serial.print(",  bestSWR = ");
-    Serial.println(bestSWR, 4);
-    Serial.println("******************************************************");
+    #ifdef DEBUG_COARSE_TUNE_STATUS
+      Serial.print(cnt);
+      Serial.print("\t");
+      Serial.print(bestCnt);
+      Serial.print("\t");
+      Serial.print(_C_Relays, BIN);
+      Serial.print("\t");
+      Serial.print(_L_Relays, BIN);
+      Serial.print("\t");
+      Serial.print(currentSWR, 4);
+      Serial.print("\t");
+      Serial.println(bestSWR, 4);
+    #endif
   }
-  Serial.print("############## Current value of cnt = ");
-  Serial.println(cnt);
   _C_Relays = 0;
   if(bestCnt > 0) bitSet(_C_Relays, bestCnt - 1);
   setRelays(C); // Leave capacitors with best capacitor set
 
   // At this point we have found the capacitor which gives the lowest SWR. Now try Inductors.
-  // Inductor relays are all released and we have bestSWR for this state.
-  Serial.println("Doing Inductor sequence");
-  bestCnt = 0;
+  // Inductor relays are all released and we have stored bestSWR for this state.
+  #ifdef DEBUG_COARSE_TUNE_STATUS
+    Serial.println();
+    Serial.println("doRelayCourseSteps:  Doing Inductor sequence");
+    Serial.println();
+  #endif
+  bestCnt = 0;  //Start by assuming no Inductor Relays gives best SWR
   for(cnt = 0; cnt < 9; cnt++){
     if(cnt > 0){
       _L_Relays = 0;
       bitSet(_L_Relays, cnt - 1);
       setRelays(L); // Stepping through the Inductor relays
-      currentSWR = getSWR();
     }
-        // debug
-//    if(cnt == 1) currentSWR = bestSWR - 5; // Make currentSWR worse than bestSWR
+    // Here check for an inductor which gives better SWR than capacitors alone. If a better SWR can't
+    // be found then bestSWR is not altered, _L_Relays is left at 0 and bestCnt also left at 0.
+    currentSWR = getSWR();
     if(currentSWR < bestSWR){
       bestSWR = currentSWR;
       bestCnt = cnt;
     }
-    Serial.print("cnt = ");
-    Serial.print(cnt);
-    Serial.print(",  bestCnt = ");
-    Serial.print(bestCnt);
-    Serial.print(",  _L_Relays = ");
-    Serial.print(_L_Relays);
-    Serial.print(",  currentSWR = ");
-    Serial.print(currentSWR, 4);
-    Serial.print(",  bestSWR = ");
-    Serial.println(bestSWR, 4);
-    Serial.println("******************************************************");
+    #ifdef DEBUG_COARSE_TUNE_STATUS
+      Serial.print("cnt = ");
+      Serial.print(cnt);
+      Serial.print(",  bestCnt = ");
+      Serial.print(bestCnt);
+      Serial.print(",  _L_Relays = ");
+      Serial.print(_L_Relays);
+      Serial.print(",  currentSWR = ");
+      Serial.print(currentSWR, 4);
+      Serial.print(",  bestSWR = ");
+      Serial.println(bestSWR, 4);
+    #endif
   }
-  Serial.print("############## Current value of bestCnt = ");
-  Serial.println(bestCnt);
+  #ifdef DEBUG_COARSE_TUNE_STATUS
+  Serial.println("Capacitors are connected to L network ");
+    if(position == C_at_Input) {
+      Serial.println("Input");
+    } else {
+      Serial.println("Output");
+    }
+    Serial.println();
+  #endif
   _L_Relays = 0;
   if(bestCnt > 0) bitSet(_L_Relays, bestCnt - 1);
-  setRelays(L); // Best Inductor now set and we are ready for finding if coRelay needed  
+  setRelays(L); // Best Inductor now set. 
 }
 /**********************************************************************************************************/
 
