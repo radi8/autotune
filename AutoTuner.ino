@@ -384,8 +384,8 @@ float getSWR() {
   return _SWR;
 }
 /**********************************************************************************************************/
-// Pads an integer number to be right justified, 4 decimal places
-
+// Pads an integer number for printing to be right justified over 4 digits
+// Expects a positive integer up to 4 digits i.e. 0 ... 9999
 void formatINT(int number)
 {
   if (number < 10)
@@ -396,11 +396,11 @@ void formatINT(int number)
   {
     Serial.print("  ");
   }
-  else
+  else if (number <1000)
   {
     Serial.print(" ");
   }
-}
+} //Exit with no padded spaces if number >= 1000
 
 /**********************************************************************************************************/
 
