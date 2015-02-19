@@ -8,8 +8,9 @@
 // Debug Defines
 //#define DEBUG_RELAY_STATE
 #define DEBUG_COARSE_TUNE_STATUS
+#define DEBUG_TUNE_SUMMARY
 //#define DEBUG_CURRENT_FUNCTION
-#define DEBUG_SWR_VALUES
+//#define DEBUG_SWR_VALUES
 #define DEBUG_SHIFT
 
 #define TX_LEVEL_THRESHOLD 5
@@ -40,6 +41,8 @@
 // Global variables always start with an underscore
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
+int _fwdVolts;
+int _revVolts;
 float _SWR;
 enum _C_STATE{C_at_Input, C_at_Output};
 /**********************************************************************************************************/
@@ -86,10 +89,38 @@ void loop(){
     //Save SWR and relay states and see if better with C/O relay on output
     C_RelaysTmp = _C_Relays;
     L_RelaysTmp = _L_Relays;
+    getSWR();
     SWRtmp = _SWR;
+    #ifdef DEBUG_TUNE_SUMMARY
+      Serial.println("main Loops:  After caps on input been completed summary");
+      Serial.print("_C_Relays");
+      Serial.print("  ");
+      Serial.print("_L_Relays");
+      Serial.print("  ");
+      Serial.print("fwdVolts");
+      Serial.print("\t");
+      Serial.print("revVolts");
+      Serial.print("\t");
+      Serial.println("SWR");
+      print_binary(_C_Relays, 8);
+      Serial.print("  ");
+      print_binary(_L_Relays, 8);
+      Serial.print("  ");
+      formatINT(_fwdVolts);
+      Serial.print(_fwdVolts);
+      Serial.print("\t");
+      formatINT(_revVolts);
+      Serial.print(_revVolts);
+      Serial.print("\t");
+      Serial.print(_SWR, 4);
+      Serial.print("\tThe capacitors are connect to the ");
+      if(digitalRead(coRelay) == LOW) Serial.println("Input"); else Serial.println("Output");
+      Serial.println();
+    #endif
     if(_SWR > 1.05) {
       doRelayCourseSteps(C_at_Output); //Run it again and see if better with C/O relay operated
       //If not better restore relays to input state
+      getSWR();
       if(SWRtmp <= _SWR) {             //Capacitors on Input side gave best result so
         _C_Relays = C_RelaysTmp;       // set relays back to where they were on input.
         _L_Relays = L_RelaysTmp;
@@ -98,12 +129,33 @@ void loop(){
         setRelays(L);
       }
     }
-//    #ifdef DEBUG_RELAY_STATE
-      Serial.print("SWR = ");
-      Serial.println(_SWR);
-      dbugRelayState();
-      
-//    #endif
+    getSWR();
+    #ifdef DEBUG_TUNE_SUMMARY
+      Serial.println("main Loops:  After tuning has been completed summary");
+      Serial.print("_C_Relays");
+      Serial.print("  ");
+      Serial.print("_L_Relays");
+      Serial.print("  ");
+      Serial.print("fwdVolts");
+      Serial.print("\t");
+      Serial.print("revVolts");
+      Serial.print("\t");
+      Serial.println("SWR");
+      print_binary(_C_Relays, 8);
+      Serial.print("  ");
+      print_binary(_L_Relays, 8);
+      Serial.print("  ");
+      formatINT(_fwdVolts);
+      Serial.print(_fwdVolts);
+      Serial.print("\t");
+      formatINT(_revVolts);
+      Serial.print(_revVolts);
+      Serial.print("\t");
+      Serial.print(_SWR, 4);
+      Serial.print("\tThe capacitors are connect to the ");
+      if(digitalRead(coRelay) == LOW) Serial.println("Input"); else Serial.println("Output");
+      Serial.println();
+    #endif
   }
   delay(DELAY);
 }
@@ -125,35 +177,36 @@ void doRelayCourseSteps(byte position){
   setRelays(C); // Switch off all the Capacitor relays
   if(position == C_at_Input) {
     digitalWrite(coRelay, CAPS_at_INPUT);
+  } else {
+    digitalWrite(coRelay, CAPS_at_OUTPUT); // Switch capacitors to output side of L network
+  }
     #ifdef DEBUG_COARSE_TUNE_STATUS
-      Serial.println("doRelayCourseSteps:  Doing Capacitor sequence");
+      Serial.print("doRelayCourseSteps:  Doing Capacitor sequence with caps at ");
+      if(position == C_at_Input) Serial.println("Input"); else Serial.println("Output");
       Serial.print("cnt");
       Serial.print("\t");
       Serial.print("bestCnt");
       Serial.print("\t");
       Serial.print("_C_Relays");
-      Serial.print("\t");
+      Serial.print("  ");
       Serial.print("_L_Relays");
+      Serial.print("  ");
+      Serial.print("fwdVolt");
+      Serial.print("\t");
+      Serial.print("revVolt");
       Serial.print("\t");
       Serial.print("curSWR");
       Serial.print("\t");
       Serial.println("bestSWR");
     #endif
-  } else {
-    digitalWrite(coRelay, CAPS_at_OUTPUT); // Switch capacitors to output side of L network
-    #ifdef DEBUG_COARSE_TUNE_STATUS
-      Serial.println("Repeating with Capacitors on Output");
-    #endif
-  }
+  
   currentSWR = getSWR();  //Get SWR with no relays operated at this point.
   bestSWR = currentSWR + 0.0001; // Dummy value to force bestSWR to be written from
                             // currentSWR first time through for loop
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
   // the lowest SWR
-  #ifdef DEBUG_COARSE_TUNE_STATUS
-//    Serial.println("Doing Capacitor sequence");
-  #endif  
+
   for(cnt = 0; cnt < 9; cnt++){
     if(cnt > 0){
       _C_Relays = 0;
@@ -170,13 +223,19 @@ void doRelayCourseSteps(byte position){
       Serial.print("\t");
       Serial.print(bestCnt);
       Serial.print("\t");
-      Serial.print(_C_Relays, BIN);
+      print_binary(_C_Relays, 8);
+      Serial.print("  ");
+      print_binary(_L_Relays, 8);
+      Serial.print("  ");
+      formatINT(_fwdVolts);
+      Serial.print(_fwdVolts);
       Serial.print("\t");
-      Serial.print(_L_Relays, BIN);
+      formatINT(_revVolts);
+      Serial.print(_revVolts);
       Serial.print("\t");
-      Serial.print(currentSWR, 4);
+      Serial.print(currentSWR, 3);
       Serial.print("\t");
-      Serial.println(bestSWR, 4);
+      Serial.println(bestSWR, 3);
     #endif
   }
   _C_Relays = 0;
@@ -187,8 +246,8 @@ void doRelayCourseSteps(byte position){
   // Inductor relays are all released and we have stored bestSWR for this state.
   #ifdef DEBUG_COARSE_TUNE_STATUS
     Serial.println();
-    Serial.println("doRelayCourseSteps:  Doing Inductor sequence");
-    Serial.println();
+    Serial.print("doRelayCourseSteps:  Doing Inductor sequence with caps at ");
+    if(position == C_at_Input) Serial.println("Input"); else Serial.println("Output");
   #endif
   bestCnt = 0;  //Start by assuming no Inductor Relays gives best SWR
   for(cnt = 0; cnt < 9; cnt++){
@@ -205,16 +264,23 @@ void doRelayCourseSteps(byte position){
       bestCnt = cnt;
     }
     #ifdef DEBUG_COARSE_TUNE_STATUS
-      Serial.print("cnt = ");
       Serial.print(cnt);
-      Serial.print(",  bestCnt = ");
+      Serial.print("\t");
       Serial.print(bestCnt);
-      Serial.print(",  _L_Relays = ");
-      Serial.print(_L_Relays);
-      Serial.print(",  currentSWR = ");
-      Serial.print(currentSWR, 4);
-      Serial.print(",  bestSWR = ");
-      Serial.println(bestSWR, 4);
+      Serial.print("\t");
+      print_binary(_C_Relays, 8);
+      Serial.print("  ");
+      print_binary(_L_Relays, 8);
+      Serial.print("  ");
+      formatINT(_fwdVolts);
+      Serial.print(_fwdVolts);
+      Serial.print("\t");
+      formatINT(_revVolts);
+      Serial.print(_revVolts);
+      Serial.print("\t");
+      Serial.print(currentSWR, 3);
+      Serial.print("\t");
+      Serial.println(bestSWR, 3);
     #endif
   }
   #ifdef DEBUG_COARSE_TUNE_STATUS
@@ -269,50 +335,6 @@ void setRelays(boolean relaySet) {
 }
 /**********************************************************************************************************/
 
-void shiftOutGJ(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, byte val)
-{
-      int i;
-      
-      #ifdef DEBUG_SHIFT
-        Serial.print("dataPin = ");
-        Serial.print(dataPin);
-        Serial.print(", ");
-        Serial.print("clockPin = ");
-        Serial.print(clockPin);
-        Serial.print(", ");
-        Serial.print("Entered with val = ");
-        Serial.println(val);
-      #endif  
-      digitalWrite(clockPin, LOW);
-      delayMicroseconds(45);
-      for (i = 0; i < 8; i++)  {
-            if (bitOrder == LSBFIRST) {
-                  digitalWrite(dataPin, !!(val & (1 << i)));
-                  delayMicroseconds(45);
-            }
-            else  {    
-                  digitalWrite(dataPin, !!(val & (1 << (7 - i))));
-                  #ifdef DEBUG_SHIFT
-                    Serial.print("i = ");
-                    Serial.print(i);
-                    Serial.print(", ");
-                    Serial.print("Shifted value of val = ");
-                    Serial.println(!!(val & (1 << (7 - i))));
-                  #endif
-                  delayMicroseconds(45);
-            }    
-            digitalWrite(clockPin, HIGH);
-            delayMicroseconds(45);
-            digitalWrite(clockPin, LOW);
-            delayMicroseconds(45);    
-      }
-      #ifdef DEBUG_SHIFT      
-        Serial.print("Exited with val  = ");
-        Serial.println(val);
-      #endif
-}
-/**********************************************************************************************************/
-
 boolean handle_button() {
   static boolean button_was_pressed = false;
   boolean event;
@@ -333,33 +355,89 @@ float getSWR() {
 // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
 // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
 
-  int fwdVolts;
-  int revVolts;
+//       We are using the GLOBAL VARIABLES _fwdVolts, _revVolts, _SWR
+//       All globals are prefixed with an underscore e.g. _fwdVolts
   
   digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
   digitalWrite(LEDpin, HIGH);     // Indicate state of amplifier gain
-  fwdVolts = analogRead(forward);
-  if(fwdVolts > 950) {
+  _fwdVolts = analogRead(forward);
+  if(_fwdVolts > 950) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     digitalWrite(LEDpin, LOW);
-    fwdVolts = analogRead(forward); // and re-read the forward power
+    _fwdVolts = analogRead(forward); // and re-read the forward power
   }
-  revVolts = analogRead(reverse);
-  if(fwdVolts > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
-    if (fwdVolts <= revVolts) revVolts = (fwdVolts - 1); //Avoid division by zero or negative.
-    _SWR = float((fwdVolts + revVolts)) / float((fwdVolts - revVolts));
+  _revVolts = analogRead(reverse);
+  if(_fwdVolts > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
+    if (_fwdVolts <= _revVolts) _revVolts = (_fwdVolts - 1); //Avoid division by zero or negative.
+    _SWR = float((_fwdVolts + _revVolts)) / float((_fwdVolts - _revVolts));
   } else {
     _SWR = 100;
   }
   #ifdef DEBUG_SWR_VALUES
     Serial.print("getSWR: fwd, rev, swr = ");
-    Serial.print(fwdVolts);
+    Serial.print(_fwdVolts);
     Serial.print(", ");
-    Serial.print(revVolts);
+    Serial.print(_revVolts);
     Serial.print(", ");
     Serial.println(_SWR, 4);
   #endif
   return _SWR;
+}
+/**********************************************************************************************************/
+// Pads an integer number to be right justified, 4 decimal places
+
+void formatINT(int number)
+{
+  if (number < 10)
+  {
+    Serial.print("   ");
+  }
+  else if (number <100)
+  {
+    Serial.print("  ");
+  }
+  else
+  {
+    Serial.print(" ");
+  }
+}
+
+/**********************************************************************************************************/
+
+// PRINT_BINARY - Arduino
+//
+// Prints a positive integer in binary format with a fixed withdth
+//
+// copyright, Peter H Anderson, Baltimore, MD, Nov, '07
+
+void print_binary(int v, int num_places)
+{
+    int mask=0, n;
+
+    for (n=1; n<=num_places; n++)
+    {
+        mask = (mask << 1) | 0x0001;
+    }
+    v = v & mask;  // truncate v to specified number of places
+
+    while(num_places)
+    {
+
+        if (v & (0x0001 << num_places-1))
+        {
+             Serial.print("1");
+        }
+        else
+        {
+             Serial.print("0");
+        }
+
+        --num_places;
+        if(((num_places%4) == 0) && (num_places != 0))
+        {
+            Serial.print("_");
+        }
+    }
 }
 /**********************************************************************************************************/
 
