@@ -12,6 +12,7 @@
 //#define DEBUG_CURRENT_FUNCTION
 //#define DEBUG_SWR_VALUES
 #define DEBUG_SHIFT
+#define DEBUG_CMD_BUTTON
 
 #define TX_LEVEL_THRESHOLD 5
 #define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
@@ -37,6 +38,8 @@
 #define L             false   // Inductor relay set
 #define Up            true    // Debug item, remove in final
 #define Dn            false   // Debug item, remove in final
+
+#define analog_buttons_number_of_buttons 4
 
 // Global variables always start with an underscore
 byte _C_Relays = 0; // Holds map of operated relays with
@@ -161,7 +164,42 @@ void loop(){
 }
 /**********************************************************************************************************/
 
+void check_command_buttons()
+{
+
+  #ifdef DEBUG_CMD_BUTTON
+    Serial.println("loop: entering check_buttons");
+  #endif
+
+  static long last_button_action = 0;
+  byte analogbuttontemp = analogbuttonpressed();
+  long button_depress_time;
+  
+  // Only do anything if valid button pressed for more than 200 msec since last press
+  if ((analogbuttontemp < analog_buttons_number_of_buttons) && ((millis() - last_button_action) > 200)) {
+    button_depress_time = millis();
+    if ((millis() - button_depress_time) < 500) {
+      
+    } else {
+      if ((millis() - button_depress_time) < 1000) {
+        
+      } else {
+        
+      }
+    }
+    last_button_action = millis();
+  } // endif(((analogbuttontemp < analog_buttons_number_of_buttons) && ...
+}   
+/**********************************************************************************************************/
+ 
+ byte analogbuttonpressed() {
+   
+ }
+ 
+ /**********************************************************************************************************/
+ 
 void doRelayCourseSteps(byte position){
+  
   float currentSWR;
   float bestSWR;
   float co_bestSWR;
