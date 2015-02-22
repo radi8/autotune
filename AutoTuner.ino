@@ -14,6 +14,7 @@
 #define DEBUG_SHIFT
 
 #define DEBUG_BUTTON_ARRAY
+#define DEBUG_BUTTON_INFO
 //#define DEBUG_BUTTONS
 //#define DEBUG_CMD_BUTTON
 
@@ -22,20 +23,19 @@
 #define CAPS_at_OUTPUT     HIGH
 
 // Shift Register for L & C driver Pin assign
-#define Cclock 2  //Pin 8 of 74HC164 U4, pin 20 of Arduino nano
-#define Cdata 3   //Pin 2 of 74HC164 U4, pin 21 of Arduino nano
-#define Lclock 4  //Pin 8 of 74HC164 U3, pin 22 of Arduino nano
-#define Ldata 5   //Pins 1 & 2 of 74HC164 U3, pin 23 of Arduino nano
-#define LEDpin 13 //A LED is connected to this pin
+#define Cclock 2           // Pin 8 of 74HC164 U4, pin 20 of Arduino nano
+#define Cdata 3            // Pin 2 of 74HC164 U4, pin 21 of Arduino nano
+#define Lclock 4           // Pin 8 of 74HC164 U3, pin 22 of Arduino nano
+#define Ldata 5            // Pins 1 & 2 of 74HC164 U3, pin 23 of Arduino nano
 
-#define coRelay       7    // Capacitor set c/o relay
-#define swrGain       8    //Switchable gain for swr amplifiers
-#define BUTTON_PIN    6    // Push Button
+#define coRelay        7   // Capacitor set c/o relay
+#define swrGain        8   // Switchable gain for swr amplifiers
+#define BUTTON_PIN     6   // Push Button
+#define LEDpin        13   // A LED is connected to this pin
+#define forward       A0   // Measure forward SWR on this pin
+#define reverse       A1   // Measure reverse SWR on this pin
 
-#define forward       A0  // Measure forward SWR on this pin
-#define reverse       A1  // Measure reverse SWR on this pin
-
-#define DELAY         50  // Delay per loop in ms
+#define DELAY         50   // Delay per loop in ms
 
 #define C             true    // Capacitor relay set
 #define L             false   // Inductor relay set
@@ -105,20 +105,47 @@ void loop(){
   if(buttonNumber != 255) { // 0xFF (255) is returned with no button press
     if(buttonNumber < analog_buttons_number_of_buttons) {  
       // A short press trailing edge detected
+#ifdef DEBUG_BUTTON_INFO      
       Serial.print("Loop:  A short press trailing edge detected on button ");
       Serial.println(buttonNumber);
+#endif      
+      switch (buttonNumber) {
+      case 0: {
+          _C_Relays++;
+          setRelays(C);
+          break;
+        }
+      case 1: {
+          _C_Relays--;
+          setRelays(C);
+          break;
+        }
+      case 2: {
+          _L_Relays++;
+          setRelays(L);
+          break;
+        }
+      case 3: {
+          _L_Relays--;
+          setRelays(L);
+        } 
+      }      
     } 
     else if(buttonNumber < (analog_buttons_number_of_buttons + analog_buttons_number_of_buttons)) {
       // A long press leading edge detected
-      buttonNumber = buttonNumber - analog_buttons_number_of_buttons;      
+      buttonNumber = buttonNumber - analog_buttons_number_of_buttons;
+#ifdef DEBUG_BUTTON_INFO      
       Serial.print("Loop:  A long press leading edge detected on button ");
       Serial.println(buttonNumber);
+#endif      
     } 
     else {
       // A long press trailing edge detected
-      buttonNumber = buttonNumber - (analog_buttons_number_of_buttons + analog_buttons_number_of_buttons);      
+      buttonNumber = buttonNumber - (analog_buttons_number_of_buttons + analog_buttons_number_of_buttons);
+#ifdef DEBUG_BUTTON_INFO      
       Serial.print("Loop:  A long press trailing edge detected on button ");      
       Serial.println(buttonNumber);
+#endif      
     }  
   }
   // The button press will step the selected Capacitor or Inductor relays
@@ -678,5 +705,6 @@ void dbugRelayState(){
   }
   Serial.println();
 }
+
 
 
