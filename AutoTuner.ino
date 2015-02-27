@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////
-//©2014 Graeme Jury ZL2APV
-//Released under the lgpl License - Please alter and share.
-//Controller for the EB104.ru Auto Antenna Tuner
-//Course stepping through L & C for best SWR
+// Copyright ©2014 Graeme Jury ZL2APV
+// Released under the lgpl License - Please alter and share.
+// Controller for the EB104.ru Auto Antenna Tuner
+// Course stepping through L & C for best SWR
 /////////////////////////////////////////////////////////////////
 
 // Debug Defines
@@ -16,7 +16,7 @@
 #define DEBUG_BUTTON_ARRAY
 #define DEBUG_BUTTON_INFO
 //#define DEBUG_BUTTONS
-//#define DEBUG_CMD_BUTTON
+//#define DEBUG_STEP_BUTTON
 
 #define TX_LEVEL_THRESHOLD 5
 #define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
@@ -43,10 +43,10 @@
 #define Dn            false   // Debug item, remove in final
 
 // Analog pushbutton settings
-#define analog_buttons_pin A1
+#define analog_buttons_pin A2
 #define analog_buttons_number_of_buttons 3
-#define analog_buttons_r1 10 //Resistor value connected to button in "K's"
-#define analog_buttons_r2 1
+#define analog_buttons_r1 12 //Resistor value connected to button in "K's"
+#define analog_buttons_r2 1.2
 #define LONG_PRESS_TIME 1000 //msec before button considered a long press
 int button_array_high_limit[analog_buttons_number_of_buttons];
 int button_array_low_limit[analog_buttons_number_of_buttons];
@@ -99,7 +99,7 @@ void loop(){
   byte buttonNumber;
   float SWRtmp;
 
-  buttonNumber = check_command_buttons();
+  buttonNumber = check_step_buttons();
   //  Serial.print("MainLoop:  buttonNumber = ");
   //  Serial.println(buttonNumber);
   if(buttonNumber != 255) { // 0xFF (255) is returned with no button press
@@ -231,173 +231,6 @@ void loop(){
 }
 
 // Subroutines start here
-/**********************************************************************************************************/
-// Buttons are checked for either a short or a long press. The first time the poll detects a button press it saves
-// the button info and waits 200 msec to re-check the button. A short press is determined by a release being
-// detected within LONG_PRESS_TIME. A Long press by checking button is held for more than LONG_PRESS_TIME.
-//Returns: 255 if button not pressed or held button within the 200 msec delay detected
-//         button number if short press
-//         button Number plus Number of buttons if Long press leading edge
-//         button Number plus (Number of buttons * 2) if Long press trailing edge
-byte check_command_buttons()
-{
-
-  static long last_button_action  = 0;
-  static long button_depress_time;
-  static byte last_button_pressed = 255;
-  byte        analogbuttontemp    = analogbuttonpressed();
-
-  //Check if a trailing edge has been detected
-  if((analogbuttontemp == 255) && (last_button_pressed < analog_buttons_number_of_buttons)) {
-
-    if((millis() - button_depress_time) < LONG_PRESS_TIME) {
-#ifdef DEBUG_CMD_BUTTON      
-      Serial.print("Trailing edge detected. Short button press of ");
-      Serial.print(millis() - button_depress_time);
-      Serial.print(" msec detected on button ");
-      Serial.println(last_button_pressed);
-#endif      
-      analogbuttontemp = last_button_pressed;
-    } 
-    else {
-#ifdef DEBUG_CMD_BUTTON      
-      Serial.print("Trailing edge detected. Long button press of ");
-      Serial.print(millis() - button_depress_time);
-      Serial.print(" msec detected on button ");
-      Serial.println(last_button_pressed);
-#endif      
-      analogbuttontemp = last_button_pressed + analog_buttons_number_of_buttons + analog_buttons_number_of_buttons;      
-    }
-    last_button_pressed = 255;
-    //    last_button_action = millis();
-  } 
-  else {    
-    // Only do anything if a VALID button was pressed MORE than 200 msec since last press
-    if ((analogbuttontemp < analog_buttons_number_of_buttons) && ((millis() - last_button_action) > 200)) {
-
-      if (last_button_pressed != analogbuttontemp) { // First detection of an analogButton
-        button_depress_time = millis();              // press so start the button press
-        last_button_pressed = analogbuttontemp;      // timer and save the button number.
-      }                                              // Only do once per press.
-
-      if ((millis() - button_depress_time) > LONG_PRESS_TIME) {
-#ifdef DEBUG_CMD_BUTTON
-        Serial.print("LONG press of ");
-        Serial.print(millis() - button_depress_time);
-        Serial.print(" msec detected on button ");
-        Serial.println(analogbuttontemp);
-#endif
-        analogbuttontemp = last_button_pressed + analog_buttons_number_of_buttons;
-      } 
-      else {
-        return 255; // The button is still pressed but time < 200 msec.
-      }
-      last_button_action = millis();
-    }
-    else {  // endif(((analogbuttontemp < analog_buttons_number_of_buttons) && ...
-      analogbuttontemp = 255;
-    }  
-  } // end else 
-  return analogbuttontemp;
-}  
-/**********************************************************************************************************/
-
-void initialize_analog_button_array() {
-  /* 
-   typical button values:
-   
-   0: -56 - 46
-   1: 47 - 131
-   2: 132 - 203
-   3: 203 - 264
-   */
-  int button_value;
-  int lower_button_value;
-  int higher_button_value;
-
-  for (int x = 0;x < analog_buttons_number_of_buttons;x++) {
-    button_value = int(1023 * (float(x * analog_buttons_r2)/float((x * analog_buttons_r2) + analog_buttons_r1)));
-    lower_button_value = int(1023 * (float((x-1) * analog_buttons_r2)/float(((x-1) * analog_buttons_r2) + analog_buttons_r1)));
-    higher_button_value = int(1023 * (float((x+1) * analog_buttons_r2)/float(((x+1) * analog_buttons_r2) + analog_buttons_r1)));
-
-    button_array_low_limit[x] = (button_value - ((button_value - lower_button_value)/2));
-    button_array_high_limit[x] = (button_value + ((higher_button_value - button_value)/2));
-
-#ifdef DEBUG_BUTTON_ARRAY    
-    Serial.print("initialize_analog_button_array:\t");
-    Serial.print(x);
-    Serial.print(":\t");
-    Serial.print(button_array_low_limit[x]);
-    Serial.print("\t-\t");
-    Serial.println(button_array_high_limit[x]);
-#endif //DEBUG_BUTTON_ARRAY/*  
-  }
-}
-
-
-/**********************************************************************************************************/
-
-// Check to see if a button has been pressed. Return button number (0 .. n) or 0xFF if no press.
-byte analogbuttonpressed() {
-
-  int analog_line_read_average = 0;
-  int analog_read_temp = 0;
-
-  if (analogRead(analog_buttons_pin) <= button_array_high_limit[analog_buttons_number_of_buttons-1]) {
-
-    for (byte x = 0;x < 19;x++){
-      analog_read_temp = analogRead(analog_buttons_pin);
-      if (analog_read_temp <= button_array_high_limit[analog_buttons_number_of_buttons-1]){
-        analog_line_read_average = (analog_line_read_average + analog_read_temp) / 2;
-      }
-    }
-
-    for (int x = 0;x < analog_buttons_number_of_buttons;x++) {
-      if ((analog_line_read_average > button_array_low_limit[x]) && (analog_line_read_average <=  button_array_high_limit[x])) {
-#ifdef DEBUG_BUTTONS
-        Serial.print(F(" analogbuttonpressed: returning: "));
-        Serial.println(x);
-#endif         
-        return x;
-      }  
-    }    
-
-  }
-  return 255; //No buttons were pressed
-}
-
-/**********************************************************************************************************/
-
-// Check a specific button for press. Return 1 if pressed 0 if not.
-byte analogbuttonread(byte button_number) {
-
-  // button numbers start with 0
-
-  int analog_line_read = analogRead(analog_buttons_pin);
-
-#ifdef DEBUG_BUTTONS
-  static byte debug_flag = 0;
-#endif
-
-  if (analog_line_read < 1000) {  
-    if ((analog_line_read > button_array_low_limit[button_number])&& (analog_line_read <  button_array_high_limit[button_number])) {
-#ifdef DEBUG_BUTTONS
-      if (!debug_flag) {
-        Serial.print(F("\nanalogbuttonread: analog_line_read: "));
-        Serial.print(analog_line_read);
-        Serial.print(F("  button pressed: "));
-        Serial.println(button_number);
-        debug_flag = 1;
-      }
-#endif
-      return 1;
-    }  
-  }
-#ifdef DEBUG_BUTTONS
-  debug_flag = 0;
-#endif  
-  return 0;
-}
 /**********************************************************************************************************/
 
 void doRelayCourseSteps(byte position){
@@ -706,5 +539,177 @@ void dbugRelayState(){
   Serial.println();
 }
 
+/**********************************************************************************************************/
+
+// Buttons are checked for either a short or a long press. The first time the poll detects a button press it
+// saves the button info and waits 200 msec to re-check the button. A short press is determined by a release
+// being detected within LONG_PRESS_TIME; Long press by checking button held for more than LONG_PRESS_TIME.
+//Returns: 255 if button not pressed or held button within the 200 msec delay detected
+//         button number if short press
+//         button Number plus Number of buttons if Long press leading edge
+//         button Number plus (Number of buttons * 2) if Long press trailing edge
+byte check_step_buttons()
+{
+
+  static long last_button_action  = 0;
+  static long button_depress_time;
+  static byte last_button_pressed = 255;
+  byte        analogbuttontemp    = analogbuttonpressed();
+
+  //Check if a trailing edge has been detected
+  if((analogbuttontemp == 255) && (last_button_pressed < analog_buttons_number_of_buttons)) {
+
+    if((millis() - button_depress_time) < LONG_PRESS_TIME) {
+#ifdef DEBUG_STEP_BUTTON      
+      Serial.print("Trailing edge detected. Short button press of ");
+      Serial.print(millis() - button_depress_time);
+      Serial.print(" msec detected on button ");
+      Serial.println(last_button_pressed);
+#endif      
+      analogbuttontemp = last_button_pressed;
+    } 
+    else {
+#ifdef DEBUG_STEP_BUTTON      
+      Serial.print("Trailing edge detected. Long button press of ");
+      Serial.print(millis() - button_depress_time);
+      Serial.print(" msec detected on button ");
+      Serial.println(last_button_pressed);
+#endif      
+      analogbuttontemp = last_button_pressed + analog_buttons_number_of_buttons + analog_buttons_number_of_buttons;      
+    }
+    last_button_pressed = 255;
+    //    last_button_action = millis();
+  } 
+  else {    
+    // Only do anything if a VALID button was pressed MORE than 200 msec since last press
+    if ((analogbuttontemp < analog_buttons_number_of_buttons) && ((millis() - last_button_action) > 200)) {
+
+      if (last_button_pressed != analogbuttontemp) { // First detection of an analogButton
+        button_depress_time = millis();              // press so start the button press
+        last_button_pressed = analogbuttontemp;      // timer and save the button number.
+      }                                              // Only do once per press.
+
+      if ((millis() - button_depress_time) > LONG_PRESS_TIME) {
+#ifdef DEBUG_STEP_BUTTON
+        Serial.print("LONG press of ");
+        Serial.print(millis() - button_depress_time);
+        Serial.print(" msec detected on button ");
+        Serial.println(analogbuttontemp);
+#endif
+        analogbuttontemp = last_button_pressed + analog_buttons_number_of_buttons;
+      } 
+      else {
+        return 255; // The button is still pressed but time < 200 msec.
+      }
+      last_button_action = millis();
+    }
+    else {  // endif(((analogbuttontemp < analog_buttons_number_of_buttons) && ...
+      analogbuttontemp = 255;
+    }  
+  } // end else 
+  return analogbuttontemp;
+}  
+/**********************************************************************************************************/
+
+void initialize_analog_button_array() {
+  /* 
+   typical button values:
+   
+   0: -56 - 46
+   1: 47 - 131
+   2: 132 - 203
+   3: 203 - 264
+   */
+  int button_value;
+  int lower_button_value;
+  int higher_button_value;
+
+  for (int x = 0;x < analog_buttons_number_of_buttons;x++) {
+    button_value = int(1023 * (float(x * analog_buttons_r2)/float((x * analog_buttons_r2) + analog_buttons_r1)));
+    lower_button_value = int(1023 * (float((x-1) * analog_buttons_r2)/float(((x-1) * analog_buttons_r2) + analog_buttons_r1)));
+    higher_button_value = int(1023 * (float((x+1) * analog_buttons_r2)/float(((x+1) * analog_buttons_r2) + analog_buttons_r1)));
+
+    button_array_low_limit[x] = (button_value - ((button_value - lower_button_value)/2));
+    button_array_high_limit[x] = (button_value + ((higher_button_value - button_value)/2));
+
+#ifdef DEBUG_BUTTON_ARRAY    
+    Serial.print("initialize_analog_button_array:\t");
+    Serial.print(x);
+    Serial.print(":\t");
+    Serial.print(button_array_low_limit[x]);
+    Serial.print("\t-\t");
+    Serial.println(button_array_high_limit[x]);
+#endif //DEBUG_BUTTON_ARRAY/*  
+  }
+}
+
+/**********************************************************************************************************/
+
+// Check to see if a button has been pressed. Return button number (0 .. n) or 0xFF if no press.
+byte analogbuttonpressed() {
+
+  int analog_line_read_average = 0;
+  int analog_read_temp = 0;
+  int cnt;
+  
+  //See if a button was pressed
+  if (analogRead(analog_buttons_pin) <= button_array_high_limit[analog_buttons_number_of_buttons-1]) {
+    
+    // 500 reads of button effectively debounces it
+    for (cnt = 0; cnt < 500; cnt++){
+      analog_read_temp = analogRead(analog_buttons_pin);
+      if (analog_read_temp <= button_array_high_limit[analog_buttons_number_of_buttons-1]){
+        analog_line_read_average = (analog_line_read_average + analog_read_temp) / 2;
+      }
+    }
+    // Now determine which button was pressed
+    for (cnt = 0; cnt < analog_buttons_number_of_buttons; cnt++) {
+      if ((analog_line_read_average > button_array_low_limit[cnt]) &&
+          (analog_line_read_average <=  button_array_high_limit[cnt])) {
+#ifdef DEBUG_BUTTONS
+        Serial.print(F(" analogbuttonpressed: returning: "));
+        Serial.println(cnt);
+#endif    
+        return cnt;
+      }  
+    }    
+
+  }
+  return 255; //No buttons were pressed
+}
+
+/**********************************************************************************************************/
+
+// Check a specific button for press. Return 1 if pressed 0 if not.
+byte analogbuttonread(byte button_number) {
+
+  // button numbers start with 0
+
+  int analog_line_read = analogRead(analog_buttons_pin);
+
+#ifdef DEBUG_BUTTONS
+  static byte debug_flag = 0;
+#endif
+
+  if (analog_line_read < 1000) {  
+    if ((analog_line_read > button_array_low_limit[button_number])&& (analog_line_read <  button_array_high_limit[button_number])) {
+#ifdef DEBUG_BUTTONS
+      if (!debug_flag) {
+        Serial.print(F("\nanalogbuttonread: analog_line_read: "));
+        Serial.print(analog_line_read);
+        Serial.print(F("  button pressed: "));
+        Serial.println(button_number);
+        debug_flag = 1;
+      }
+#endif
+      return 1;
+    }  
+  }
+#ifdef DEBUG_BUTTONS
+  debug_flag = 0;
+#endif  
+  return 0;
+}
+/**********************************************************************************************************/
 
 
