@@ -7,14 +7,14 @@
 
 // Debug Defines
 //#define DEBUG_RELAY_STATE
-#define DEBUG_COARSE_TUNE_STATUS
+//#define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
 //#define DEBUG_CURRENT_FUNCTION
 //#define DEBUG_SWR_VALUES
-#define DEBUG_SHIFT
+//#define DEBUG_SHIFT
 
-#define DEBUG_BUTTON_ARRAY
-#define DEBUG_BUTTON_INFO
+//#define DEBUG_BUTTON_ARRAY
+//#define DEBUG_BUTTON_INFO
 //#define DEBUG_BUTTONS
 //#define DEBUG_STEP_BUTTON
 
@@ -44,7 +44,7 @@
 
 // Analog pushbutton settings
 #define analog_buttons_pin A2
-#define analog_buttons_number_of_buttons 3
+#define analog_buttons_number_of_buttons 4
 #define analog_buttons_r1 12 //Resistor value connected to button in "K's"
 #define analog_buttons_r2 1.2
 #define LONG_PRESS_TIME 1000 //msec before button considered a long press
@@ -59,8 +59,12 @@ byte _L_Relays = 0; // 0 = released and 1 = operated
 int _fwdVolts;
 int _revVolts;
 float _SWR;
-enum _C_STATE{
-  C_at_Input, C_at_Output};
+enum _C_STATE{C_at_Input, C_at_Output};
+//       Inductor definitions      L1  L2  L3  L4    L5    L6    L7    L8   
+const unsigned int _inductors[] = { 6, 16, 32, 64,  125,  250,  500, 1000 };        // inductor values in nH
+//        Capacitor definitions     C1   C2    C3    C4    C5     C6    C7    C8
+const unsigned int _capacitors[] = { 5,  11,   22,   44,   88,   168,  300,  660 };  // capacitor values in pF
+
 /**********************************************************************************************************/
 
 void setup() { 
@@ -129,7 +133,11 @@ void loop(){
           _L_Relays--;
           setRelays(L);
         } 
-      }      
+      }
+      getSWR();
+#ifdef DEBUG_TUNE_SUMMARY
+      tuneSummary();
+#endif      
     } 
     else if(buttonNumber < (analog_buttons_number_of_buttons + analog_buttons_number_of_buttons)) {
       // A long press leading edge detected
@@ -160,31 +168,7 @@ void loop(){
     getSWR();
     SWRtmp = _SWR;
 #ifdef DEBUG_TUNE_SUMMARY
-    Serial.println("main Loops:  After caps on input been completed summary");
-    Serial.print("_C_Relays");
-    Serial.print("  ");
-    Serial.print("_L_Relays");
-    Serial.print("  ");
-    Serial.print("fwdVolts");
-    Serial.print("\t");
-    Serial.print("revVolts");
-    Serial.print("\t");
-    Serial.println("SWR");
-    print_binary(_C_Relays, 8);
-    Serial.print("  ");
-    print_binary(_L_Relays, 8);
-    Serial.print("  ");
-    formatINT(_fwdVolts);
-    Serial.print(_fwdVolts);
-    Serial.print("\t");
-    formatINT(_revVolts);
-    Serial.print(_revVolts);
-    Serial.print("\t");
-    Serial.print(_SWR, 4);
-    Serial.print("\tThe capacitors are connect to the ");
-    if(digitalRead(coRelay) == LOW) Serial.println("Input"); 
-    else Serial.println("Output");
-    Serial.println();
+    tuneSummary();
 #endif
     if(_SWR > 1.05) {
       doRelayCourseSteps(C_at_Output); //Run it again and see if better with C/O relay operated
@@ -200,37 +184,33 @@ void loop(){
     }
     getSWR();
 #ifdef DEBUG_TUNE_SUMMARY
-    Serial.println("main Loops:  After tuning has been completed summary");
-    Serial.print("_C_Relays");
-    Serial.print("  ");
-    Serial.print("_L_Relays");
-    Serial.print("  ");
-    Serial.print("fwdVolts");
-    Serial.print("\t");
-    Serial.print("revVolts");
-    Serial.print("\t");
-    Serial.println("SWR");
-    print_binary(_C_Relays, 8);
-    Serial.print("  ");
-    print_binary(_L_Relays, 8);
-    Serial.print("  ");
-    formatINT(_fwdVolts);
-    Serial.print(_fwdVolts);
-    Serial.print("\t");
-    formatINT(_revVolts);
-    Serial.print(_revVolts);
-    Serial.print("\t");
-    Serial.print(_SWR, 4);
-    Serial.print("\tThe capacitors are connect to the ");
-    if(digitalRead(coRelay) == LOW) Serial.println("Input"); 
-    else Serial.println("Output");
-    Serial.println();
+    tuneSummary();
 #endif
   }
   delay(DELAY);
 }
 
 // Subroutines start here
+/**********************************************************************************************************/
+unsigned int calcC(){
+  unsigned int c = 0;
+  
+  for (byte x = 0; x < 8; x++) {
+    if(bitRead(_C_Relays, x)) c = c + _capacitors[x];
+  }
+  return c;
+}
+
+/**********************************************************************************************************/
+unsigned int calcL(){
+  unsigned int l = 0;
+  
+  for (byte x = 0; x <8; x++) {
+    if(bitRead(_L_Relays, x)) l = l + _inductors[x];
+  }
+  return l;
+}
+
 /**********************************************************************************************************/
 
 void doRelayCourseSteps(byte position){
@@ -523,8 +503,14 @@ void print_binary(int v, int num_places)
 void dbugRelayState(){
   Serial.print("_C_Relays value = ");
   Serial.print(_C_Relays);
+  Serial.print(", C = ");
+  Serial.print(calcC());
+  Serial.print(" pF");
   Serial.print("      ... _L_Relays value = ");
-  Serial.println(_L_Relays);
+  Serial.print(_L_Relays);
+  Serial.print(", L = ");
+  Serial.print(calcL());
+  Serial.println(" nH");
   Serial.println("C Relay# 1 2 3 4 5 6 7 8 ... L Relay# 1 2 3 4 5 6 7 8");
   Serial.print("         ");
   for(int x = 0; x < 8; x++){
@@ -536,7 +522,8 @@ void dbugRelayState(){
     Serial.print(bitRead(_L_Relays, x));
     Serial.print(" ");
   }
-  Serial.println();
+  Serial.print("SWR = ");
+  Serial.println(getSWR());
 }
 
 /**********************************************************************************************************/
@@ -711,5 +698,35 @@ byte analogbuttonread(byte button_number) {
   return 0;
 }
 /**********************************************************************************************************/
-
-
+void tuneSummary() {
+  Serial.print("_C_Relays");
+  Serial.print("  ");
+  Serial.print("_L_Relays");
+  Serial.print("  ");
+  Serial.print("fwdVolts");
+  Serial.print("\t");
+  Serial.print("revVolts");
+  Serial.print("\t");
+  Serial.println("SWR");
+  print_binary(_C_Relays, 8);
+  Serial.print("  ");
+  print_binary(_L_Relays, 8);
+  Serial.print("  ");
+  formatINT(_fwdVolts);
+  Serial.print(_fwdVolts);
+  Serial.print("\t");
+  formatINT(_revVolts);
+  Serial.print(_revVolts);
+  Serial.print("\t\t");
+  Serial.println(_SWR, 4);
+  Serial.print("Total Capacitance = ");
+  Serial.print(calcC());
+  Serial.print(" pF and Total Inductance = ");
+  Serial.print(calcL());
+  Serial.print(" nH");
+  Serial.print("\tThe capacitors connect to the ");
+  if(digitalRead(coRelay) == LOW) Serial.println("Input"); 
+  else Serial.println("Output");
+  Serial.println();
+}    
+/**********************************************************************************************************/    
