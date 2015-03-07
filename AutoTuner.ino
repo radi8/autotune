@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////
 
 // Debug Defines
-//#define DEBUG_RELAY_STATE
+#define DEBUG_RELAY_STATE
 //#define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
 //#define DEBUG_CURRENT_FUNCTION
@@ -192,23 +192,17 @@ void loop(){
 
 // Subroutines start here
 /**********************************************************************************************************/
-unsigned int calcC(){
-  unsigned int c = 0;
-  
-  for (byte x = 0; x < 8; x++) {
-    if(bitRead(_C_Relays, x)) c = c + _capacitors[x];
-  }
-  return c;
-}
+unsigned int calcXvalue(bool CorL){
+  unsigned int val = 0;
 
-/**********************************************************************************************************/
-unsigned int calcL(){
-  unsigned int l = 0;
-  
-  for (byte x = 0; x <8; x++) {
-    if(bitRead(_L_Relays, x)) l = l + _inductors[x];
+  for (byte cnt = 0; cnt < 8; cnt++) {
+    if (CorL) {   
+      if(bitRead(_C_Relays, cnt)) val = val + _capacitors[cnt];
+    } else {     
+      if(bitRead(_L_Relays, cnt)) val = val + _inductors[cnt];
+    } 
   }
-  return l;
+  return val;
 }
 
 /**********************************************************************************************************/
@@ -504,12 +498,12 @@ void dbugRelayState(){
   Serial.print("_C_Relays value = ");
   Serial.print(_C_Relays);
   Serial.print(", C = ");
-  Serial.print(calcC());
+  Serial.print(calcXvalue(C));
   Serial.print(" pF");
   Serial.print("      ... _L_Relays value = ");
   Serial.print(_L_Relays);
   Serial.print(", L = ");
-  Serial.print(calcL());
+  Serial.print(calcXvalue(L));
   Serial.println(" nH");
   Serial.println("C Relay# 1 2 3 4 5 6 7 8 ... L Relay# 1 2 3 4 5 6 7 8");
   Serial.print("         ");
@@ -732,9 +726,9 @@ void tuneSummary() {
   Serial.print("\t\t");
   Serial.println(_SWR, 4);
   Serial.print("Total Capacitance = ");
-  Serial.print(calcC());
+  Serial.print(calcXvalue(C));
   Serial.print(" pF and Total Inductance = ");
-  Serial.print(calcL());
+  Serial.print(calcXvalue(L));
   Serial.print(" nH");
   Serial.print("\tThe capacitors connect to the ");
   if(digitalRead(coRelay) == LOW) Serial.println("Input"); 
