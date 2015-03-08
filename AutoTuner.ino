@@ -496,12 +496,15 @@ float getSWR() {
 
   digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
   digitalWrite(LEDpin, HIGH);     // Indicate state of amplifier gain
+  delay(1); // Settling time for FET switch
   _fwdVolts = analogRead(forward);
-  if(_fwdVolts > 950) {
+  Serial.print("getSWR: before amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
+  if(_fwdVolts = 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     digitalWrite(LEDpin, LOW);   // Indicate switched to low gain
     _fwdVolts = analogRead(forward); // and re-read the forward power
   }
+  Serial.print("getSWR: after amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
   _revVolts = analogRead(reverse);
   if(_fwdVolts > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
     if (_fwdVolts <= _revVolts) _revVolts = (_fwdVolts - 1); //Avoid division by zero or negative.
