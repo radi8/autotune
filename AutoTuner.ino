@@ -6,7 +6,8 @@
 /////////////////////////////////////////////////////////////////
 
 // Debug Defines
-#define DEBUG_RELAY_STATE
+#define DEBUG_RELAY_FINE_STEPS
+//#define DEBUG_RELAY_STATE
 //#define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
 //#define DEBUG_CURRENT_FUNCTION
@@ -99,7 +100,7 @@ void setup() {
 
 void loop(){
   byte C_RelaysTmp; // Holds map of operated relays with C/O on input
-  byte L_RelaysTmp; // 0 = released and 1 = operated
+  byte L_RelaysTmp; //  0 = released and 1 = operated
   byte buttonNumber;
   float SWRtmp;
 
@@ -183,6 +184,7 @@ void loop(){
       }
     }
     getSWR();
+    doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
 #endif
@@ -192,17 +194,67 @@ void loop(){
 
 // Subroutines start here
 /**********************************************************************************************************/
-unsigned int calcXvalue(bool CorL){
-  unsigned int val = 0;
+void doRelayFineSteps() {
+  
+  float bestSWR;
+  float swrTemp;
+  bool improved;
+  byte initialC = _C_Relays;
+  byte initialL = _L_Relays;
+  byte bestC;
+  byte bestL;
+  byte bestCnt = 0;
+  byte cnt = 0;
 
-  for (byte cnt = 0; cnt < 8; cnt++) {
-    if (CorL) {   
-      if(bitRead(_C_Relays, cnt)) val = val + _capacitors[cnt];
-    } else {     
-      if(bitRead(_L_Relays, cnt)) val = val + _inductors[cnt];
-    } 
+_L_Relays++;
+setRelays(L);
+bestSWR = getSWR();
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.println("doRelayFineSteps():  bestSWR = "); Serial.println(bestSWR);
+  Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tCapacitor step up.");
+#endif
+//Start off by tweaking the C relays. We will increase capacitance as first try.
+  improved = false;
+  swrTemp = bestSWR;
+  while(swrTemp <= bestSWR) { // We got an improvement
+    if(_C_Relays < B11111111) _C_Relays++; else break; // Don't step beyond maximum capacitance
+    setRelays(C);
+    swrTemp = getSWR();
+    if(swrTemp < bestSWR){
+      bestSWR = swrTemp;
+      improved = true;
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.print(bestSWR, 4);Serial.print("\t");Serial.print(_fwdVolts);Serial.print("\t");Serial.print(_revVolts);
+  Serial.print("\t");Serial.print(calcXvalue(C));Serial.print("\t");Serial.print(calcXvalue(L));Serial.print("\t");
+  print_binary(_C_Relays, 8);Serial.print("\t");print_binary(_L_Relays, 8);Serial.println();
+#endif
+    } else { // We exit when we have stepped one capacitor step too far so back up one to best value.
+      _C_Relays--;
+      setRelays(C);
+    }
+  } 
+  _C_Relays--;
+  setRelays(C);
+  if(!improved){ // We were going the wrong way by increasing so try reducing
+  Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tDoing Capacitor step down.");
+    while(swrTemp <= bestSWR) { // We got an improvement
+      if(_C_Relays > B00000000) _C_Relays--; else break; // Don't step below minimum capacitance
+      setRelays(C);
+      swrTemp = getSWR();
+      if(swrTemp < bestSWR){
+        bestSWR = swrTemp;
+        improved = true;
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.print(bestSWR, 4);Serial.print("\t");Serial.print(_fwdVolts);Serial.print("\t");Serial.print(_revVolts);
+  Serial.print("\t");Serial.print(calcXvalue(C));Serial.print("\t");Serial.print(calcXvalue(L));Serial.print("\t");
+  print_binary(_C_Relays, 8);Serial.print("\t");print_binary(_L_Relays, 8);Serial.println();
+#endif        
+      }
+    }
+    _C_Relays++;
+    setRelays(C);
   }
-  return val;
+  _SWR = getSWR();
 }
 
 /**********************************************************************************************************/
@@ -347,11 +399,22 @@ void doRelayCourseSteps(byte position){
   if(bestCnt > 0) bitSet(_L_Relays, bestCnt - 1);
   setRelays(L); // Best Inductor now set. 
 }
+
 /**********************************************************************************************************/
+// We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
+unsigned int calcXvalue(bool CorL){
+  unsigned int val = 0;
 
-void doRelayFineSteps() {
-
+  for (byte cnt = 0; cnt < 8; cnt++) {
+    if (CorL) {   // True do capacitors, false do inductors
+      if(bitRead(_C_Relays, cnt)) val = val + _capacitors[cnt]; // add reactance assigned to set bits only.
+    } else {     
+      if(bitRead(_L_Relays, cnt)) val = val + _inductors[cnt];
+    } 
+  }
+  return val;
 }
+
 /**********************************************************************************************************/
 
 void setRelays(boolean relaySet) {
@@ -415,7 +478,7 @@ float getSWR() {
   _fwdVolts = analogRead(forward);
   if(_fwdVolts > 950) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
-    digitalWrite(LEDpin, LOW);
+    digitalWrite(LEDpin, LOW);   // Indicate switched to low gain
     _fwdVolts = analogRead(forward); // and re-read the forward power
   }
   _revVolts = analogRead(reverse);
