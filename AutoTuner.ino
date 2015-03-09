@@ -206,8 +206,8 @@ void doRelayFineSteps() {
   byte bestCnt = 0;
   byte cnt = 0;
 
-_L_Relays++;  // Temporary for debug
-setRelays(L); // Temporary for debug
+//_L_Relays++;  // Temporary for debug
+//setRelays(L); // Temporary for debug
 bestSWR = getSWR();
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("doRelayFineSteps():  bestSWR = "); Serial.println(bestSWR);
@@ -499,9 +499,10 @@ float getSWR() {
   delay(1); // Settling time for FET switch
   _fwdVolts = analogRead(forward);
   Serial.print("getSWR: before amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
-  if(_fwdVolts = 1023) {
+  if(_fwdVolts == 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     digitalWrite(LEDpin, LOW);   // Indicate switched to low gain
+    delay(1);
     _fwdVolts = analogRead(forward); // and re-read the forward power
   }
   Serial.print("getSWR: after amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
