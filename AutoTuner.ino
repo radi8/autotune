@@ -184,7 +184,7 @@ void loop(){
       }
     }
     getSWR();
-    doRelayFineSteps();
+    doRelayFineSteps(_SWR);
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
 #endif
@@ -194,32 +194,30 @@ void loop(){
 
 // Subroutines start here
 /**********************************************************************************************************/
-void doRelayFineSteps() {
-  
-  float bestSWR;
+void doRelayFineSteps(float bestSWR) {
+    
   float swrTemp;
   
-  bestSWR = fineStep_C();
-  swrTemp = fineStep_L();
+  bestSWR = fineStep_C(bestSWR);
+  bestSWR = fineStep_L(bestSWR);
   Serial.print("doRelayFineSteps:  bestSWR = "); Serial.println(bestSWR);
   Serial.print("doRelayFineSteps:  swrTemp = "); Serial.println(swrTemp);
-  bestSWR = fineStep_C();
-  swrTemp = fineStep_L();
+  bestSWR = fineStep_C(bestSWR);
+  swrTemp = fineStep_L(bestSWR);
   Serial.print("doRelayFineSteps:  bestSWR = "); Serial.println(bestSWR);
   Serial.print("doRelayFineSteps:  swrTemp = "); Serial.println(swrTemp);
   _SWR = swrTemp;
 }
 
 /**********************************************************************************************************/
-float fineStep_C(){
+float fineStep_C(float bestSWR){
   
-  float bestSWR;
   float swrTemp;
   bool improved;
   
   bestSWR = getSWR();
 #ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("doRelayFineSteps():  bestSWR = "); Serial.println(bestSWR);
+  Serial.print("fineStep_C():  bestSWR = "); Serial.println(bestSWR, 4);
   Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tCapacitor step up.");
 #endif
 //Start off by tweaking the C relays. We will increase capacitance as first try.
@@ -246,7 +244,7 @@ float fineStep_C(){
   setRelays(C);
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from capacitor fine steps up.");
-  printFineSteps(bestSWR);
+  printFineSteps(swrTemp);
 #endif  
   
   
@@ -274,22 +272,21 @@ float fineStep_C(){
     setRelays(C);
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from capacitor fine steps down.");
-  printFineSteps(bestSWR);
+  printFineSteps(swrTemp);
 #endif 
   }
   return getSWR();
 }
 
 /**********************************************************************************************************/
-float fineStep_L(){
+float fineStep_L(float bestSWR){
 
-  float bestSWR;
   float swrTemp;
   bool improved;
   
   bestSWR = getSWR();
 #ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("doRelayFineSteps():  bestSWR = "); Serial.println(bestSWR);
+  Serial.print("fineStep_L():  bestSWR = "); Serial.println(bestSWR, 4);
   Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tInductor step up.");
 #endif
 //Start off by tweaking the L relays. We will increase inductance as first try.
@@ -316,7 +313,7 @@ float fineStep_L(){
   setRelays(L);
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from inductor fine steps up.");
-  printFineSteps(bestSWR);
+  printFineSteps(swrTemp);
 #endif  
   
   
@@ -344,7 +341,7 @@ float fineStep_L(){
     setRelays(L);
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from inductor fine steps down.");
-  printFineSteps(bestSWR);
+  printFineSteps(swrTemp);
 #endif 
   }
   return getSWR();  
