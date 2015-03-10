@@ -184,7 +184,7 @@ void loop(){
       }
     }
     getSWR();
-    doRelayFineSteps(_SWR);
+    doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
 #endif
@@ -194,19 +194,30 @@ void loop(){
 
 // Subroutines start here
 /**********************************************************************************************************/
-void doRelayFineSteps(float bestSWR) {
-    
-  float swrTemp;
+void doRelayFineSteps() {
   
-  bestSWR = fineStep_C(bestSWR);
-  bestSWR = fineStep_L(bestSWR);
-  Serial.print("doRelayFineSteps:  bestSWR = "); Serial.println(bestSWR);
-  Serial.print("doRelayFineSteps:  swrTemp = "); Serial.println(swrTemp);
-  bestSWR = fineStep_C(bestSWR);
-  swrTemp = fineStep_L(bestSWR);
-  Serial.print("doRelayFineSteps:  bestSWR = "); Serial.println(bestSWR);
-  Serial.print("doRelayFineSteps:  swrTemp = "); Serial.println(swrTemp);
-  _SWR = swrTemp;
+  float bestSWR;  
+  float swrTemp;
+  byte CrelaysTemp = _C_Relays;
+  byte LrelaysTemp = _L_Relays;
+  
+  Serial.print("doRelayFineSteps: entry, _SWR = "); Serial.println(_SWR, 4);
+  swrTemp = fineStep_C(_SWR);
+  Serial.print("doRelayFineSteps: 1st C, bestSWR = "); Serial.println(bestSWR, 4);
+  swrTemp = fineStep_L(swrTemp);  
+  Serial.print("doRelayFineSteps: 1st L, swrTemp = "); Serial.println(swrTemp, 4);
+  swrTemp = fineStep_C(swrTemp);
+  Serial.print("doRelayFineSteps: 2nd C, swrTemp = "); Serial.println(swrTemp, 4);
+  swrTemp = fineStep_L(swrTemp);
+  Serial.print("doRelayFineSteps: 2nd L, swrTemp = "); Serial.println(swrTemp, 4);
+  if(_SWR > swrTemp) _SWR = swrTemp;
+  else {
+    // Leave original _SWR untouched
+    _C_Relays = CrelaysTemp; // Restore C & L Relays
+    _L_Relays = LrelaysTemp;
+    setRelays(C);
+    setRelays(L);
+  }
 }
 
 /**********************************************************************************************************/
@@ -215,7 +226,7 @@ float fineStep_C(float bestSWR){
   float swrTemp;
   bool improved;
   
-  bestSWR = getSWR();
+//  bestSWR = getSWR();
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.print("fineStep_C():  bestSWR = "); Serial.println(bestSWR, 4);
   Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tCapacitor step up.");
@@ -230,7 +241,7 @@ float fineStep_C(float bestSWR){
     if(swrTemp < bestSWR){ // Will be equal to, not less than, on entry so improved is not set.
       improved = true;
     }
-    bestSWR = swrTemp; // 1st time through, already equal
+    bestSWR = swrTemp; // 1st time through, it is already equal
     if(_C_Relays < B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
       _C_Relays++;
       setRelays(C);
@@ -284,7 +295,7 @@ float fineStep_L(float bestSWR){
   float swrTemp;
   bool improved;
   
-  bestSWR = getSWR();
+//  bestSWR = getSWR();
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.print("fineStep_L():  bestSWR = "); Serial.println(bestSWR, 4);
   Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tInductor step up.");
@@ -574,14 +585,14 @@ float getSWR() {
   digitalWrite(LEDpin, HIGH);     // Indicate state of amplifier gain
   delay(1); // Settling time for FET switch
   _fwdVolts = analogRead(forward);
-  Serial.print("getSWR: before amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
+//  Serial.print("getSWR: before amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
   if(_fwdVolts == 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     digitalWrite(LEDpin, LOW);   // Indicate switched to low gain
     delay(1);
     _fwdVolts = analogRead(forward); // and re-read the forward power
   }
-  Serial.print("getSWR: after amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
+//  Serial.print("getSWR: after amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
   _revVolts = analogRead(reverse);
   if(_fwdVolts > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
     if (_fwdVolts <= _revVolts) _revVolts = (_fwdVolts - 1); //Avoid division by zero or negative.
