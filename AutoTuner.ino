@@ -135,7 +135,7 @@ void loop(){
           setRelays(L);
         } 
       }
-      getSWR();
+      _SWR = getSWR();
 #ifdef DEBUG_TUNE_SUMMARY
       tuneSummary();
 #endif      
@@ -196,12 +196,27 @@ void loop(){
 /**********************************************************************************************************/
 void doRelayFineSteps() {
   
-//  float bestSWR;  
+  float bestSWR;  
   float swrTemp;
   byte CrelaysTemp = _C_Relays;
   byte LrelaysTemp = _L_Relays;
-  
+#ifdef DEBUG_RELAY_FINE_STEPS
+  int cnt = 1;
+#endif
+
   Serial.print("doRelayFineSteps: entry, _SWR = "); Serial.println(_SWR, 4);
+  swrTemp = _SWR;
+  do {
+    bestSWR = swrTemp;
+    swrTemp = fineStep_C(swrTemp);
+    swrTemp = fineStep_L(swrTemp);
+#ifdef DEBUG_RELAY_FINE_STEPS    
+    Serial.print("doRelayFineSteps():  Been through loop "); Serial.print(cnt); Serial.println(" times.");
+    cnt++;
+#endif    
+  } while(swrTemp < bestSWR);
+  
+/*  Serial.print("doRelayFineSteps: entry, _SWR = "); Serial.println(_SWR, 4);
   swrTemp = fineStep_C(_SWR);
   Serial.print("doRelayFineSteps: 1st C, swrTemp = "); Serial.println(swrTemp, 4);
   swrTemp = fineStep_L(swrTemp);  
@@ -210,8 +225,10 @@ void doRelayFineSteps() {
   Serial.print("doRelayFineSteps: 2nd C, swrTemp = "); Serial.println(swrTemp, 4);
   swrTemp = fineStep_L(swrTemp);
   Serial.print("doRelayFineSteps: 2nd L, swrTemp = "); Serial.println(swrTemp, 4);
-  if(_SWR > swrTemp) {
-    _SWR = swrTemp;
+*/  
+  
+  if(_SWR > bestSWR) {
+    _SWR = bestSWR;
     Serial.print("Doing if clause:  _SWR = "); Serial.print(_SWR, 7);
     Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
   }
@@ -252,7 +269,7 @@ float fineStep_C(float bestSWR){
       _C_Relays++;
       setRelays(C);
     } else {
-      _C_Relays++; // Dummy step as _C_Relays stepped back 1 on exit from while loop
+      _C_Relays++; // Dummy step because of the _C_Relays-- after exit from while loop
       break;
     }
     swrTemp = getSWR();        
