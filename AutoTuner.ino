@@ -184,7 +184,7 @@ void loop(){
       }
     }
     getSWR();
-    doRelayFineSteps();
+//    doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
 #endif
@@ -380,6 +380,7 @@ void doRelayCourseSteps(byte position){
   byte bestL;
   byte bestCnt = 0;
   byte cnt = 0;
+  byte cnt_L = 0;
 
   // Initialise with no relays operated, no changeover relay and SWR at this state
   _C_Relays = 0;
@@ -420,17 +421,23 @@ void doRelayCourseSteps(byte position){
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
   // the lowest SWR
 
-  for(cnt = 0; cnt < 9; cnt++){
-    if(cnt > 0){
-      _C_Relays = 0;
-      bitSet(_C_Relays,cnt - 1);
-      setRelays(C); // Stepping through the Capacitor relays
-      currentSWR = getSWR();
+  for(cnt_L = 0; cnt_L < 16; cnt_L++) {
+    if(cnt_L > 0){
+      _L_Relays += 16;
     }
-    if(currentSWR < bestSWR){
-      bestSWR = currentSWR;
-      bestCnt = cnt;
-    }
+    setRelays(L); // Stepping through the Inductor relays
+    for(cnt = 0; cnt < 9; cnt++){
+      if(cnt > 0){
+        _C_Relays = 0;
+        bitSet(_C_Relays,cnt - 1);
+        setRelays(C); // Stepping through the Capacitor relays
+        currentSWR = getSWR();
+      }
+      if(currentSWR < bestSWR){
+        bestSWR = currentSWR;
+        bestCnt = cnt;
+      }
+      
 #ifdef DEBUG_COARSE_TUNE_STATUS
     Serial.print(cnt);
     Serial.print("\t");
@@ -450,7 +457,11 @@ void doRelayCourseSteps(byte position){
     Serial.print("\t");
     Serial.println(bestSWR, 3);
 #endif
+    }
+    _C_Relays = 0;
   }
+}
+/*
   _C_Relays = 0;
   if(bestCnt > 0) bitSet(_C_Relays, bestCnt - 1);
   setRelays(C); // Leave capacitors with best capacitor set
@@ -512,7 +523,7 @@ void doRelayCourseSteps(byte position){
   setRelays(L); // Best Inductor now set.
   _SWR = getSWR(); 
 }
-
+*/
 /**********************************************************************************************************/
 // We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
 unsigned int calcXvalue(bool CorL){
