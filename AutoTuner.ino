@@ -253,6 +253,7 @@ float fineStep_C(float bestSWR){
   float originalBestSWR = bestSWR;
   float swrTemp;
   byte C_RelaysTmp = _C_Relays;
+  boolean firstIteration = true;
   
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.print("fineStep_C():  bestSWR = "); Serial.println(bestSWR, 4);
@@ -269,7 +270,13 @@ float fineStep_C(float bestSWR){
   }
   do {
     bestSWR = swrTemp; // 1st time through, it is already equal
-    if(_C_Relays < B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
+    if(firstIteration) { // We don't want to step to next capacitor first time through.
+      swrTemp = getSWR();
+      bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
+      originalBestSWR = swrTemp;
+      firstIteration = false;
+    }
+    else if(_C_Relays < B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
 //Serial.print("1. swrTemp, bestSWR = "); Serial.print(swrTemp, 5); Serial.print(", ");Serial.println(bestSWR, 5);
       _C_Relays++;
       setRelays(C);
@@ -297,9 +304,16 @@ float fineStep_C(float bestSWR){
   if(C_RelaysTmp == _C_Relays){ // We didn't improve by trying to increase C so try reducing it.
     Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tDoing Capacitor step down.");
     swrTemp = bestSWR;
+    firstIteration = true;
     do {
       bestSWR = swrTemp; // 1st time through, already equal
-      if(_C_Relays != B00000000) { // Step down to next capacitor value only if it won't step below minimum C.
+      if(firstIteration) { // We don't want to step to next capacitor first time through.
+        swrTemp = getSWR();
+        bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
+        originalBestSWR = swrTemp;
+        firstIteration = false;
+      }
+      else if(_C_Relays != B00000000) { // Step down to next capacitor value only if it won't step below minimum C.
         _C_Relays--;
         setRelays(C);
         swrTemp = getSWR();
