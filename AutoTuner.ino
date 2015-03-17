@@ -165,6 +165,7 @@ void loop(){
   boolean button_pressed = handle_button();
   if (button_pressed) {
     
+    /*
     
     Serial.println("button_pressed");
     doRelayCourseSteps(C_at_Input);
@@ -187,9 +188,14 @@ void loop(){
         setRelays(C);
         setRelays(L);
       }
-    }
-
-//    digitalWrite(coRelay, CAPS_at_OUTPUT);
+    } */
+//    _C_Relays = B01010000;
+//    _L_Relays = B00000011;
+    _C_Relays = B00100000;
+    _L_Relays = B00000000;
+    setRelays(C);
+    setRelays(L);
+    digitalWrite(coRelay, CAPS_at_OUTPUT);
     _SWR = getSWR();
     doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
