@@ -43,6 +43,10 @@
 #define L             false   // Inductor relay set
 #define Up            true    // Debug item, remove in final
 #define Dn            false   // Debug item, remove in final
+#define hiZ           true    // L network set for high impedence loads
+#define loZ           false   // L network set for low impedence loads
+#define hi            true    // Gain setting for swr amplifier
+#define lo            false   // Gain setting for swr amplifier
 
 // Analog pushbutton settings
 #define analog_buttons_pin A2
@@ -58,10 +62,23 @@ long button_last_add_to_send_buffer_time = 0;
 // Global variables always start with an underscore
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
-int _fwdVolts;
-int _revVolts;
+//int _fwdVolts;
+//int _revVolts;
 float _SWR;
-unsigned long _rawSWR;
+//unsigned long _rawSWR;
+struct swr {
+  unsigned int fwd;
+  unsigned int rev;
+  unsigned long rawSWR;
+} _swr;
+struct status {
+  byte C_relays;
+  byte L_relays;
+  unsigned int totC;
+  unsigned int totL;
+  boolean outputZ;
+  boolean ampGain;
+} _status;
 enum _C_STATE{C_at_Input, C_at_Output};
   //       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
 const unsigned int  _inductors[] = { 6,  16,  32,  64,  125,  250,  500, 1000 };  // inductor values in nH
@@ -287,11 +304,11 @@ void doRelayCourseSteps(byte position){
     Serial.print("  ");
     print_binary(_L_Relays, 8);
     Serial.print("  ");
-    formatINT(_fwdVolts);
-    Serial.print(_fwdVolts);
+    formatINT(_swr.fwd);
+    Serial.print(_swr.fwd);
     Serial.print("\t");
-    formatINT(_revVolts);
-    Serial.print(_revVolts);
+    formatINT(_swr.rev);
+    Serial.print(_swr.rev);
     Serial.print("\t");
     Serial.print(currentSWR, 3);
     Serial.print("\t");
@@ -349,11 +366,11 @@ void doRelayCourseSteps(byte position){
     Serial.print("  ");
     print_binary(_L_Relays, 8);
     Serial.print("  ");
-    formatINT(_fwdVolts);
-    Serial.print(_fwdVolts);
+    formatINT(_swr.fwd);
+    Serial.print( fwdVolts);
     Serial.print("\t");
-    formatINT(_revVolts);
-    Serial.print(_revVolts);
+    formatINT(_swr.rev);
+    Serial.print(_swr.rev);
     Serial.print("\t");
     Serial.print(currentSWR, 3);
     Serial.print("\t");
@@ -577,7 +594,7 @@ float fineStep_L(float bestSWR){
 
 /**********************************************************************************************************/
 void printFineSteps(float bestSWR) {
-  Serial.print(bestSWR, 4);Serial.print("\t");Serial.print(_fwdVolts);Serial.print("\t");Serial.print(_revVolts);
+  Serial.print(bestSWR, 4);Serial.print("\t");Serial.print(_swr.fwd);Serial.print("\t");Serial.print(_swr.rev);
   Serial.print("\t");Serial.print(calcXvalue(C));Serial.print("\t");Serial.print(calcXvalue(L));Serial.print("\t");
   print_binary(_C_Relays, 8);Serial.print("\t");print_binary(_L_Relays, 8);Serial.println();
 }
@@ -652,23 +669,24 @@ float getSWR() {
   // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
   // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
 
-  //       We are using the GLOBAL VARIABLES _fwdVolts, _revVolts, _SWR
-  //       All globals are prefixed with an underscore e.g. _fwdVolts
+  //       We are using the GLOBAL VARIABLES _swr.fwd, _swr.rev, _SWR
+  //       All globals are prefixed with an underscore e.g. _swr.fwd
   float swrTemp;
   unsigned long fwd;
   unsigned long rev = 0;
   
-//  Serial.print("getSWR: before amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
+//  Serial.print("getSWR: before amp gain, _swr.fwd = "); Serial.println(_swr.fwd); // Temporary debug
   digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
-  digitalWrite(LEDpin, HIGH);     // Indicate state of amplifier gain
+  _status.ampGain = hi;
   delay(1);  
   fwd = analogRead(forward);
   if(fwd == 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
-    digitalWrite(LEDpin, LOW);   // Indicate switched to low gain
+    _status.ampGain = lo;
+    delay(1);
     fwd = analogRead(forward);
   }
-//  Serial.print("getSWR: after amp gain, _fwdVolts = "); Serial.println(_fwdVolts); // Temporary debug
+//  Serial.print("getSWR: after amp gain, _swr.fwd = "); Serial.println(_swr.fwd); // Temporary debug
   if(fwd > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
     fwd = 0;
     for(byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
@@ -678,25 +696,25 @@ float getSWR() {
     fwd = fwd / SWR_AVERAGE_COUNT;
     rev = rev / SWR_AVERAGE_COUNT;
     if (fwd <= rev) rev = (fwd - 1); //Avoid division by zero or negative.
-    _fwdVolts = fwd;
-    _revVolts = rev;
-    _rawSWR = ((fwd + rev)*100000) / (fwd - rev);
-    swrTemp = float(_rawSWR) / 100000;
+    _swr.fwd = fwd;
+    _swr.rev = rev;
+    _swr.rawSWR = ((fwd + rev)*100000) / (fwd - rev);
+    swrTemp = float(_swr.rawSWR) / 100000;
   } 
   else {
-    _fwdVolts = 0;
-    _revVolts = 0;
-    swrTemp = 100;
+    _swr.fwd = 0;
+    _swr.rev = 0;
+    swrTemp = 999;
   }
 #ifdef DEBUG_SWR_VALUES
   Serial.print("getSWR: fwd, rev, swrTemp, rawSWR = ");
-  Serial.print(_fwdVolts);
+  Serial.print(swr.fwd);
   Serial.print(", ");
-  Serial.print(_revVolts);
+  Serial.print(_swr.rev);
   Serial.print(", ");
   Serial.print(swrTemp, 6);
   Serial.print(", ");
-  Serial.println(_rawSWR);
+  Serial.println(_swr.rawSWR);
 #endif
   return swrTemp;
 }
@@ -982,11 +1000,11 @@ void tuneSummary() {
   Serial.print("  ");
   print_binary(_L_Relays, 8);
   Serial.print("  ");
-  formatINT(_fwdVolts);
-  Serial.print(_fwdVolts);
+  formatINT(_swr.fwd);
+  Serial.print( _swr.fwd);
   Serial.print("\t");
-  formatINT(_revVolts);
-  Serial.print(_revVolts);
+  formatINT(_swr.rev);
+  Serial.print(_swr.rev);
   Serial.print("\t\t");
   Serial.println(_SWR, 4);
   Serial.print("Total Capacitance = ");
