@@ -165,7 +165,7 @@ void loop(){
   boolean button_pressed = handle_button();
   if (button_pressed) {
     
-    /*
+
     
     Serial.println("button_pressed");
     doRelayCourseSteps(C_at_Input);
@@ -188,14 +188,9 @@ void loop(){
         setRelays(C);
         setRelays(L);
       }
-    } */
-//    _C_Relays = B01010000;
-//    _L_Relays = B00000011;
-    _C_Relays = B00100000;
-    _L_Relays = B00000000;
-    setRelays(C);
-    setRelays(L);
-    digitalWrite(coRelay, CAPS_at_OUTPUT);
+    }
+
+//    digitalWrite(coRelay, CAPS_at_OUTPUT);
     _SWR = getSWR();
     doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
@@ -206,207 +201,6 @@ void loop(){
 }
 
 // Subroutines start here
-/**********************************************************************************************************/
-void doRelayFineSteps() {
-  
-  float bestSWR;  
-  float swrTemp;
-  byte CrelaysTemp = _C_Relays;
-  byte LrelaysTemp = _L_Relays;
-#ifdef DEBUG_RELAY_FINE_STEPS
-  int cnt = 1;
-#endif
-
-  Serial.print("doRelayFineSteps: entry, _SWR = "); Serial.println(_SWR, 4);
-  swrTemp = _SWR;
-  
-  do {
-    bestSWR = swrTemp;
-    swrTemp = fineStep_C(swrTemp);
-    swrTemp = fineStep_L(swrTemp);
-#ifdef DEBUG_RELAY_FINE_STEPS    
-    Serial.print("doRelayFineSteps():  Been through loop "); Serial.print(cnt); Serial.println(" times.");
-    cnt++;
-    Serial.println("-----------------------------------------------------------------------------------");
-#endif    
-  } while(swrTemp < bestSWR);
-  
-  if(_SWR > bestSWR) {
-    _SWR = bestSWR;
-    Serial.print("Doing if clause:  _SWR = "); Serial.print(_SWR, 7);
-    Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
-  }
-  else {
-    // Leave original _SWR untouched
-    _C_Relays = CrelaysTemp; // Restore C & L Relays
-    _L_Relays = LrelaysTemp;
-    setRelays(C);
-    setRelays(L);
-    Serial.print("Doing else clause:  _SWR = "); Serial.print(_SWR, 7);
-    Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
-  }
-}
-
-/**********************************************************************************************************/
-float fineStep_C(float bestSWR){
-  
-  float originalBestSWR = bestSWR;
-  float swrTemp;
-  byte C_RelaysTmp = _C_Relays;
-  boolean firstIteration = true;
-  
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.print("fineStep_C():  bestSWR = "); Serial.println(bestSWR, 4);
-  Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tCapacitor step up.");
-#endif
-    //Start off by tweaking the C relays. We will increase capacitance as first try.
-  swrTemp = bestSWR;
-#ifdef DEBUG_RELAY_FINE_STEPS
-  printFineSteps(swrTemp);
-#endif  
-    // If _C_Relays = 00000000 we don't increment it first time through the loop
-  if(_C_Relays == 00000000) {
-    swrTemp = getSWR();
-  }
-  do {
-    bestSWR = swrTemp; // 1st time through, it is already equal
-    if(firstIteration) { // We don't want to step to next capacitor first time through.
-      swrTemp = getSWR();
-      bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
-      originalBestSWR = swrTemp;
-      firstIteration = false;
-    }
-    else if(_C_Relays < B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
-//Serial.print("1. swrTemp, bestSWR = "); Serial.print(swrTemp, 5); Serial.print(", ");Serial.println(bestSWR, 5);
-      _C_Relays++;
-      setRelays(C);
-      swrTemp = getSWR();
-    } else {
-      _C_Relays++; // Dummy step because of the _C_Relays-- after exit from while loop
-      break;
-    } 
-#ifdef DEBUG_RELAY_FINE_STEPS
-  printFineSteps(swrTemp);
-#endif
-//Serial.print("2. swrTemp, bestSWR = "); Serial.print(swrTemp, 5); Serial.print(", ");Serial.println(bestSWR, 5);
-  }  while(swrTemp <= bestSWR);
-  
-  _C_Relays--; // When we exit, we have stepped one capacitor step too far, so back up one to best value.
-  setRelays(C);
-  swrTemp = getSWR();
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("Values on exit from capacitor fine steps up.");
-  printFineSteps(swrTemp);
-#endif  
-  Serial.print("C_RelaysTmp, _C_Relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_C_Relays);
-  
-  if(C_RelaysTmp == _C_Relays){ // We didn't improve by trying to increase C so try reducing it.
-    Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tDoing Capacitor step down.");
-    swrTemp = bestSWR;
-    firstIteration = true;
-    do {
-      bestSWR = swrTemp; // 1st time through, already equal
-      if(firstIteration) { // We don't want to step to next capacitor first time through.
-        swrTemp = getSWR();
-        bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
-        originalBestSWR = swrTemp;
-        firstIteration = false;
-      }
-      else if(_C_Relays != B00000000) { // Step down to next capacitor value only if it won't step below minimum C.
-        _C_Relays--;
-        setRelays(C);
-        swrTemp = getSWR();
-      } else {
-        _C_Relays--; // Dummy step as _C_Relays stepped up 1 on exit from while loop
-        break;
-      }
-#ifdef DEBUG_RELAY_FINE_STEPS
-  printFineSteps(bestSWR);
-#endif
-    } while(swrTemp <= bestSWR); // We got an improvement
-    _C_Relays++;
-    setRelays(C);
-    swrTemp = getSWR();
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("Values on exit from capacitor fine steps down.");
-  printFineSteps(swrTemp);
-#endif 
-  }
-  return swrTemp;
-}
-
-/**********************************************************************************************************/
-float fineStep_L(float bestSWR){
-
-  float originalBestSWR = bestSWR;
-  float swrTemp;
-  byte L_RelaysTmp = _L_Relays;
-  
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.print("fineStep_L():  bestSWR = "); Serial.println(bestSWR, 4);
-  Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tInductor step up.");
-#endif
-//Start off by tweaking the L relays. We will increase inductance as first try.
-  swrTemp = bestSWR;
-  do {
-    bestSWR = swrTemp; // 1st time through, already equal
-    if(_L_Relays < B11111111) { // Step to next inductor value only if it won't step beyond maximum L.
-      _L_Relays++;
-      setRelays(L);
-      swrTemp = getSWR();
-    } else {
-      _L_Relays++; // Dummy step as _L_Relays will be stepped back 1 on exit from while loop
-      break;
-    }
-#ifdef DEBUG_RELAY_FINE_STEPS
-  printFineSteps(bestSWR);
-#endif         
-  } while(swrTemp <= bestSWR);
-  _L_Relays--; // When we exit, we have stepped one inductor step too far, so back up one to best value.
-  setRelays(L);
-  swrTemp = getSWR();
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("Values on exit from inductor fine steps up.");
-  printFineSteps(swrTemp);
-#endif  
-  Serial.print("L_RelaysTmp, _L_Relays = "); Serial.print(L_RelaysTmp); Serial.print("' ");Serial.println(_L_Relays);
-  
-  if(L_RelaysTmp == _L_Relays){ // We didn't improve by trying to increase L so try reducing it.
-    Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tDoing Inductor step down.");
-    swrTemp = bestSWR;
-    do {
-      bestSWR = swrTemp; // 1st time through, already equal
-      if(_L_Relays != B00000000) { // Step down to next inductor value only if it won't step below minimum L.
-        _L_Relays--;
-        setRelays(L);
-        swrTemp = getSWR();
-      } else {
-        _L_Relays--; // Dummy step as _L_Relays will be stepped up 1 on exit from while loop
-        break;
-      }
-#ifdef DEBUG_RELAY_FINE_STEPS
-  printFineSteps(bestSWR);
-#endif        
-    } while(swrTemp <= bestSWR);
-    _L_Relays++;
-    setRelays(L);
-    swrTemp = getSWR();
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("Values on exit from inductor fine steps down.");
-  printFineSteps(swrTemp);
-#endif 
-  }
-  return swrTemp;  
-}
-
-/**********************************************************************************************************/
-void printFineSteps(float bestSWR) {
-  Serial.print(bestSWR, 4);Serial.print("\t");Serial.print(_fwdVolts);Serial.print("\t");Serial.print(_revVolts);
-  Serial.print("\t");Serial.print(calcXvalue(C));Serial.print("\t");Serial.print(calcXvalue(L));Serial.print("\t");
-  print_binary(_C_Relays, 8);Serial.print("\t");print_binary(_L_Relays, 8);Serial.println();
-}
-
 /**********************************************************************************************************/
 
 void doRelayCourseSteps(byte position){
@@ -582,6 +376,212 @@ void doRelayCourseSteps(byte position){
   _SWR = getSWR(); 
 }
 */
+/**********************************************************************************************************/
+void doRelayFineSteps() {
+  
+  float bestSWR;  
+  float swrTemp;
+  byte CrelaysTemp = _C_Relays;
+  byte LrelaysTemp = _L_Relays;
+#ifdef DEBUG_RELAY_FINE_STEPS
+  int cnt = 1;
+#endif
+
+  Serial.print("doRelayFineSteps: entry, _SWR = "); Serial.println(_SWR, 4);
+  swrTemp = _SWR;
+  
+  do {
+    bestSWR = swrTemp;
+    swrTemp = fineStep_C(swrTemp);
+    swrTemp = fineStep_L(swrTemp);
+#ifdef DEBUG_RELAY_FINE_STEPS    
+    Serial.print("doRelayFineSteps():  Been through loop "); Serial.print(cnt); Serial.println(" times.");
+    cnt++;
+    Serial.println("-----------------------------------------------------------------------------------");
+#endif    
+  } while(swrTemp < bestSWR);
+  
+  if(_SWR > bestSWR) {
+    _SWR = bestSWR;
+    Serial.print("Doing if clause:  _SWR = "); Serial.print(_SWR, 7);
+    Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
+  }
+  else {
+    // Leave original _SWR untouched
+    _C_Relays = CrelaysTemp; // Restore C & L Relays
+    _L_Relays = LrelaysTemp;
+    setRelays(C);
+    setRelays(L);
+    Serial.print("Doing else clause:  _SWR = "); Serial.print(_SWR, 7);
+    Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
+  }
+}
+
+/**********************************************************************************************************/
+float fineStep_C(float bestSWR){
+  
+  float originalBestSWR = bestSWR;
+  float swrTemp;
+  byte C_RelaysTmp = _C_Relays;
+  boolean firstIteration = true;
+  
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.print("fineStep_C():  bestSWR = "); Serial.println(bestSWR, 4);
+  Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tCapacitor step up.");
+#endif
+  //Start off by tweaking the C relays. We will increase capacitance as first try.
+  swrTemp = bestSWR;
+  do {
+    bestSWR = swrTemp; // 1st time through, it is already equal
+    if(firstIteration) { // We don't want to step to next capacitor first time through.
+      swrTemp = getSWR();
+      bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
+      originalBestSWR = swrTemp;
+      firstIteration = false;
+    }
+    else if(_C_Relays < B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
+//Serial.print("1. swrTemp, bestSWR = "); Serial.print(swrTemp, 5); Serial.print(", ");Serial.println(bestSWR, 5);
+      _C_Relays++;
+      setRelays(C);
+      swrTemp = getSWR();
+    } else {
+      _C_Relays++; // Dummy step because of the _C_Relays-- after exit from while loop
+      break;
+    } 
+#ifdef DEBUG_RELAY_FINE_STEPS
+  printFineSteps(swrTemp);
+#endif
+//Serial.print("2. swrTemp, bestSWR = "); Serial.print(swrTemp, 5); Serial.print(", ");Serial.println(bestSWR, 5);
+  }  while(swrTemp <= bestSWR);
+  
+  _C_Relays--; // When we exit, we have stepped one capacitor step too far, so back up one to best value.
+  setRelays(C);
+  swrTemp = getSWR();
+
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.println("Values on exit from capacitor fine steps up.");
+  printFineSteps(swrTemp);
+#endif  
+  Serial.print("C_RelaysTmp, _C_Relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_C_Relays);
+  
+  if(C_RelaysTmp == _C_Relays){ // We didn't improve by trying to increase C so try reducing it.
+    Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tDoing Capacitor step down.");
+    swrTemp = bestSWR;
+    firstIteration = true;
+    do {
+      bestSWR = swrTemp; // 1st time through, already equal
+      if(firstIteration) { // We don't want to step to next capacitor first time through.
+        swrTemp = getSWR();
+        bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
+        originalBestSWR = swrTemp;
+        firstIteration = false;
+      }
+      else if(_C_Relays != B00000000) { // Step down to next capacitor value only if it won't step below minimum C.
+        _C_Relays--;
+        setRelays(C);
+        swrTemp = getSWR();
+      } else {
+        _C_Relays--; // Dummy step as _C_Relays stepped up 1 on exit from while loop
+        break;
+      }
+#ifdef DEBUG_RELAY_FINE_STEPS
+  printFineSteps(bestSWR);
+#endif
+    } while(swrTemp <= bestSWR); // We got an improvement
+    _C_Relays++;
+    setRelays(C);
+    swrTemp = getSWR();
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.println("Values on exit from capacitor fine steps down.");
+  printFineSteps(swrTemp);
+#endif 
+  }
+  return swrTemp;
+}
+
+/**********************************************************************************************************/
+float fineStep_L(float bestSWR){
+
+  float originalBestSWR = bestSWR;
+  float swrTemp;
+  byte L_RelaysTmp = _L_Relays;
+  bool firstIteration = true;
+  
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.print("fineStep_L():  bestSWR = "); Serial.println(bestSWR, 4);
+  Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tInductor step up.");
+#endif
+//Start off by tweaking the L relays. We will increase inductance as first try.
+  swrTemp = bestSWR;
+  do {
+    bestSWR = swrTemp; // 1st time through, already equal
+    if(firstIteration) { // We don't want to step to next inductor first time through.
+      swrTemp = getSWR();
+      bestSWR = swrTemp; // This will ensure we don't exit loop first time through.
+      firstIteration = false;
+    }
+    else if(_L_Relays < B11111111) { // Step to next inductor value only if it won't step beyond maximum L.
+      _L_Relays++;
+      setRelays(L);
+      swrTemp = getSWR();
+    } else {
+      _L_Relays++; // Dummy step as _L_Relays will be stepped back 1 on exit from while loop
+      break;
+    }
+#ifdef DEBUG_RELAY_FINE_STEPS
+  printFineSteps(bestSWR);
+#endif         
+  } while(swrTemp <= bestSWR);
+  _L_Relays--; // When we exit, we have stepped one inductor step too far, so back up one to best value.
+  setRelays(L);
+  swrTemp = getSWR();
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.println("Values on exit from inductor fine steps up.");
+  printFineSteps(swrTemp);
+#endif  
+  Serial.print("L_RelaysTmp, _L_Relays = "); Serial.print(L_RelaysTmp); Serial.print("' ");Serial.println(_L_Relays);
+  
+  if(L_RelaysTmp == _L_Relays){ // We didn't improve by trying to increase L so try reducing it.
+    Serial.println("bestSWR\tfwdVolt\trevVolt\ttotC\ttotL\tC_relays\tL_relays\tDoing Inductor step down.");
+    swrTemp = bestSWR;
+    firstIteration = true;
+    do {
+      bestSWR = swrTemp; // 1st time through, already equal
+      if(firstIteration) { // We don't want to step to next inductor first time through.
+        swrTemp = getSWR();
+        bestSWR = swrTemp; // This will ensure we don't exit loop first time through.
+        firstIteration = false;
+      }
+      else if(_L_Relays != B00000000) { // Step down to next inductor value only if it won't step below minimum L.
+        _L_Relays--;
+        setRelays(L);
+        swrTemp = getSWR();
+      } else {
+        _L_Relays--; // Dummy step as _L_Relays will be stepped up 1 on exit from while loop
+        break;
+      }
+#ifdef DEBUG_RELAY_FINE_STEPS
+  printFineSteps(bestSWR);
+#endif        
+    } while(swrTemp <= bestSWR);
+    _L_Relays++;
+    setRelays(L);
+    swrTemp = getSWR();
+#ifdef DEBUG_RELAY_FINE_STEPS
+  Serial.println("Values on exit from inductor fine steps down.");
+  printFineSteps(swrTemp);
+#endif 
+  }
+  return swrTemp;  
+}
+
+/**********************************************************************************************************/
+void printFineSteps(float bestSWR) {
+  Serial.print(bestSWR, 4);Serial.print("\t");Serial.print(_fwdVolts);Serial.print("\t");Serial.print(_revVolts);
+  Serial.print("\t");Serial.print(calcXvalue(C));Serial.print("\t");Serial.print(calcXvalue(L));Serial.print("\t");
+  print_binary(_C_Relays, 8);Serial.print("\t");print_binary(_L_Relays, 8);Serial.println();
+}
+
 /**********************************************************************************************************/
 // We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
 unsigned int calcXvalue(bool CorL){
