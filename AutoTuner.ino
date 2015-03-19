@@ -11,7 +11,7 @@
 #define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
 //#define DEBUG_CURRENT_FUNCTION
-//#define DEBUG_SWR_VALUES
+//#define DEBUG_swr.rawSWR_VALUES
 //#define DEBUG_SHIFT
 
 #define DEBUG_BUTTON_ARRAY
@@ -58,27 +58,25 @@ int button_array_high_limit[analog_buttons_number_of_buttons];
 int button_array_low_limit[analog_buttons_number_of_buttons];
 long button_last_add_to_send_buffer_time = 0;
 
-
 // Global variables always start with an underscore
 byte _C_Relays = 0; // Holds map of operated relays with
 byte _L_Relays = 0; // 0 = released and 1 = operated
-//int _fwdVolts;
-//int _revVolts;
-float _SWR;
-//unsigned long _rawSWR;
+
 struct swr {
   unsigned int fwd;
   unsigned int rev;
   unsigned long rawSWR;
+  boolean ampGain;
 } _swr;
+
 struct status {
   byte C_relays;
   byte L_relays;
   unsigned int totC;
   unsigned int totL;
   boolean outputZ;
-  boolean ampGain;
 } _status;
+
 enum _C_STATE{C_at_Input, C_at_Output};
   //       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
 const unsigned int  _inductors[] = { 6,  16,  32,  64,  125,  250,  500, 1000 };  // inductor values in nH
@@ -99,7 +97,7 @@ void setup() {
 
   digitalWrite(coRelay, LOW); // Set capacitor C/O relay to input side
   digitalWrite(swrGain, LOW); // Turns off fet shunting swr Start with highest gain for amps.voltages
-  _status.ampGain = hi;
+  _swr.ampGain = hi;
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
   digitalWrite(Cclock, LOW);
   digitalWrite(LEDpin, LOW);
@@ -122,7 +120,7 @@ void loop(){
   byte C_RelaysTmp; // Holds map of operated relays with C/O on input
   byte L_RelaysTmp; //  0 = released and 1 = operated
   byte buttonNumber;
-  float SWRtmp;
+  unsigned long SWRtmp;
 
   buttonNumber = check_step_buttons();
   //  Serial.print("MainLoop:  buttonNumber = ");
@@ -155,7 +153,7 @@ void loop(){
           setRelays(L);
         } 
       }
-      _SWR = getSWR();
+      getSWR();
 #ifdef DEBUG_TUNE_SUMMARY
       tuneSummary();
 #endif      
@@ -190,16 +188,16 @@ void loop(){
     //Save SWR and relay states and see if better with C/O relay on output
     C_RelaysTmp = _C_Relays;
     L_RelaysTmp = _L_Relays;
-    _SWR = getSWR();
-    SWRtmp = _SWR;
+    getSWR();
+    SWRtmp = _swr.rawSWR;
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
 #endif
-    if(_SWR > 1.05) {
+    if(_swr.rawSWR > 1.05) {
       doRelayCourseSteps(C_at_Output); //Run it again and see if better with C/O relay operated
       //If not better restore relays to input state
-      _SWR = getSWR();
-      if(SWRtmp <= _SWR) {             //Capacitors on Input side gave best result so
+      getSWR();
+      if(SWRtmp <= _swr.rawSWR) {             //Capacitors on Input side gave best result so
         _C_Relays = C_RelaysTmp;       // set relays back to where they were on input.
         _L_Relays = L_RelaysTmp;
         digitalWrite(coRelay, CAPS_at_INPUT);
@@ -209,7 +207,7 @@ void loop(){
     }
 
 //    digitalWrite(coRelay, CAPS_at_OUTPUT);
-    _SWR = getSWR();
+    getSWR();
     doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
@@ -223,7 +221,7 @@ void loop(){
 
 void doRelayCourseSteps(byte position){
 
-  float currentSWR;
+  unsigned long currentSWR;
   float bestSWR = 999;
   float C_RelayBestSWR = 999;
   byte bestC;
@@ -268,8 +266,9 @@ void doRelayCourseSteps(byte position){
   Serial.println("C_RelayBestSWR");
 #endif
 
-  currentSWR = getSWR();  //Get SWR with no relays operated at this point.
-  bestSWR = 999; // Dummy value to force bestSWR to be written from
+  getSWR();  //Get SWR with no relays operated at this point.
+  currentSWR = _swr.rawSWR;
+  bestSWR = 99900000; // Dummy value to force bestSWR to be written from
   // currentSWR first time through for loop
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
@@ -286,7 +285,8 @@ void doRelayCourseSteps(byte position){
         _C_Relays = 0;
         bitSet(_C_Relays,cnt - 1);
         setRelays(C); // Stepping through the Capacitor relays
-        currentSWR = getSWR();
+        getSWR();
+        currentSWR = _swr.rawSWR;
       }
 //      Serial.print(currentSWR, 4); Serial.print(" and "); Serial.println(bestSWR, 4);
       if(currentSWR <= C_RelayBestSWR){
@@ -329,7 +329,7 @@ void doRelayCourseSteps(byte position){
   _L_Relays = bestL;
   setRelays(C);
   setRelays(L);
-  _SWR = getSWR();
+  getSWR();
 }
 /*
   _C_Relays = 0;
@@ -391,7 +391,7 @@ void doRelayCourseSteps(byte position){
   _L_Relays = 0;
   if(bestCnt > 0) bitSet(_L_Relays, bestCnt - 1);
   setRelays(L); // Best Inductor now set.
-  _SWR = getSWR(); 
+  _swr.rawSWR = getSWR(); 
 }
 */
 /**********************************************************************************************************/
@@ -405,8 +405,8 @@ void doRelayFineSteps() {
   int cnt = 1;
 #endif
 
-  Serial.print("doRelayFineSteps: entry, _SWR = "); Serial.println(_SWR, 4);
-  swrTemp = _SWR;
+  Serial.print("doRelayFineSteps: entry, _swr.rawSWR = "); Serial.println(_swr.rawSWR, 4);
+  swrTemp = _swr.rawSWR;
   
   do {
     bestSWR = swrTemp;
@@ -419,27 +419,27 @@ void doRelayFineSteps() {
 #endif    
   } while(swrTemp < bestSWR);
   
-  if(_SWR > bestSWR) {
-    _SWR = bestSWR;
-    Serial.print("Doing if clause:  _SWR = "); Serial.print(_SWR, 7);
+  if(_swr.rawSWR > bestSWR) {
+    _swr.rawSWR = bestSWR;
+    Serial.print("Doing if clause:  _swr.rawSWR = "); Serial.print(_swr.rawSWR, 7);
     Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
   }
   else {
-    // Leave original _SWR untouched
+    // Leave original _swr.rawSWR untouched
     _C_Relays = CrelaysTemp; // Restore C & L Relays
     _L_Relays = LrelaysTemp;
     setRelays(C);
     setRelays(L);
-    Serial.print("Doing else clause:  _SWR = "); Serial.print(_SWR, 7);
+    Serial.print("Doing else clause:  _swr.rawSWR = "); Serial.print(_swr.rawSWR, 7);
     Serial.print("; and swrTemp = "); Serial.println(swrTemp, 7);
   }
 }
 
 /**********************************************************************************************************/
-float fineStep_C(float bestSWR){
+float fineStep_C(unsigned long bestSWR){
   
-  float originalBestSWR = bestSWR;
-  float swrTemp;
+  unsigned long originalBestSWR = bestSWR;
+  unsigned long swrTemp;
   byte C_RelaysTmp = _C_Relays;
   boolean firstIteration = true;
   
@@ -452,7 +452,8 @@ float fineStep_C(float bestSWR){
   do {
     bestSWR = swrTemp; // 1st time through, it is already equal
     if(firstIteration) { // We don't want to step to next capacitor first time through.
-      swrTemp = getSWR();
+      getSWR();
+      swrTemp = _swr.rawSWR;
       bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
       originalBestSWR = swrTemp;
       firstIteration = false;
@@ -461,7 +462,8 @@ float fineStep_C(float bestSWR){
 //Serial.print("1. swrTemp, bestSWR = "); Serial.print(swrTemp, 5); Serial.print(", ");Serial.println(bestSWR, 5);
       _C_Relays++;
       setRelays(C);
-      swrTemp = getSWR();
+      getSWR();
+      swrTemp = _swr.rawSWR;
     } else {
       _C_Relays++; // Dummy step because of the _C_Relays-- after exit from while loop
       break;
@@ -476,7 +478,8 @@ float fineStep_C(float bestSWR){
   
   _C_Relays--; // When we exit, we have stepped one capacitor step too far, so back up one to best value.
   setRelays(C);
-  swrTemp = getSWR();
+  getSWR();
+  swrTemp = _swr.rawSWR;
 
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from capacitor fine steps up.");
@@ -493,7 +496,8 @@ float fineStep_C(float bestSWR){
     do {
       bestSWR = swrTemp; // 1st time through, already equal
       if(firstIteration) { // We don't want to step to next capacitor first time through.
-        swrTemp = getSWR();
+        getSWR();
+        swrTemp = _swr.rawSWR;
         bestSWR = swrTemp; // This will also ensure we don't exit the loop first time through.
         originalBestSWR = swrTemp;
         firstIteration = false;
@@ -501,7 +505,8 @@ float fineStep_C(float bestSWR){
       else if(_C_Relays != B00000000) { // Step down to next capacitor value only if it won't step below minimum C.
         _C_Relays--;
         setRelays(C);
-        swrTemp = getSWR();
+        getSWR();
+        swrTemp = _swr.rawSWR;
       } else {
         _C_Relays--; // Dummy step as _C_Relays stepped up 1 on exit from while loop
         break;
@@ -514,7 +519,8 @@ float fineStep_C(float bestSWR){
     } while(swrTemp <= bestSWR); // We got an improvement
     _C_Relays++;
     setRelays(C);
-    swrTemp = getSWR();
+    getSWR();
+    swrTemp = _swr.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from capacitor fine steps down.");
   Serial.print(swrTemp); Serial.print("\t");
@@ -528,8 +534,8 @@ float fineStep_C(float bestSWR){
 /**********************************************************************************************************/
 float fineStep_L(float bestSWR){
 
-  float originalBestSWR = bestSWR;
-  float swrTemp;
+  unsigned long originalBestSWR = bestSWR;
+  unsigned long swrTemp;
   byte L_RelaysTmp = _L_Relays;
   bool firstIteration = true;
   
@@ -542,14 +548,16 @@ float fineStep_L(float bestSWR){
   do {
     bestSWR = swrTemp; // 1st time through, already equal
     if(firstIteration) { // We don't want to step to next inductor first time through.
-      swrTemp = getSWR();
+      getSWR();
+      swrTemp = _swr.rawSWR;
       bestSWR = swrTemp; // This will ensure we don't exit loop first time through.
       firstIteration = false;
     }
     else if(_L_Relays < B11111111) { // Step to next inductor value only if it won't step beyond maximum L.
       _L_Relays++;
       setRelays(L);
-      swrTemp = getSWR();
+      getSWR();
+      swrTemp = _swr.rawSWR;
     } else {
       _L_Relays++; // Dummy step as _L_Relays will be stepped back 1 on exit from while loop
       break;
@@ -562,7 +570,8 @@ float fineStep_L(float bestSWR){
   } while(swrTemp <= bestSWR);
   _L_Relays--; // When we exit, we have stepped one inductor step too far, so back up one to best value.
   setRelays(L);
-  swrTemp = getSWR();
+  getSWR();
+  swrTemp = _swr.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from inductor fine steps up.");
   Serial.print(swrTemp); Serial.print("\t");
@@ -578,14 +587,16 @@ float fineStep_L(float bestSWR){
     do {
       bestSWR = swrTemp; // 1st time through, already equal
       if(firstIteration) { // We don't want to step to next inductor first time through.
-        swrTemp = getSWR();
+        getSWR();
+        swrTemp = _swr.rawSWR;
         bestSWR = swrTemp; // This will ensure we don't exit loop first time through.
         firstIteration = false;
       }
       else if(_L_Relays != B00000000) { // Step down to next inductor value only if it won't step below minimum L.
         _L_Relays--;
         setRelays(L);
-        swrTemp = getSWR();
+        getSWR();
+        swrTemp = _swr.rawSWR;
       } else {
         _L_Relays--; // Dummy step as _L_Relays will be stepped up 1 on exit from while loop
         break;
@@ -598,7 +609,8 @@ float fineStep_L(float bestSWR){
     } while(swrTemp <= bestSWR);
     _L_Relays++;
     setRelays(L);
-    swrTemp = getSWR();
+    getSWR();
+    swrTemp = _swr.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Values on exit from inductor fine steps down.");
   Serial.print(swrTemp); Serial.print("\t");
@@ -612,7 +624,7 @@ float fineStep_L(float bestSWR){
 /**********************************************************************************************************/
 void printStatus() {
   
-  if(_status.ampGain == hi) Serial.print("High"); else Serial.print(" Low"); Serial.print("\t");
+  if(_swr.ampGain == hi) Serial.print("High"); else Serial.print(" Low"); Serial.print("\t");
   Serial.print(_swr.fwd);Serial.print("\t"); Serial.print(_swr.rev); Serial.print("\t");
   Serial.print(calcXvalue(C)); Serial.print("\t"); Serial.print(calcXvalue(L)); Serial.print("\t");
   print_binary(_C_Relays, 8); Serial.print("\t"); print_binary(_L_Relays, 8); Serial.println();
@@ -691,28 +703,28 @@ boolean handle_button() {
 }
 /**********************************************************************************************************/
 
-float getSWR() {
+void getSWR() {
   // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
   // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
 
-  //       We are using the GLOBAL VARIABLES _swr.fwd, _swr.rev, _SWR
+  //       We are using the GLOBAL struct _swr
   //       All globals are prefixed with an underscore e.g. _swr.fwd
-  float swrTemp;
+//  float swrTemp;
   unsigned long fwd;
   unsigned long rev = 0;
   
 //  Serial.print("getSWR: before amp gain, _swr.fwd = "); Serial.println(_swr.fwd); // Temporary debug
 
   fwd = analogRead(forward);
-  if((fwd < 500) && (_status.ampGain == lo)){
+  if((fwd < 500) && (_swr.ampGain == lo)){
     digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
-    _status.ampGain = hi;
+    _swr.ampGain = hi;
     delay(1);  
     fwd = analogRead(forward);
   }
   else if(fwd == 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
-    _status.ampGain = lo;
+    _swr.ampGain = lo;
     delay(1);
     fwd = analogRead(forward);
   }
@@ -729,24 +741,24 @@ float getSWR() {
     _swr.fwd = fwd;
     _swr.rev = rev;
     _swr.rawSWR = ((fwd + rev)*100000) / (fwd - rev);
-    swrTemp = float(_swr.rawSWR) / 100000;
+//    swrTemp = float(_swr.rawSWR) / 100000;
   } 
   else {
     _swr.fwd = 0;
     _swr.rev = 0;
-    swrTemp = 999;
+    _swr.rawSWR = 99900000;
   }
-#ifdef DEBUG_SWR_VALUES
+#ifdef DEBUG_swr.rawSWR_VALUES
   Serial.print("getSWR: fwd, rev, swrTemp, rawSWR = ");
   Serial.print(swr.fwd);
   Serial.print(", ");
   Serial.print(_swr.rev);
   Serial.print(", ");
-  Serial.print(swrTemp, 6);
+  Serial.print(float(_swr.rawSWR) / 100000, 6);
   Serial.print(", ");
   Serial.println(_swr.rawSWR);
 #endif
-  return swrTemp;
+//  return swrTemp;
 }
 /**********************************************************************************************************/
 // Pads an integer number for printing to be right justified over 4 digits
@@ -829,7 +841,8 @@ void dbugRelayState(){
     Serial.print(" ");
   }
   Serial.print("SWR = ");
-  Serial.println(getSWR());
+  getSWR();
+  Serial.println(float(_swr.rawSWR) / 10000);
 }
 
 /**********************************************************************************************************/
@@ -1036,7 +1049,7 @@ void tuneSummary() {
   formatINT(_swr.rev);
   Serial.print(_swr.rev);
   Serial.print("\t\t");
-  Serial.println(_SWR, 4);
+  Serial.println(_swr.rawSWR, 4);
   Serial.print("Total Capacitance = ");
   Serial.print(calcXvalue(C));
   Serial.print(" pF and Total Inductance = ");
