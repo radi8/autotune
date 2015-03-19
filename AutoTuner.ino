@@ -208,7 +208,7 @@ void loop(){
 
 //    digitalWrite(coRelay, CAPS_at_OUTPUT);
     getSWR();
-    doRelayFineSteps();
+//    doRelayFineSteps();
 #ifdef DEBUG_TUNE_SUMMARY
     tuneSummary();
 #endif
@@ -248,7 +248,9 @@ void doRelayCourseSteps(byte position){
   if(position == C_at_Input) Serial.println("Input"); 
   else Serial.println("Output");
   Serial.print("cnt");
-  Serial.print("\t");
+  Serial.print(" ");
+  
+  /*
   Serial.print("bestCnt");
   Serial.print("\t");
   Serial.print("_C_Relays");
@@ -259,11 +261,14 @@ void doRelayCourseSteps(byte position){
   Serial.print("\t");
   Serial.print("revVolt");
   Serial.print("\t");
+  
+  */
   Serial.print("curSWR");
   Serial.print("\t");
   Serial.print("bestSWR");
   Serial.print("\t");
-  Serial.println("C_RelayBestSWR");
+  Serial.print("C_RelayBestSWR");
+  printStatus();
 #endif
 
   getSWR();  //Get SWR with no relays operated at this point.
@@ -298,7 +303,9 @@ void doRelayCourseSteps(byte position){
       
 #ifdef DEBUG_COARSE_TUNE_STATUS
     Serial.print(cnt);
-    Serial.print("\t");
+    Serial.print("   ");
+    
+    /*
     Serial.print(bestCnt);
     Serial.print("\t");
     print_binary(_C_Relays, 8);
@@ -311,11 +318,15 @@ void doRelayCourseSteps(byte position){
     formatINT(_swr.rev);
     Serial.print(_swr.rev);
     Serial.print("\t");
-    Serial.print(currentSWR, 3);
+    
+    */
+    Serial.print(float(currentSWR)/10000, 4);
     Serial.print("\t");
-    Serial.print(bestSWR, 3);
+    Serial.print(float(bestSWR)/10000, 4);
     Serial.print("\t");
-    Serial.println(C_RelayBestSWR);
+    Serial.print(float(C_RelayBestSWR)/10000, 4);
+    Serial.print("\t");
+    printStatus();
 #endif
     }
     if(C_RelayBestSWR < bestSWR) {
