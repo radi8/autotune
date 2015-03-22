@@ -429,7 +429,7 @@ void doRelayFineSteps() {
   do {
     bestSWR = swrTemp;
     swrTemp = fineStep_C(); // Returns best SWR obtained from stepping C both up and down
-    swrTemp = fineStep_L(swrTemp); // Starts with best from stepping C and returns best L swr.
+    swrTemp = fineStep_L(); // Starts with best from stepping C and returns best L swr.
 #ifdef DEBUG_RELAY_FINE_STEPS    
     Serial.print("doRelayFineSteps():  Been through loop "); 
     Serial.print(cnt); 
@@ -440,6 +440,11 @@ void doRelayFineSteps() {
   } 
   while(swrTemp < bestSWR); // If swr was improved, go again
 
+  Serial.println("Exiting doRelayFineSteps(): values on exit ...");
+  printStatus(printHeader);
+  printStatus(printBody);
+  
+/*
   if(_swr.rawSWR > bestSWR) {
     _swr.rawSWR = bestSWR;
     Serial.print("Doing if clause:  _swr.rawSWR = "); 
@@ -457,6 +462,8 @@ void doRelayFineSteps() {
     Serial.print("; and swrTemp = "); 
     Serial.println(swrTemp);
   }
+  
+*/
 }
 
 /**********************************************************************************************************/
@@ -534,7 +541,6 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
     Serial.print("\t");
     printStatus(printBody);
 #endif
-    //Start off by tweaking the C relays. We will increase capacitance as first try.
     if(_status.C_relays != B00000000) { // Step next capacitor down only if it won't roll up to maximum C.
       do {
         bestSWR = swrTemp; // 1st time through, it is already equal   
@@ -579,109 +585,121 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 }
 
 /**********************************************************************************************************/
-unsigned long fineStep_L(float bestSWR){
+unsigned long fineStep_L() { // Enter with swr and relay status up to date
 
-  unsigned long originalBestSWR = bestSWR;
+  unsigned long originalBestSWR;
   unsigned long swrTemp;
+  unsigned long bestSWR;
   byte L_RelaysTmp = _status.L_relays;
-  bool firstIteration = true;
 
+  bestSWR = _swr.rawSWR;
+  swrTemp = _swr.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.print("fineStep_L():  Stepping inductors up. bestSWR = "); 
-  Serial.println(bestSWR);
+  originalBestSWR = _swr.rawSWR;
+  Serial.print("fineStep_L():  Stepping inductors up. originalBestSWR = "); 
+  Serial.println(originalBestSWR);
   Serial.print("bestSWR\t"); 
   printStatus(printHeader);
+  Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
+  Serial.print("\t");
+  printStatus(printBody);
 #endif
   //Start off by tweaking the L relays. We will increase inductance as first try.
-  swrTemp = bestSWR;
-  do {
-    bestSWR = swrTemp; // 1st time through, already equal
-    if(firstIteration) { // We don't want to step to next inductor first time through.
-      getSWR();
-      swrTemp = _swr.rawSWR;
-      bestSWR = swrTemp; // This will ensure we don't exit loop first time through.
-      originalBestSWR = swrTemp;
-      firstIteration = false;
-    }
-    else if(_status.L_relays < B11111111) { // Step to next inductor value only if it won't step beyond maximum L.
+  if(_status.L_relays != B11111111) { // Step to next inductor value only if it won't step beyond maximum L.
+    do {
+      bestSWR = swrTemp; // 1st time through, it is already equal   
       _status.L_relays++;
       setRelays();
       getSWR();
-      swrTemp = _swr.rawSWR;
-    } 
-    else {
-      _status.L_relays++; // Dummy step as _status.L_relays will be stepped back 1 on exit from while loop
-      break;
-    }
+      swrTemp = _swr.rawSWR; 
 #ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.print(float(bestSWR)/100000, 4); 
-    Serial.print("\t");
-    printStatus(printBody);
-#endif         
-  } 
-  while(swrTemp <= bestSWR);
-  _status.L_relays--; // When we exit, we have stepped one inductor step too far, so back up one to best value.
-  setRelays();
-  getSWR();
-  swrTemp = _swr.rawSWR;
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("Values on exit from inductor fine steps up.");
-  Serial.print(swrTemp); 
-  Serial.print("\t");
-  printStatus(printBody);
-  Serial.print("L_RelaysTmp, _status.L_relays = "); 
-  Serial.print(L_RelaysTmp); 
-  Serial.print("' ");
-  Serial.println(_status.L_relays);
-#endif
-
-  if(L_RelaysTmp == _status.L_relays){ // We didn't improve by trying to increase L so try reducing it.
-#ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.print("fineStep_L():  Stepping inductors down. bestSWR = "); 
-    Serial.println(bestSWR);
-    Serial.print("bestSWR\t"); 
-    printStatus(printHeader);
-#endif
-    swrTemp = bestSWR;
-    firstIteration = true;
-    do {
-      bestSWR = swrTemp; // 1st time through, already equal
-      if(firstIteration) { // We don't want to step to next inductor first time through.
-        getSWR();
-        swrTemp = _swr.rawSWR;
-        bestSWR = swrTemp; // This will ensure we don't exit loop first time through.
-        firstIteration = false;
-      }
-      else if(_status.L_relays != B00000000) { // Step down to next inductor value only if it won't step below minimum L.
-        _status.L_relays--;
-        setRelays();
-        getSWR();
-        swrTemp = _swr.rawSWR;
-      } 
-      else {
-        _status.L_relays--; // Dummy step as _status.L_relays will be stepped up 1 on exit from while loop
-        break;
-      }
-#ifdef DEBUG_RELAY_FINE_STEPS
+      // We print the values after relays stepped for swr and status.
       Serial.print(float(bestSWR)/100000, 4); 
       Serial.print("\t");
       printStatus(printBody);
-#endif       
+#endif
     } 
     while(swrTemp <= bestSWR);
-    _status.L_relays++;
+
+    _status.L_relays--; // On exit, we have stepped one inductor step too far, so back up one to best value.
     setRelays();
     getSWR();
-    swrTemp = _swr.rawSWR;
-#ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println("Values on exit from inductor fine steps down.");
-    Serial.print(float(swrTemp)/100000, 4); 
+
+#ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
+    Serial.println("Values on exit from inductor fine steps up. The extra step has been corrected.");
+    Serial.print(float(_swr.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point.
     Serial.print("\t");
     printStatus(printBody);
-#endif 
+    //  Serial.print("L_RelaysTmp, _status.L_relays = "); Serial.print(L_RelaysTmp); Serial.print("' ");Serial.println(_status.L_relays);
+#endif
+  } // end if(_status.L_relays != B11111111)
+  else {
+    // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
+    // we do nothing and leave the L_Relays at entry state; swrTemp has already been set to best SWR
+#ifdef DEBUG_RELAY_FINE_STEPS
+    Serial.println("_status.L_Relays = b1111_1111 so are not going to step L_Relays up one");
+    Serial.print(float(bestSWR)/100000, 4); 
+    Serial.print("\t"); 
+    printStatus(printBody);
+#endif
   }
-  return swrTemp;  
+  swrTemp = _swr.rawSWR;
+  //------------------------------------------------------------------
+  if(L_RelaysTmp == _status.L_relays) { // We didn't improve by trying to increase C so try reducing it.
+  
+    bestSWR = _swr.rawSWR;
+    swrTemp = _swr.rawSWR;
+    
+#ifdef DEBUG_RELAY_FINE_STEPS
+    Serial.print("fineStep_L():  Stepping inductors down. originalBestSWR = "); 
+    Serial.println(originalBestSWR);
+    Serial.print("bestSWR\t"); 
+    printStatus(printHeader);
+    Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
+    Serial.print("\t");
+    printStatus(printBody);
+#endif
+    if(_status.L_relays != B00000000) { // Step next inductor down only if it won't roll up to maximum L.
+      do {
+        bestSWR = swrTemp; // 1st time through, it is already equal   
+        _status.L_relays--;
+        setRelays();
+        getSWR();
+        swrTemp = _swr.rawSWR; 
+#ifdef DEBUG_RELAY_FINE_STEPS
+        // We print the values after relays stepped for swr and status.
+        Serial.print(float(bestSWR)/100000, 4); 
+        Serial.print("\t");
+        printStatus(printBody);
+#endif
+      } 
+      while(swrTemp <= bestSWR);
+
+      _status.L_relays++; // On exit, we have stepped one capacitor step too far, so back up one to best value.
+      setRelays();
+      getSWR();
+
+#ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
+      Serial.println("Values on exit from inductor fine steps down. The extra step has been corrected.");
+      Serial.print(float(_swr.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point. 
+      Serial.print("\t");
+      printStatus(printBody);
+      //  Serial.print("L_RelaysTmp, _status.L_relays = "); Serial.print(L_RelaysTmp); Serial.print("' ");Serial.println(_status.L_relays);
+#endif
+    } // end if(_status.L_relays != B00000000)
+    else {
+      // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
+      // we do nothing and leave the L_Relays at entry state; swrTemp has already been set to best SWR
+#ifdef DEBUG_RELAY_FINE_STEPS
+      Serial.println("_status.L_Relays = b'0000_0000' so are not going to step L_Relays down one");
+      Serial.print(float(bestSWR)/100000, 4); 
+      Serial.print("\t"); 
+      printStatus(printBody);
+#endif
+    }
+    swrTemp = _swr.rawSWR;
+  } // end if(L_RelaysTmp == _status.L_relays)
+  return swrTemp; //TODO Do we need to return this or is rawSWR already holding this value?
 }
 
 /**********************************************************************************************************/
@@ -1118,9 +1136,9 @@ byte analogbuttonread(byte button_number) {
 }
 /**********************************************************************************************************/
 void tuneSummary() {
-  Serial.print("_status.C_relays");
+  Serial.print("C_Relays");
   Serial.print("  ");
-  Serial.print("_status.L_relays");
+  Serial.print("L_Relays");
   Serial.print("  ");
   Serial.print("fwdVolts");
   Serial.print("\t");
