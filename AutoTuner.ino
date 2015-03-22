@@ -469,7 +469,6 @@ void doRelayFineSteps() {
 /**********************************************************************************************************/
 unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 
-  unsigned long originalBestSWR;
   unsigned long swrTemp;
   unsigned long bestSWR;
   byte C_RelaysTmp = _status.C_relays;
@@ -477,31 +476,32 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
   bestSWR = _swr.rawSWR;
   swrTemp = _swr.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
-  originalBestSWR = _swr.rawSWR;
-  Serial.print("fineStep_C():  Stepping capacitors up. originalBestSWR = "); 
-  Serial.println(originalBestSWR);
+  Serial.print("fineStep_C():  Stepping capacitors up."); 
   Serial.print("bestSWR\t"); 
   printStatus(printHeader);
-  Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
-  Serial.print("\t");
-  printStatus(printBody);
 #endif
   //Start off by tweaking the C relays. We will increase capacitance as first try.
   if(_status.C_relays != B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
     do {
-      bestSWR = swrTemp; // 1st time through, it is already equal   
+      bestSWR = swrTemp; // 1st time through, it is already equal
+#ifdef DEBUG_RELAY_FINE_STEPS
+      // We print the swr & status values at entry then each time after relays are stepped.
+      Serial.print(float(bestSWR)/100000, 4); 
+      Serial.print("\t");
+      printStatus(printBody);
+#endif      
       _status.C_relays++;
       setRelays();
       getSWR();
       swrTemp = _swr.rawSWR; 
-#ifdef DEBUG_RELAY_FINE_STEPS
-      // We print the values after relays stepped for swr and status.
-      Serial.print(float(bestSWR)/100000, 4); 
-      Serial.print("\t");
-      printStatus(printBody);
-#endif
     } 
     while(swrTemp <= bestSWR);
+#ifdef DEBUG_RELAY_FINE_STEPS
+    // We have not printed the values which caused the loop to exit so do it now
+    Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
+    Serial.print("\t");
+    printStatus(printBody);
+#endif
 
     _status.C_relays--; // On exit, we have stepped one capacitor step too far, so back up one to best value.
     setRelays();
@@ -533,30 +533,31 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
     swrTemp = _swr.rawSWR;
     
 #ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.print("fineStep_C():  Stepping capacitors down. originalBestSWR = "); 
-    Serial.println(originalBestSWR);
+    Serial.print("fineStep_C():  Stepping capacitors down."); 
     Serial.print("bestSWR\t"); 
     printStatus(printHeader);
-    Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
-    Serial.print("\t");
-    printStatus(printBody);
 #endif
     if(_status.C_relays != B00000000) { // Step next capacitor down only if it won't roll up to maximum C.
       do {
-        bestSWR = swrTemp; // 1st time through, it is already equal   
+        bestSWR = swrTemp; // 1st time through, it is already equal
+#ifdef DEBUG_RELAY_FINE_STEPS
+        // We print the swr & status values at entry then each time after relays are stepped.
+        Serial.print(float(bestSWR)/100000, 4); 
+        Serial.print("\t");
+        printStatus(printBody);
+#endif        
         _status.C_relays--;
         setRelays();
         getSWR();
         swrTemp = _swr.rawSWR; 
-#ifdef DEBUG_RELAY_FINE_STEPS
-        // We print the values after relays stepped for swr and status.
-        Serial.print(float(bestSWR)/100000, 4); 
-        Serial.print("\t");
-        printStatus(printBody);
-#endif
       } 
       while(swrTemp <= bestSWR);
-
+#ifdef DEBUG_RELAY_FINE_STEPS
+      // We have not printed the values which caused the loop to exit so do it now
+      Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
+      Serial.print("\t");
+      printStatus(printBody);
+#endif
       _status.C_relays++; // On exit, we have stepped one capacitor step too far, so back up one to best value.
       setRelays();
       getSWR();
