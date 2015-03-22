@@ -80,13 +80,10 @@ struct status {
 } 
 _status;
 
-//enum _C_STATE{C_at_Input, C_at_Output};
-//       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
-const unsigned int  _inductors[] = { 
-  6,  16,  32,  64,  125,  250,  500, 1000 };  // inductor values in nH
-//        Capacitor definitions   C1   C2   C3   C4    C5    C6    C7    C8
-const unsigned int _capacitors[] = { 
-  5,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
+  //       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
+const unsigned int  _inductors[] = { 6,  16,  32,  64,  125,  250,  500, 1000 };  // inductor values in nH
+  //        Capacitor definitions   C1   C2   C3   C4    C5    C6    C7    C8
+const unsigned int _capacitors[] = { 5,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
 
 /**********************************************************************************************************/
 
@@ -505,7 +502,7 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
     Serial.println("Values on exit from capacitor fine steps up. The extra step has been corrected.");
-    Serial.print(float(bestSWR)/100000, 4); 
+    Serial.print(float(_swr.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point.
     Serial.print("\t");
     printStatus(printBody);
     //  Serial.print("C_RelaysTmp, _status.C_relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_status.C_relays);
@@ -560,7 +557,7 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
       Serial.println("Values on exit from capacitor fine steps down. The extra step has been corrected.");
-      Serial.print(float(bestSWR)/100000, 4); 
+      Serial.print(float(_swr.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point. 
       Serial.print("\t");
       printStatus(printBody);
       //  Serial.print("C_RelaysTmp, _status.C_relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_status.C_relays);
