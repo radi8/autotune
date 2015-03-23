@@ -203,7 +203,7 @@ void loop(){
     getSWR();
     SWRtmp = _swr.rawSWR;
 
-    if(_swr.rawSWR > 1.2) { // Only try again if swr no good
+    if((float(_swr.rawSWR)/100000) > 1.2) { // Only try again if swr no good
       _status.outputZ = loZ;
       doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
       //If not better restore relays to input state
@@ -211,7 +211,7 @@ void loop(){
       if(SWRtmp <= _swr.rawSWR) {             //Capacitors on Input side gave best result so
         _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
         _status.L_relays = L_RelaysTmp;
-        _status.outputZ = hiZ;
+        _status.outputZ = bestZ;
         setRelays();
       }
       getSWR();
@@ -312,17 +312,12 @@ void loop(){
 
 void doRelayCourseSteps(){
 
-//  unsigned long currentSWR;
-  float bestSWR = 999;
-//  float C_RelayBestSWR = 999;
+  unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
   byte bestC;
   byte bestL;
-  byte bestC_temp;
-  byte bestL_temp;
-  byte bestCnt = 0;
+  boolean bestZ;
   byte cnt = 0;
   byte cnt_L = 0;
-  boolean bestZ;
 
   // Initialise with no relays operated, changeover relay set by caller.
   _status.C_relays = 0;
@@ -341,8 +336,7 @@ void doRelayCourseSteps(){
 #endif
 
   getSWR();  //Get SWR with no relays operated at this point.
-//  currentSWR = _swr.rawSWR;
-  bestSWR = 9900000; // Dummy value to force bestSWR to be written from
+
   // currentSWR first time through for loop
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
@@ -360,12 +354,10 @@ void doRelayCourseSteps(){
         bitSet(_status.C_relays,cnt - 1);
         setRelays(); // Stepping through the Capacitor relays
         getSWR();
-//        currentSWR = _swr.rawSWR; // TODO _swr.rawSWR should be able to be used directly
       }
       //      Serial.print(currentSWR, 4); Serial.print(" and "); Serial.println(bestSWR, 4);
       if(_swr.rawSWR <= bestSWR){
         bestSWR = _swr.rawSWR;
-        bestCnt = cnt;
         bestC = _status.C_relays;
         bestL = _status.L_relays;
         bestZ = _status.outputZ;
