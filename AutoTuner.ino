@@ -192,6 +192,8 @@ void loop(){
   boolean button_pressed = handle_button();
   if (button_pressed) {
     Serial.println("button_pressed");
+    
+
     _status.outputZ = hiZ;
     doRelayCourseSteps();
     //Save SWR and relay states and see if better with C/O relay on output
@@ -259,9 +261,9 @@ void loop(){
         break;
       }
       // Try 20 M wire antenna centred on 14.025 mHz
-      _status.C_relays = B01010000; // Debug settings for C and L relays
-      _status.L_relays = B00000101;
-      _status.outputZ  = loZ;
+      _status.C_relays = B01100111; // Debug settings for C and L relays
+      _status.L_relays = B00000001;
+      _status.outputZ  = hiZ;
       setRelays();
       getSWR();
       if(_swr.rawSWR < OK_SWR) {
@@ -288,16 +290,16 @@ void loop(){
         //      Serial.println("18.09 MHz preset values");
         break;      
       }
-      _status.C_relays = B00000000; // Debug settings for C and L relays
-      _status.L_relays = B00000000;
+      _status.C_relays = B01100111; // Debug settings for C and L relays
+      _status.L_relays = B00000001;
       _status.outputZ  = hiZ;
       setRelays();
       Serial.println("Relays set at zero");
     }
     while(false);
-
-    doRelayFineSteps();
 */
+    doRelayFineSteps();
+
 #ifdef DEBUG_TUNE_SUMMARY
     printStatus(printHeader);
     printStatus(printBody);
@@ -333,11 +335,8 @@ void doRelayCourseSteps(){
   else Serial.println("Output");
   Serial.print("cnt");
   Serial.print(" ");
-//  Serial.print("curSWR");
-//  Serial.print("\t");
   Serial.print("bestSWR");
   Serial.print("\t");
-//  Serial.print("C_RelayBestSWR");
   printStatus(printHeader);
 #endif
 
@@ -367,37 +366,30 @@ void doRelayCourseSteps(){
       if(_swr.rawSWR <= bestSWR){
         bestSWR = _swr.rawSWR;
         bestCnt = cnt;
-        bestC_temp = _status.C_relays;
-        bestL_temp = _status.L_relays;
+        bestC = _status.C_relays;
+        bestL = _status.L_relays;
         bestZ = _status.outputZ;
       }
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(cnt);
       Serial.print("   ");
-//      Serial.print(float(currentSWR)/100000, 4);
-//      Serial.print("\t");
       Serial.print(float(bestSWR)/100000, 4);
       Serial.print("\t");
-//      Serial.print(float(C_RelayBestSWR)/100000, 4);
-//      Serial.print("\t");
       printStatus(printBody);
 #endif
     } // end of inner for loop
-/*
-    if(C_RelayBestSWR < bestSWR) {
-//      bestSWR = C_RelayBestSWR;
-      bestC = bestC_temp;
-      bestL = bestL_temp;
-      _status.C_relays = 0;
-    }
-*/    
+  
   } // end of outer for loop
   _status.C_relays = bestC;
   _status.L_relays = bestL;
   _status.outputZ = bestZ;
   setRelays();
   getSWR();
+#ifdef DEBUG_COARSE_TUNE_STATUS  
+  printStatus(printHeader);
+  printStatus(printBody);
+#endif  
 }
 
 /**********************************************************************************************************/
