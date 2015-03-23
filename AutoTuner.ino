@@ -126,6 +126,7 @@ void loop(){
   byte L_RelaysTmp; //  0 = released and 1 = operated
   byte buttonNumber;
   unsigned long SWRtmp;
+  boolean bestZ;
 
   buttonNumber = check_step_buttons();
   //  Serial.print("MainLoop:  buttonNumber = ");
@@ -196,10 +197,11 @@ void loop(){
     //Save SWR and relay states and see if better with C/O relay on output
     C_RelaysTmp = _status.C_relays;
     L_RelaysTmp = _status.L_relays;
+    bestZ = _status.outputZ;
     getSWR();
     SWRtmp = _swr.rawSWR;
 
-    if(_swr.rawSWR > 1.05) { // Only try again if swr no good
+    if(_swr.rawSWR > 1.2) { // Only try again if swr no good
       _status.outputZ = loZ;
       doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
       //If not better restore relays to input state
@@ -308,9 +310,9 @@ void loop(){
 
 void doRelayCourseSteps(){
 
-  unsigned long currentSWR;
+//  unsigned long currentSWR;
   float bestSWR = 999;
-  float C_RelayBestSWR = 999;
+//  float C_RelayBestSWR = 999;
   byte bestC;
   byte bestL;
   byte bestC_temp;
@@ -318,6 +320,7 @@ void doRelayCourseSteps(){
   byte bestCnt = 0;
   byte cnt = 0;
   byte cnt_L = 0;
+  boolean bestZ;
 
   // Initialise with no relays operated, changeover relay set by caller.
   _status.C_relays = 0;
@@ -330,17 +333,17 @@ void doRelayCourseSteps(){
   else Serial.println("Output");
   Serial.print("cnt");
   Serial.print(" ");
-  Serial.print("curSWR");
-  Serial.print("\t");
+//  Serial.print("curSWR");
+//  Serial.print("\t");
   Serial.print("bestSWR");
   Serial.print("\t");
-  Serial.print("C_RelayBestSWR");
+//  Serial.print("C_RelayBestSWR");
   printStatus(printHeader);
 #endif
 
   getSWR();  //Get SWR with no relays operated at this point.
-  currentSWR = _swr.rawSWR;
-  bestSWR = 99900000; // Dummy value to force bestSWR to be written from
+//  currentSWR = _swr.rawSWR;
+  bestSWR = 9900000; // Dummy value to force bestSWR to be written from
   // currentSWR first time through for loop
   // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
@@ -358,37 +361,41 @@ void doRelayCourseSteps(){
         bitSet(_status.C_relays,cnt - 1);
         setRelays(); // Stepping through the Capacitor relays
         getSWR();
-        currentSWR = _swr.rawSWR; // TODO _swr.rawSWR should be able to be used directly
+//        currentSWR = _swr.rawSWR; // TODO _swr.rawSWR should be able to be used directly
       }
       //      Serial.print(currentSWR, 4); Serial.print(" and "); Serial.println(bestSWR, 4);
-      if(currentSWR <= C_RelayBestSWR){
-        C_RelayBestSWR = currentSWR;
+      if(_swr.rawSWR <= bestSWR){
+        bestSWR = _swr.rawSWR;
         bestCnt = cnt;
         bestC_temp = _status.C_relays;
         bestL_temp = _status.L_relays;
+        bestZ = _status.outputZ;
       }
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(cnt);
       Serial.print("   ");
-      Serial.print(float(currentSWR)/100000, 4);
+//      Serial.print(float(currentSWR)/100000, 4);
+//      Serial.print("\t");
+      Serial.print(float(bestSWR)/100000, 4);
       Serial.print("\t");
-      Serial.print(float(bestSWR)/10000, 4);
-      Serial.print("\t");
-      Serial.print(float(C_RelayBestSWR)/100000, 4);
-      Serial.print("\t");
+//      Serial.print(float(C_RelayBestSWR)/100000, 4);
+//      Serial.print("\t");
       printStatus(printBody);
 #endif
-    } // end of for loop
+    } // end of inner for loop
+/*
     if(C_RelayBestSWR < bestSWR) {
-      bestSWR = C_RelayBestSWR;
+//      bestSWR = C_RelayBestSWR;
       bestC = bestC_temp;
       bestL = bestL_temp;
       _status.C_relays = 0;
-    } //else break;
-  }
+    }
+*/    
+  } // end of outer for loop
   _status.C_relays = bestC;
   _status.L_relays = bestL;
+  _status.outputZ = bestZ;
   setRelays();
   getSWR();
 }
