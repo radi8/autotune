@@ -192,7 +192,8 @@ void loop(){
   boolean button_pressed = handle_button();
   if (button_pressed) {
     Serial.println("button_pressed");
-    
+    status statusTemp;
+    swr swrTemp;
 /*
     _status.outputZ = hiZ;
     doRelayCourseSteps();
@@ -219,106 +220,104 @@ void loop(){
 */
     // Here I pre-load some settings for each band and see if swr is low enough to indicate a
     // suitable starting point for a tune
-    do { 
-      // Try 20 M beam centred on 14.025 mHz
-      _status.C_relays = B00100010; // Debug settings for C and L relays
-      _status.L_relays = B00000001;
-      _status.outputZ  = hiZ;
-      setRelays();
-      getSWR();
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      }
-      // Try 80 M wire antenna centred on 3.525 mHz
-      _status.C_relays = B10001100; // Debug settings for C and L relays
-      _status.L_relays = B00001101;
-      _status.outputZ  = loZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      }
-      // Try 80 M wire antenna centred on 3.6 mHz
-      _status.C_relays = B01010110; // Debug settings for C and L relays
-      _status.L_relays = B00001010;
-      _status.outputZ  = loZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      } 
-      // Try 40 M wire antenna centred on 7.05 mHz
-      _status.C_relays = B00111111; // Debug settings for C and L relays
-      _status.L_relays = B00000011;
-      _status.outputZ  = loZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      }
-      // Try 30 M wire antenna centred on 10.025 mHz
-      _status.C_relays = B01010100; // Debug settings for C and L relays
-      _status.L_relays = B00000101;
-      _status.outputZ  = loZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      }
-      // Try 20 M wire antenna centred on 14.025 mHz
-      _status.C_relays = B01100111; // Debug settings for C and L relays
-      _status.L_relays = B00000001;
-      _status.outputZ  = hiZ;
-      setRelays();
-      getSWR();
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      }
-      // Try 17 M wire antenna centred on 18.09 mHz
-      _status.C_relays = B00001110; // Debug settings for C and L relays
-      _status.L_relays = B00000100;
-      _status.outputZ  = hiZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        break;
-      }
-      // Try 15 M wire antenna centred on 21.025 mHz
-      _status.C_relays = B01010000; // Debug settings for C and L relays
-      _status.L_relays = B00000101;
-      _status.outputZ  = loZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        //      Serial.println("18.09 MHz preset values");
-        break;      
-      }
-      // Try 12 M wire antenna centred on 21.025 mHz
-      _status.C_relays = B00010000; // Debug settings for C and L relays
-      _status.L_relays = B00000010;
-      _status.outputZ  = hiZ;
-      setRelays();
-      getSWR();
-      Serial.println(_swr.rawSWR);
-      if(_swr.rawSWR < OK_SWR) {
-        //      Serial.println("25.91 MHz preset values");
-        break;      
-      }
-      
-      _status.C_relays = B00010010; // Debug settings for C and L relays
-      _status.L_relays = B00000001;
-      _status.outputZ  = hiZ;
-      setRelays();
-      Serial.println("Relays set at zero");
-    }
-    while(false);
+    
+    // Presets for wire antenna
 
+    // Try 80 M wire antenna centred on 3.525 mHz
+    _status.C_relays = B10001100; // Debug settings for C and L relays
+    _status.L_relays = B00001101;
+    _status.outputZ  = loZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    statusTemp = _status;
+    swrTemp = _swr;
+    
+    // Try 80 M wire antenna centred on 3.6 mHz
+    _status.C_relays = B01010110; // Debug settings for C and L relays
+    _status.L_relays = B00001010;
+    _status.outputZ  = loZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Try 40 M wire antenna centred on 7.05 mHz
+    _status.C_relays = B00111111; // Debug settings for C and L relays
+    _status.L_relays = B00000011;
+    _status.outputZ  = loZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Try 30 M wire antenna centred on 10.025 mHz
+    _status.C_relays = B01001101; // Debug settings for C and L relays
+    _status.L_relays = B00000110;
+    _status.outputZ  = loZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Try 20 M wire antenna centred on 14.025 mHz
+    _status.C_relays = B01011101; // Debug settings for C and L relays
+    _status.L_relays = B00000001;
+    _status.outputZ  = hiZ;
+    setRelays();
+    getSWR();
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Try 17 M wire antenna centred on 18.09 mHz
+    _status.C_relays = B00001110; // Debug settings for C and L relays
+    _status.L_relays = B00000100;
+    _status.outputZ  = hiZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Try 15 M wire antenna centred on 21.025 mHz
+    _status.C_relays = B01010000; // Debug settings for C and L relays
+    _status.L_relays = B00000101;
+    _status.outputZ  = loZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Try 12 M wire antenna centred on 21.025 mHz
+    _status.C_relays = B00010000; // Debug settings for C and L relays
+    _status.L_relays = B00000010;
+    _status.outputZ  = hiZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Presets for beam antenna
+  
+    // Try 20 M beam antenna centred on 14.025 mHz
+    _status.C_relays = B00100110; // Debug settings for C and L relays
+    _status.L_relays = B00000001;
+    _status.outputZ  = hiZ;
+    setRelays();
+    getSWR();
+    Serial.println(_swr.rawSWR);
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+    
+    // Fallback of no relays operated
+  
+    _status.C_relays = B00000000; // Debug settings for C and L relays
+    _status.L_relays = B00000000;
+    _status.outputZ  = hiZ;
+    setRelays();
+    Serial.println("Relays set at zero");
+    if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
+
+    _status = statusTemp;
+    _swr = swrTemp;
+    setRelays();
     doRelayFineSteps();
 
 #ifdef DEBUG_TUNE_SUMMARY
@@ -444,27 +443,6 @@ void doRelayFineSteps() {
   Serial.println("Exiting doRelayFineSteps(): values on exit ...");
   printStatus(printHeader);
   printStatus(printBody);
-
-  /*
-  if(_swr.rawSWR > bestSWR) {
-   _swr.rawSWR = bestSWR;
-   Serial.print("Doing if clause:  _swr.rawSWR = "); 
-   Serial.print(_swr.rawSWR);
-   Serial.print("; and swrTemp = "); 
-   Serial.println(swrTemp);
-   }
-   else {
-   // Leave original _swr.rawSWR untouched
-   _status.C_relays = CrelaysTemp; // Restore C & L Relays
-   _status.L_relays = LrelaysTemp;
-   setRelays();
-   Serial.print("Doing else clause:  _swr.rawSWR = "); 
-   Serial.print(_swr.rawSWR);
-   Serial.print("; and swrTemp = "); 
-   Serial.println(swrTemp);
-   }
-   
-   */
 }
 
 /**********************************************************************************************************/
