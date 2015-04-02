@@ -252,7 +252,7 @@ void loop(){
     if(_swr.rawSWR < swrTemp.rawSWR) {statusTemp = _status; swrTemp = _swr;}
     
     // Try 30 M wire antenna centred on 10.025 mHz
-    _status.C_relays = B01001101; // Debug settings for C and L relays
+    _status.C_relays = B01001111; // Debug settings for C and L relays
     _status.L_relays = B00000110;
     _status.outputZ  = loZ;
     setRelays();
@@ -411,8 +411,6 @@ void doRelayFineSteps() {
 
   unsigned long bestSWR;  
   unsigned long swrTemp;
-  byte CrelaysTemp = _status.C_relays;
-  byte LrelaysTemp = _status.L_relays;
 
   getSWR(); // Get swr and relay status up to date.
   swrTemp = _swr.rawSWR;
@@ -450,10 +448,8 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 
   unsigned long swrTemp;
   unsigned long bestSWR;
-  byte C_RelaysTmp = _status.C_relays;
+  byte C_RelaysTmp = _status.C_relays; //We will compare the value of _status.C_relays to see if we changed.
 
-  bestSWR = _swr.rawSWR;
-  swrTemp = _swr.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("fineStep_C():  Stepping capacitors up."); 
   Serial.print("bestSWR\t"); 
@@ -462,7 +458,7 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
   //Start off by tweaking the C relays. We will increase capacitance as first try.
   if(_status.C_relays != B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
     do {
-      bestSWR = swrTemp; // 1st time through, it is already equal
+      bestSWR = _swr.rawSWR; // 1st time through, bestSWR equals entry values
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We print the swr & status values at entry then each time after relays are stepped.
       Serial.print(float(bestSWR)/100000, 4); 
@@ -472,12 +468,11 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
       _status.C_relays++;
       setRelays();
       getSWR();
-      swrTemp = _swr.rawSWR; 
     } 
-    while(swrTemp <= bestSWR);
+    while(_swr.rawSWR <= bestSWR);
 #ifdef DEBUG_RELAY_FINE_STEPS
     // We have not printed the values which caused the loop to exit so do it now
-    Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
+    Serial.print(float(_swr.rawSWR)/100000, 4); // Print the actual swr on exit. 
     Serial.print("\t");
     printStatus(printBody);
 #endif
@@ -488,7 +483,7 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
     Serial.println("Values on exit from capacitor fine steps up. The extra step has been corrected.");
-    Serial.print(float(_swr.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point.
+    Serial.print(float(bestSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point.
     Serial.print("\t");
     printStatus(printBody);
     //  Serial.print("C_RelaysTmp, _status.C_relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_status.C_relays);
@@ -496,7 +491,7 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
   } // end if(_status.C_relays != B11111111)
   else {
     // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
-    // we do nothing and leave the C_Relays at entry state; swrTemp has already been set to best SWR
+    // we do nothing and leave the C_Relays at entry state.
 #ifdef DEBUG_RELAY_FINE_STEPS
     Serial.println("_status.C_Relays = b1111_1111 so are not going to step C_Relays up one");
     Serial.print(float(bestSWR)/100000, 4); 
@@ -504,12 +499,11 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
     printStatus(printBody);
 #endif
   }
-  swrTemp = _swr.rawSWR;
   //------------------------------------------------------------------
   if(C_RelaysTmp == _status.C_relays) { // We didn't improve by trying to increase C so try reducing it.
 
     bestSWR = _swr.rawSWR;
-    swrTemp = _swr.rawSWR;
+//    swrTemp = _swr.rawSWR;
 
 #ifdef DEBUG_RELAY_FINE_STEPS
     Serial.println("fineStep_C():  Stepping capacitors down."); 
@@ -518,7 +512,7 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 #endif
     if(_status.C_relays != B00000000) { // Step next capacitor down only if it won't roll up to maximum C.
       do {
-        bestSWR = swrTemp; // 1st time through, it is already equal
+        bestSWR = _swr.rawSWR; // 1st time through, bestSWR equals entry values
 #ifdef DEBUG_RELAY_FINE_STEPS
         // We print the swr & status values at entry then each time after relays are stepped.
         Serial.print(float(bestSWR)/100000, 4); 
@@ -528,12 +522,11 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
         _status.C_relays--;
         setRelays();
         getSWR();
-        swrTemp = _swr.rawSWR; 
       } 
-      while(swrTemp <= bestSWR);
+      while(_swr.rawSWR <= bestSWR);
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We have not printed the values which caused the loop to exit so do it now
-      Serial.print(float(bestSWR)/100000, 4); // Print the status values on entry 
+      Serial.print(float(_swr.rawSWR)/100000, 4); // Print the actual swr on exit.
       Serial.print("\t");
       printStatus(printBody);
 #endif
@@ -543,15 +536,14 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
       Serial.println("Values on exit from capacitor fine steps down. The extra step has been corrected.");
-      Serial.print(float(_swr.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point. 
+      Serial.print(float(bestSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point. 
       Serial.print("\t");
       printStatus(printBody);
-      //  Serial.print("C_RelaysTmp, _status.C_relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_status.C_relays);
 #endif
     } // end if(_status.C_relays != B00000000)
     else {
       // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
-      // we do nothing and leave the C_Relays at entry state; swrTemp has already been set to best SWR
+      // we do nothing and leave the C_Relays at entry state.
 #ifdef DEBUG_RELAY_FINE_STEPS
       Serial.println("_status.C_Relays = b'0000_0000' so are not going to step C_Relays down one");
       Serial.print(float(bestSWR)/100000, 4); 
@@ -559,9 +551,9 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
       printStatus(printBody);
 #endif
     }
-    swrTemp = _swr.rawSWR;
   } // end if(C_RelaysTmp == _status.C_relays)
-  return swrTemp; //TODO Do we need to return this or is rawSWR already holding this value?
+  
+  return _swr.rawSWR;
 }
 
 /**********************************************************************************************************/
