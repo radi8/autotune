@@ -87,9 +87,11 @@ struct status {
 _status;
 
   //       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
-const unsigned int  _inductors[] = { 6,  16,  32,  64,  125,  250,  500, 1000 };  // inductor values in nH
+const unsigned int  _inductors[] = { 6,  17,  35,  73,  136,  275,  568, 1099 };  // inductor values in nH
+const unsigned int strayL = 0;
   //        Capacitor definitions   C1   C2   C3   C4    C5    C6    C7    C8
-const unsigned int _capacitors[] = { 5,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
+const unsigned int _capacitors[] = { 6,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
+const unsigned int strayC = 0;
 
 /**********************************************************************************************************/
 
@@ -110,7 +112,7 @@ void setup() {
   digitalWrite(LEDpin, LOW);
   _status.C_relays = 0;
   _status.L_relays = 0;
-  _status.outputZ = loZ;
+  _status.outputZ = loZ; // Caps switched to input side of L network
   setRelays(); // Switch off all the relays & set c/o relay to input.
 
   //Initialize serial and wait for port to open:
@@ -198,7 +200,7 @@ void loop(){
     Serial.println("button_pressed");
     status statusTemp;
 
-    /*
+ /*   
     _status.outputZ = hiZ;
      doRelayCourseSteps();
      //Save SWR and relay states and see if better with C/O relay on output
@@ -221,24 +223,35 @@ void loop(){
      }
      getSWR();
      }
-     */
+ */
     // Here I pre-load some settings for each band and see if swr is low enough to indicate a
     // suitable starting point for a tune
 
     // Presets for wire antenna
 
     // Try 80 M wire antenna centred on 3.525 mHz
-    _status.C_relays = B10001100; // Debug settings for C and L relays
-    _status.L_relays = B00001101;
-    _status.outputZ  = loZ;
+    _status.C_relays = B01110111; // Debug settings for C and L relays
+    _status.L_relays = B00001111;
+    _status.outputZ  = hiZ;
     setRelays();
     getSWR();
     Serial.println(_status.rawSWR);
     statusTemp = _status;
 
     // Try 80 M wire antenna centred on 3.6 mHz
-    _status.C_relays = B01010110; // Debug settings for C and L relays
-    _status.L_relays = B00001010;
+    _status.C_relays = B00001110; // Debug settings for C and L relays
+    _status.L_relays = B00000101;
+    _status.outputZ  = hiZ;
+    setRelays();
+    getSWR();
+    Serial.println(_status.rawSWR);
+    if(_status.rawSWR < statusTemp.rawSWR) {
+      statusTemp = _status;
+    }
+    
+    // Try 80 M wire antenna centred on 3.8 mHz
+    _status.C_relays = B11000011; // Debug settings for C and L relays
+    _status.L_relays = B00001011;
     _status.outputZ  = loZ;
     setRelays();
     getSWR();
@@ -248,9 +261,9 @@ void loop(){
     }
 
     // Try 40 M wire antenna centred on 7.05 mHz
-    _status.C_relays = B00111111; // Debug settings for C and L relays
-    _status.L_relays = B00000011;
-    _status.outputZ  = loZ;
+    _status.C_relays = B01000001; // Debug settings for C and L relays
+    _status.L_relays = B00001100;
+    _status.outputZ  = hiZ;
     setRelays();
     getSWR();
     Serial.println(_status.rawSWR);
@@ -259,9 +272,9 @@ void loop(){
     }
 
     // Try 30 M wire antenna centred on 10.025 mHz
-    _status.C_relays = B01001111; // Debug settings for C and L relays
-    _status.L_relays = B00000110;
-    _status.outputZ  = loZ;
+    _status.C_relays = B01001011; // Debug settings for C and L relays
+    _status.L_relays = B00001101;
+    _status.outputZ  = hiZ;
     setRelays();
     getSWR();
     Serial.println(_status.rawSWR);
@@ -270,8 +283,8 @@ void loop(){
     }
 
     // Try 20 M wire antenna centred on 14.025 mHz
-    _status.C_relays = B01011101; // Debug settings for C and L relays
-    _status.L_relays = B00000001;
+    _status.C_relays = B00111111; // Debug settings for C and L relays
+    _status.L_relays = B00000011;
     _status.outputZ  = loZ;
     setRelays();
     getSWR();
@@ -280,8 +293,8 @@ void loop(){
     }
 
     // Try 17 M wire antenna centred on 18.09 mHz
-    _status.C_relays = B00001110; // Debug settings for C and L relays
-    _status.L_relays = B00000100;
+    _status.C_relays = B00010000; // Debug settings for C and L relays
+    _status.L_relays = B00001000;
     _status.outputZ  = loZ;
     setRelays();
     getSWR();
@@ -291,9 +304,9 @@ void loop(){
     }
 
     // Try 15 M wire antenna centred on 21.025 mHz
-    _status.C_relays = B01010000; // Debug settings for C and L relays
-    _status.L_relays = B00000101;
-    _status.outputZ  = hiZ;
+    _status.C_relays = B00010110; // Debug settings for C and L relays
+    _status.L_relays = B00000001;
+    _status.outputZ  = loZ;
     setRelays();
     getSWR();
     Serial.println(_status.rawSWR);
@@ -302,8 +315,8 @@ void loop(){
     }
 
     // Try 12 M wire antenna centred on 21.025 mHz
-    _status.C_relays = B00010000; // Debug settings for C and L relays
-    _status.L_relays = B00000010;
+    _status.C_relays = B00011010; // Debug settings for C and L relays
+    _status.L_relays = B00000011;
     _status.outputZ  = loZ;
     setRelays();
     getSWR();
@@ -315,8 +328,8 @@ void loop(){
     // Presets for beam antenna
 
     // Try 20 M beam antenna centred on 14.025 mHz
-    _status.C_relays = B00100110; // Debug settings for C and L relays
-    _status.L_relays = B00000001;
+    _status.C_relays = B00011100; // Debug settings for C and L relays
+    _status.L_relays = B00000011;
     _status.outputZ  = loZ;
     setRelays();
     getSWR();
@@ -339,6 +352,8 @@ void loop(){
     _status = statusTemp;
     setRelays();
     doRelayFineSteps();
+    
+//*/
 
 #ifdef DEBUG_TUNE_SUMMARY
     printStatus(printHeader);
@@ -446,8 +461,8 @@ void doRelayFineSteps() {
 
   do {
     bestSWR = swrTemp;
-    swrTemp = fineStep_C(); // Returns best SWR obtained from stepping C both up and down
-    swrTemp = fineStep_L(); // Starts with best from stepping C and returns best L swr.
+    swrTemp = fineStep_L(); // Returns best SWR obtained from stepping L both up and down
+    swrTemp = fineStep_C(); // Starts with best from stepping L and returns best C swr.
 #ifdef DEBUG_RELAY_FINE_STEPS    
     Serial.print("doRelayFineSteps():  Been through loop "); 
     Serial.print(cnt); 
@@ -737,6 +752,12 @@ unsigned int calcXvalue(bool CorL){
     else {     
       if(bitRead(_status.L_relays, cnt)) val = val + _inductors[cnt];
     } 
+  }
+  if (CorL) {
+    val = val + strayC;
+  }
+  else {
+    val = val + strayL;
   }
   return val;
 }
