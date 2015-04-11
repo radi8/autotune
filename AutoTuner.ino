@@ -77,10 +77,13 @@ struct status {
 
   //       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
 const unsigned int  _inductors[] = { 6,  17,  35,  73,  136,  275,  568, 1099 };  // inductor values in nH
-const unsigned int strayL = 0;
+const unsigned int _strayL = 0;
   //        Capacitor definitions   C1   C2   C3   C4    C5    C6    C7    C8
 const unsigned int _capacitors[] = { 6,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
-const unsigned int strayC = 0;
+const unsigned int _strayC = 0;
+
+enum commandMode {TUNED, TUNE, TUNING};
+byte _cmd = 0;  // Holds the command to be processed
 
 /**********************************************************************************************************/
 
@@ -118,53 +121,18 @@ void setup() {
 /**********************************************************************************************************/
 
 void loop(){
-  byte C_RelaysTmp; // Holds map of operated relays with C/O on input
-  byte L_RelaysTmp; //  0 = released and 1 = operated
   byte buttonNumber;
-  unsigned long SWRtmp;
-  boolean bestZ;
+  
 
+  getSWR();
+  _cmd = processCommand(_cmd);
 //  buttonNumber = check_step_buttons();
   buttonNumber = getAnalogButton();
-//    Serial.print("MainLoop:  buttonNumber = ");
-//    Serial.println(buttonNumber);
   if(buttonNumber != 0) { // 0x00 is returned with no button press
     if(buttonNumber <= num_of_analog_buttons) {  
       // A short press trailing edge detected
-#ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A short press trailing edge detected on button ");
-      Serial.println(buttonNumber);
-#endif      
-      switch (buttonNumber) {
-      case 1: 
-        {
-          _status.C_relays++;
-          setRelays();
-          break;
-        }
-      case 2: 
-        {
-          _status.C_relays--;
-          setRelays();
-          break;
-        }
-      case 3: 
-        {
-          _status.L_relays++;
-          setRelays();
-          break;
-        }
-      case 4: 
-        {
-          _status.L_relays--;
-          setRelays();
-        } 
-      }
-      getSWR();
-#ifdef DEBUG_TUNE_SUMMARY
-      printStatus(printHeader);
-      printStatus(printBody);
-#endif      
+      processShortPressTE(buttonNumber);
+            
     } 
     else if(buttonNumber <= (num_of_analog_buttons + num_of_analog_buttons)) {
       // A long press leading edge detected
@@ -178,22 +146,47 @@ void loop(){
     else {
       // A long press trailing edge detected
       buttonNumber = buttonNumber - (num_of_analog_buttons + num_of_analog_buttons);
-#ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A long press trailing edge detected on button ");      
-      Serial.println(buttonNumber);
-#endif      
+      processLongPressTE(buttonNumber);
     }  
   }
 
-  // The button press will step the selected Capacitor or Inductor relays
+  // This button press will auto step the selected Capacitor or Inductor relays
   // handle button
   boolean button_pressed = handle_button();
   if (button_pressed) {
-    Serial.println("button_pressed");
-    status statusTemp;
+    _cmd = TUNE;
+  }
+}
 
- /*   
-    _status.outputZ = hiZ;
+// Subroutines start here
+/**********************************************************************************************************/
+byte processCommand(byte cmd)
+{
+  unsigned long SWRtmp;
+  int bestSWR = 0;
+  byte C_RelaysTmp; // Holds map of operated relays with C/O on input
+  byte L_RelaysTmp; //  0 = released and 1 = operated
+  boolean bestZ;
+  
+  switch (cmd) {
+    case TUNED: 
+    { // Update LCD display
+//      Serial.print("Got to TUNED, cmd = ");
+//      Serial.println(cmd);
+      break;
+    }
+    case TUNE:
+    { // Wait for sufficient RF fwd pwr then start tuning
+      if(_status.fwd > TX_LEVEL_THRESHOLD) {
+        cmd = TUNING;
+        break;
+      } else return cmd;
+    }
+    case TUNING: 
+    { // Tuning is under way so process until finished
+      tryPresets();
+      if(_status.rawSWR > 150000) {
+        _status.outputZ = hiZ;
      doRelayCourseSteps();
      //Save SWR and relay states and see if better with C/O relay on output
      C_RelaysTmp = _status.C_relays;
@@ -202,21 +195,34 @@ void loop(){
      getSWR();
      SWRtmp = _status.rawSWR;
      
-     if((float(_status.rawSWR)/100000) > 1.2) { // Only try again if swr needs improving
-     _status.outputZ = loZ;
-     doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
-     //If not better restore relays to input state
-     getSWR();
-     if(SWRtmp <= _status.rawSWR) {             //Capacitors on Input side gave best result so
-     _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
-     _status.L_relays = L_RelaysTmp;
-     _status.outputZ = bestZ;
-     setRelays();
-     }
-     getSWR();
-     }
- */
-    // Here I pre-load some settings for each band and see if swr is low enough to indicate a
+     if(_status.rawSWR > 120000) { // Only try again if swr needs improving
+       _status.outputZ = loZ;
+       doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
+       //If not better restore relays to input state
+       getSWR();
+       if(SWRtmp <= _status.rawSWR) {             //Capacitors on Input side gave best result so
+         _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
+         _status.L_relays = L_RelaysTmp;
+         _status.outputZ = bestZ;
+         setRelays();
+       }
+       getSWR();
+       }
+      }
+      doRelayFineSteps();
+      cmd = TUNED;
+    }
+    default: cmd = TUNED; 
+  }
+  return cmd;
+}
+
+/**********************************************************************************************************/
+void tryPresets()
+{
+  status statusTemp;
+  
+  // Here I pre-load some settings for each band and see if swr is low enough to indicate a
     // suitable starting point for a tune
 
     // Presets for wire antenna
@@ -343,20 +349,53 @@ void loop(){
 
     _status = statusTemp;
     setRelays();
-    doRelayFineSteps();
-    
-//*/
-
-#ifdef DEBUG_TUNE_SUMMARY
-    printStatus(printHeader);
-    printStatus(printBody);
-#endif
-  }
+    getSWR();    
 }
 
-// Subroutines start here
 /**********************************************************************************************************/
 
+void processShortPressTE(byte button)
+{
+  static unsigned long repeatValue = 0;
+  
+  if((millis() - repeatValue) > 60) {      
+      switch (button) {
+      case 1: 
+        {
+          _status.C_relays++;
+          setRelays();
+          break;
+        }
+      case 2: 
+        {
+          _status.C_relays--;
+          setRelays();
+          break;
+        }
+      case 3: 
+        {
+          _status.L_relays++;
+          setRelays();
+          break;
+        }
+      case 4: 
+        {
+          _status.L_relays--;
+          setRelays();
+        } 
+      }
+  }
+#ifdef DEBUG_BUTTON_INFO      
+      Serial.print("Loop:  A short press trailing edge detected on button ");
+      Serial.println(button);
+#endif
+#ifdef DEBUG_TUNE_SUMMARY
+      printStatus(printHeader);
+      printStatus(printBody);
+#endif
+}
+
+/**********************************************************************************************************/
 void processLongPressLE(byte button)
 {
   static unsigned long repeatValue = 0;
@@ -391,7 +430,20 @@ void processLongPressLE(byte button)
   }
 }
 /**********************************************************************************************************/      
-      
+void processLongPressTE(byte button)
+{
+  static unsigned long repeatValue = 0;
+  
+  if((millis() - repeatValue) > 60) {
+    
+  }
+#ifdef DEBUG_BUTTON_INFO      
+      Serial.print("Loop:  A long press trailing edge detected on button ");      
+      Serial.println(button);
+#endif
+}
+
+/**********************************************************************************************************/            
 void doRelayCourseSteps(){
 
   unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
@@ -781,10 +833,10 @@ unsigned int calcXvalue(bool CorL){
     } 
   }
   if (CorL) {
-    val = val + strayC;
+    val = val + _strayC;
   }
   else {
-    val = val + strayL;
+    val = val + _strayL;
   }
   return val;
 }
