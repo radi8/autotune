@@ -5,6 +5,9 @@
 // Course stepping through L & C for best SWR
 /////////////////////////////////////////////////////////////////
 
+// plugin Defines
+#define plugIn_2W_LCD
+
 // Debug Defines
 //#define DEBUG_RELAY_FINE_STEPS
 //#define DEBUG_RELAY_STATE
@@ -58,6 +61,14 @@
 #define analog_buttons_r2 1.2
 #define LONG_PRESS_TIME 800 //msec before button considered a long press
 #define analog_Button_Debounce_Millis 10
+
+// Comment out block below out if not using LCD.   TODO ... Check if compiler can do this automatically
+#include <Wire.h>              // used for I2C functionality and serial LCD
+#include <LiquidCrystal_SR.h>  // Using Liquid Crystal display in 2 wire mode
+LiquidCrystal_SR lcd(8,7,TWO_WIRE); // Change pins to suit schematic
+//                   | |
+//                   | \-- Clock Pin
+//                   \---- Data/Enable Pin
 
 // Global variables always start with an underscore
 int _Button_array_max_value[num_of_analog_buttons];
@@ -117,6 +128,15 @@ void setup() {
   Serial.println("Copyright (C) 2015, Graeme Jury ZL2APV");
   Serial.println();
   initialize_analog_button_array();
+  
+  #ifdef plugIn_2W_LCD
+    lcd.begin(16,2);               // initialize the lcd
+    lcd.home ();                   // go home
+    lcd.print("Arduino Autotune");
+    lcd.setCursor ( 0, 1 ); // go to second line (position, line_number)
+    lcd.print("ZL2APV (c) 2015");
+  #endif // plugIn_2W_LCD
+  
 } 
 /**********************************************************************************************************/
 
