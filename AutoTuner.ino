@@ -129,6 +129,7 @@ void loop(){
 //  buttonNumber = check_step_buttons();
   buttonNumber = getAnalogButton();
   if(buttonNumber != 0) { // 0x00 is returned with no button press
+    _cmd = TUNED; // Stop any automatic tuning process with any button press
     if(buttonNumber <= num_of_analog_buttons) {  
       // A short press trailing edge detected
       processShortPressTE(buttonNumber);
@@ -154,7 +155,9 @@ void loop(){
   // handle button
   boolean button_pressed = handle_button();
   if (button_pressed) {
-    _cmd = TUNE;
+    if(_cmd != TUNED) {
+      _cmd = TUNED; // Halt a pending tune with no RF applied
+    } else _cmd = TUNE;
   }
 }
 
@@ -177,10 +180,12 @@ byte processCommand(byte cmd)
     }
     case TUNE:
     { // Wait for sufficient RF fwd pwr then start tuning
+//      Serial.print("Got to TUNE, cmd = ");
+//      Serial.println(cmd);
       if(_status.fwd > TX_LEVEL_THRESHOLD) {
         cmd = TUNING;
         break;
-      } else return cmd;
+      } else break;
     }
     case TUNING: 
     { // Tuning is under way so process until finished
@@ -353,97 +358,7 @@ void tryPresets()
 }
 
 /**********************************************************************************************************/
-
-void processShortPressTE(byte button)
-{
-  static unsigned long repeatValue = 0;
-  
-  if((millis() - repeatValue) > 60) {      
-      switch (button) {
-      case 1: 
-        {
-          _status.C_relays++;
-          setRelays();
-          break;
-        }
-      case 2: 
-        {
-          _status.C_relays--;
-          setRelays();
-          break;
-        }
-      case 3: 
-        {
-          _status.L_relays++;
-          setRelays();
-          break;
-        }
-      case 4: 
-        {
-          _status.L_relays--;
-          setRelays();
-        } 
-      }
-  }
-#ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A short press trailing edge detected on button ");
-      Serial.println(button);
-#endif
-#ifdef DEBUG_TUNE_SUMMARY
-      printStatus(printHeader);
-      printStatus(printBody);
-#endif
-}
-
-/**********************************************************************************************************/
-void processLongPressLE(byte button)
-{
-  static unsigned long repeatValue = 0;
-  
-  if((millis() - repeatValue) > 60) {
-    repeatValue = millis();
-      switch (button) {
-      case 1: 
-        {
-          _status.C_relays++;
-          setRelays();
-          break;
-        }
-      case 2: 
-        {
-          _status.C_relays--;
-          setRelays();
-          break;
-        }
-      case 3: 
-        {
-          _status.L_relays++;
-          setRelays();
-          break;
-        }
-      case 4: 
-        {
-          _status.L_relays--;
-          setRelays();
-        } 
-      }
-  }
-}
-/**********************************************************************************************************/      
-void processLongPressTE(byte button)
-{
-  static unsigned long repeatValue = 0;
-  
-  if((millis() - repeatValue) > 60) {
-    
-  }
-#ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A long press trailing edge detected on button ");      
-      Serial.println(button);
-#endif
-}
-
-/**********************************************************************************************************/            
+           
 void doRelayCourseSteps(){
 
   unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
@@ -869,22 +784,6 @@ void setRelays() {
 }
 /**********************************************************************************************************/
 
-boolean handle_button() {
-  static boolean button_was_pressed = false;
-  boolean event;
-
-  int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
-  event = button_now_pressed && !button_was_pressed;
-  if (event) { // Check if button changed
-    delay(10);
-    int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
-    event = button_now_pressed && !button_was_pressed;
-  }
-  button_was_pressed = button_now_pressed;
-  return event;
-}
-/**********************************************************************************************************/
-
 void getSWR() {
   // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
   // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
@@ -1033,6 +932,22 @@ void dbugRelayState(){
 }
 
 /**********************************************************************************************************/
+boolean handle_button() {
+  static boolean button_was_pressed = false;
+  boolean event;
+
+  int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
+  event = button_now_pressed && !button_was_pressed;
+  if (event) { // Check if button changed
+    delay(10);
+    int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
+    event = button_now_pressed && !button_was_pressed;
+  }
+  button_was_pressed = button_now_pressed;
+  return event;
+}
+
+/**********************************************************************************************************/
 
 void initialize_analog_button_array() {
   /* 
@@ -1142,3 +1057,93 @@ byte getAnalogButton()
 
 /**********************************************************************************************************/
 
+void processShortPressTE(byte button)
+{
+  static unsigned long repeatValue = 0;
+  
+  if((millis() - repeatValue) > 60) {      
+      switch (button) {
+      case 1: 
+        {
+          _status.C_relays++;
+          setRelays();
+          break;
+        }
+      case 2: 
+        {
+          _status.C_relays--;
+          setRelays();
+          break;
+        }
+      case 3: 
+        {
+          _status.L_relays++;
+          setRelays();
+          break;
+        }
+      case 4: 
+        {
+          _status.L_relays--;
+          setRelays();
+        } 
+      }
+  }
+#ifdef DEBUG_BUTTON_INFO      
+      Serial.print("Loop:  A short press trailing edge detected on button ");
+      Serial.println(button);
+#endif
+#ifdef DEBUG_TUNE_SUMMARY
+      printStatus(printHeader);
+      printStatus(printBody);
+#endif
+}
+
+/**********************************************************************************************************/
+void processLongPressLE(byte button)
+{
+  static unsigned long repeatValue = 0;
+  
+  if((millis() - repeatValue) > 60) {
+    repeatValue = millis();
+      switch (button) {
+      case 1: 
+        {
+          _status.C_relays++;
+          setRelays();
+          break;
+        }
+      case 2: 
+        {
+          _status.C_relays--;
+          setRelays();
+          break;
+        }
+      case 3: 
+        {
+          _status.L_relays++;
+          setRelays();
+          break;
+        }
+      case 4: 
+        {
+          _status.L_relays--;
+          setRelays();
+        } 
+      }
+  }
+}
+/**********************************************************************************************************/      
+void processLongPressTE(byte button)
+{
+  static unsigned long repeatValue = 0;
+  
+  if((millis() - repeatValue) > 60) {
+    
+  }
+#ifdef DEBUG_BUTTON_INFO      
+      Serial.print("Loop:  A long press trailing edge detected on button ");      
+      Serial.println(button);
+#endif
+}
+
+/**********************************************************************************************************/ 
