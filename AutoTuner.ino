@@ -5,8 +5,10 @@
 // Course stepping through L & C for best SWR
 /////////////////////////////////////////////////////////////////
 
+#include <stdlib.h>
+
 // plugin Defines
-#define plugIn_2W_LCD
+#define plugIn_2W_LCD // Also need to comment out 3 LCD related lines further down if not using.
 
 // Debug Defines
 //#define DEBUG_RELAY_FINE_STEPS
@@ -65,10 +67,10 @@
 // Comment out block below out if not using LCD.   TODO ... Check if compiler can do this automatically
 #include <Wire.h>              // used for I2C functionality and serial LCD
 #include <LiquidCrystal_SR.h>  // Using Liquid Crystal display in 2 wire mode
-LiquidCrystal_SR lcd(8,7,TWO_WIRE); // Change pins to suit schematic
-//                   | |
-//                   | \-- Clock Pin
-//                   \---- Data/Enable Pin
+LiquidCrystal_SR lcd(11,12,TWO_WIRE); // Change pins to suit schematic
+//                   |  |
+//                   |  \-- Clock Pin
+//                   \----- Data/Enable Pin
 
 // Global variables always start with an underscore
 int _Button_array_max_value[num_of_analog_buttons];
@@ -84,7 +86,8 @@ struct status {
   unsigned int totC;
   unsigned int totL;
   boolean outputZ;
-} _status;
+} 
+_status;
 
   //       Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8   
 const unsigned int  _inductors[] = { 6,  17,  35,  73,  136,  275,  568, 1099 };  // inductor values in nH
@@ -93,7 +96,8 @@ const unsigned int _strayL = 0;
 const unsigned int _capacitors[] = { 6,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
 const unsigned int _strayC = 0;
 
-enum commandMode {TUNED, TUNE, TUNING};
+enum commandMode {
+  TUNED, TUNE, TUNING};
 byte _cmd = 0;  // Holds the command to be processed
 
 /**********************************************************************************************************/
@@ -128,32 +132,33 @@ void setup() {
   Serial.println("Copyright (C) 2015, Graeme Jury ZL2APV");
   Serial.println();
   initialize_analog_button_array();
-  
-  #ifdef plugIn_2W_LCD
-    lcd.begin(16,2);               // initialize the lcd
-    lcd.home ();                   // go home
-    lcd.print("Arduino Autotune");
-    lcd.setCursor ( 0, 1 ); // go to second line (position, line_number)
-    lcd.print("ZL2APV (c) 2015");
-  #endif // plugIn_2W_LCD
-  
+
+#ifdef plugIn_2W_LCD
+  lcd.begin(16,2);               // initialize the lcd
+  lcd.home();                   // go home
+  lcd.print("Arduino Autotune");
+  lcd.setCursor(0, 1); // go to second line (position, line_number)
+  lcd.print("ZL2APV (c) 2015");
+#endif // plugIn_2W_LCD
+
 } 
 /**********************************************************************************************************/
 
 void loop(){
   byte buttonNumber;
-  
+
 
   getSWR();
+  lcdPrintStatus();
   _cmd = processCommand(_cmd);
-//  buttonNumber = check_step_buttons();
+  //  buttonNumber = check_step_buttons();
   buttonNumber = getAnalogButton();
   if(buttonNumber != 0) { // 0x00 is returned with no button press
     _cmd = TUNED; // Stop any automatic tuning process with any button press
     if(buttonNumber <= num_of_analog_buttons) {  
       // A short press trailing edge detected
       processShortPressTE(buttonNumber);
-            
+
     } 
     else if(buttonNumber <= (num_of_analog_buttons + num_of_analog_buttons)) {
       // A long press leading edge detected
@@ -177,11 +182,45 @@ void loop(){
   if (button_pressed) {
     if(_cmd != TUNED) {
       _cmd = TUNED; // Halt a pending tune with no RF applied
-    } else _cmd = TUNE;
+    } 
+    else _cmd = TUNE;
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Subroutines start here
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef plugIn_2W_LCD
+void lcdPrintStatus()
+{
+  static unsigned long displayUpdate = 0;
+  float floatVal=3.56;
+  char charVal[20];          //buffer, temporarily holds data from values 
+  String stringVal = "";     //data on buff is copied to this string
+
+  if(displayUpdate < millis()) {
+    displayUpdate = (millis() + 10000);
+    lcd.home();   
+    dtostrf(float(_status.rawSWR) / 100000, 7, 4, charVal);  //7 is mininum width, 3 is precision;
+    //display character array                                  float value is copied onto buffer
+    Serial.print("charVal:");
+//    for(int i=0;i<sizeof(charVal);i++)
+    for(int i=0;i<7;i++) // only print 6 characters plus decimal
+    {
+      Serial.print(charVal[i]);
+    }
+    Serial.println();
+    //print number to LCD
+    for(int i=0;i<7;i++)
+    {
+      lcd.write(charVal[i]);
+    }
+
+  } // endif ((millis() - displayUpdate) > 50)
+}
+#endif // plugIn_2W_LCD
+
 /**********************************************************************************************************/
 byte processCommand(byte cmd)
 {
@@ -190,54 +229,56 @@ byte processCommand(byte cmd)
   byte C_RelaysTmp; // Holds map of operated relays with C/O on input
   byte L_RelaysTmp; //  0 = released and 1 = operated
   boolean bestZ;
-  
+
   switch (cmd) {
-    case TUNED: 
+  case TUNED: 
     { // Update LCD display
-//      Serial.print("Got to TUNED, cmd = ");
-//      Serial.println(cmd);
+      //      Serial.print("Got to TUNED, cmd = ");
+      //      Serial.println(cmd);
       break;
     }
-    case TUNE:
+  case TUNE:
     { // Wait for sufficient RF fwd pwr then start tuning
-//      Serial.print("Got to TUNE, cmd = ");
-//      Serial.println(cmd);
+      //      Serial.print("Got to TUNE, cmd = ");
+      //      Serial.println(cmd);
       if(_status.fwd > TX_LEVEL_THRESHOLD) {
         cmd = TUNING;
         break;
-      } else break;
+      } 
+      else break;
     }
-    case TUNING: 
+  case TUNING: 
     { // Tuning is under way so process until finished
       tryPresets();
       if(_status.rawSWR > 150000) {
         _status.outputZ = hiZ;
-     doRelayCourseSteps();
-     //Save SWR and relay states and see if better with C/O relay on output
-     C_RelaysTmp = _status.C_relays;
-     L_RelaysTmp = _status.L_relays;
-     bestZ = _status.outputZ;
-     getSWR();
-     SWRtmp = _status.rawSWR;
-     
-     if(_status.rawSWR > 120000) { // Only try again if swr needs improving
-       _status.outputZ = loZ;
-       doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
-       //If not better restore relays to input state
-       getSWR();
-       if(SWRtmp <= _status.rawSWR) {             //Capacitors on Input side gave best result so
-         _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
-         _status.L_relays = L_RelaysTmp;
-         _status.outputZ = bestZ;
-         setRelays();
-       }
-       getSWR();
-       }
+        doRelayCourseSteps();
+        //Save SWR and relay states and see if better with C/O relay on output
+        C_RelaysTmp = _status.C_relays;
+        L_RelaysTmp = _status.L_relays;
+        bestZ = _status.outputZ;
+        getSWR();
+        SWRtmp = _status.rawSWR;
+
+        if(_status.rawSWR > 120000) { // Only try again if swr needs improving
+          _status.outputZ = loZ;
+          doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
+          //If not better restore relays to input state
+          getSWR();
+          if(SWRtmp <= _status.rawSWR) {             //Capacitors on Input side gave best result so
+            _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
+            _status.L_relays = L_RelaysTmp;
+            _status.outputZ = bestZ;
+            setRelays();
+          }
+          getSWR();
+        }
       }
       doRelayFineSteps();
       cmd = TUNED;
     }
-    default: cmd = TUNED; 
+  default: 
+    cmd = TUNED; 
   }
   return cmd;
 }
@@ -246,139 +287,139 @@ byte processCommand(byte cmd)
 void tryPresets()
 {
   status statusTemp;
-  
+
   // Here I pre-load some settings for each band and see if swr is low enough to indicate a
-    // suitable starting point for a tune
+  // suitable starting point for a tune
 
-    // Presets for wire antenna
+  // Presets for wire antenna
 
-    // Try 80 M wire antenna centred on 3.525 mHz
-    _status.C_relays = B01110111; // Debug settings for C and L relays
-    _status.L_relays = B00001111;
-    _status.outputZ  = hiZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
+  // Try 80 M wire antenna centred on 3.525 mHz
+  _status.C_relays = B01110111; // Debug settings for C and L relays
+  _status.L_relays = B00001111;
+  _status.outputZ  = hiZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  statusTemp = _status;
+
+  // Try 80 M wire antenna centred on 3.6 mHz
+  _status.C_relays = B00001110; // Debug settings for C and L relays
+  _status.L_relays = B00000101;
+  _status.outputZ  = hiZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
+  }
 
-    // Try 80 M wire antenna centred on 3.6 mHz
-    _status.C_relays = B00001110; // Debug settings for C and L relays
-    _status.L_relays = B00000101;
-    _status.outputZ  = hiZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
-    
-    // Try 80 M wire antenna centred on 3.8 mHz
-    _status.C_relays = B11000011; // Debug settings for C and L relays
-    _status.L_relays = B00001011;
-    _status.outputZ  = loZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 80 M wire antenna centred on 3.8 mHz
+  _status.C_relays = B11000011; // Debug settings for C and L relays
+  _status.L_relays = B00001011;
+  _status.outputZ  = loZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Try 40 M wire antenna centred on 7.05 mHz
-    _status.C_relays = B01000001; // Debug settings for C and L relays
-    _status.L_relays = B00001100;
-    _status.outputZ  = hiZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 40 M wire antenna centred on 7.05 mHz
+  _status.C_relays = B01000001; // Debug settings for C and L relays
+  _status.L_relays = B00001100;
+  _status.outputZ  = hiZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Try 30 M wire antenna centred on 10.025 mHz
-    _status.C_relays = B01001011; // Debug settings for C and L relays
-    _status.L_relays = B00001101;
-    _status.outputZ  = hiZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 30 M wire antenna centred on 10.025 mHz
+  _status.C_relays = B01001011; // Debug settings for C and L relays
+  _status.L_relays = B00001101;
+  _status.outputZ  = hiZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Try 20 M wire antenna centred on 14.025 mHz
-    _status.C_relays = B00111111; // Debug settings for C and L relays
-    _status.L_relays = B00000011;
-    _status.outputZ  = loZ;
-    setRelays();
-    getSWR();
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 20 M wire antenna centred on 14.025 mHz
+  _status.C_relays = B00111111; // Debug settings for C and L relays
+  _status.L_relays = B00000011;
+  _status.outputZ  = loZ;
+  setRelays();
+  getSWR();
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Try 17 M wire antenna centred on 18.09 mHz
-    _status.C_relays = B00010000; // Debug settings for C and L relays
-    _status.L_relays = B00001000;
-    _status.outputZ  = loZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 17 M wire antenna centred on 18.09 mHz
+  _status.C_relays = B00010000; // Debug settings for C and L relays
+  _status.L_relays = B00001000;
+  _status.outputZ  = loZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Try 15 M wire antenna centred on 21.025 mHz
-    _status.C_relays = B00010110; // Debug settings for C and L relays
-    _status.L_relays = B00000001;
-    _status.outputZ  = loZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 15 M wire antenna centred on 21.025 mHz
+  _status.C_relays = B00010110; // Debug settings for C and L relays
+  _status.L_relays = B00000001;
+  _status.outputZ  = loZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Try 12 M wire antenna centred on 21.025 mHz
-    _status.C_relays = B00011010; // Debug settings for C and L relays
-    _status.L_relays = B00000011;
-    _status.outputZ  = loZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 12 M wire antenna centred on 21.025 mHz
+  _status.C_relays = B00011010; // Debug settings for C and L relays
+  _status.L_relays = B00000011;
+  _status.outputZ  = loZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Presets for beam antenna
+  // Presets for beam antenna
 
-    // Try 20 M beam antenna centred on 14.025 mHz
-    _status.C_relays = B00011100; // Debug settings for C and L relays
-    _status.L_relays = B00000011;
-    _status.outputZ  = loZ;
-    setRelays();
-    getSWR();
-    Serial.println(_status.rawSWR);
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  // Try 20 M beam antenna centred on 14.025 mHz
+  _status.C_relays = B00011100; // Debug settings for C and L relays
+  _status.L_relays = B00000011;
+  _status.outputZ  = loZ;
+  setRelays();
+  getSWR();
+  Serial.println(_status.rawSWR);
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    // Fallback of no relays operated
+  // Fallback of no relays operated
 
-    _status.C_relays = B00000000; // Debug settings for C and L relays
-    _status.L_relays = B00000000;
-    _status.outputZ  = hiZ;
-    setRelays();
-    Serial.println("Relays set at zero");
-    if(_status.rawSWR < statusTemp.rawSWR) {
-      statusTemp = _status;
-    }
+  _status.C_relays = B00000000; // Debug settings for C and L relays
+  _status.L_relays = B00000000;
+  _status.outputZ  = hiZ;
+  setRelays();
+  Serial.println("Relays set at zero");
+  if(_status.rawSWR < statusTemp.rawSWR) {
+    statusTemp = _status;
+  }
 
-    _status = statusTemp;
-    setRelays();
-    getSWR();    
+  _status = statusTemp;
+  setRelays();
+  getSWR();    
 }
 
 /**********************************************************************************************************/
-           
+
 void doRelayCourseSteps(){
 
   unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
@@ -1004,15 +1045,15 @@ void initialize_analog_button_array() {
 /**********************************************************************************************************/
 byte getAnalogButton()
 {
-// Buttons are checked for either a short or a long press. The first time the poll detects a button press it saves
-// the button info and waits 10 msec to re-sample the button. A short press is determined by a release being
-// detected within LONG_PRESS_TIME. A Long press by checking button is held for more than LONG_PRESS_TIME.
-// Returns: 0 if no button is pressed 
-//          0 for short pressed button leading edge or 'short press time' button hold.
-//          button number if short press trailing edge
-//          button Number plus Number of buttons if Long press leading edge
-//          button Number plus (Number of buttons * 2) if Long press trailing edge
-  
+  // Buttons are checked for either a short or a long press. The first time the poll detects a button press it saves
+  // the button info and waits 10 msec to re-sample the button. A short press is determined by a release being
+  // detected within LONG_PRESS_TIME. A Long press by checking button is held for more than LONG_PRESS_TIME.
+  // Returns: 0 if no button is pressed 
+  //          0 for short pressed button leading edge or 'short press time' button hold.
+  //          button number if short press trailing edge
+  //          button Number plus Number of buttons if Long press leading edge
+  //          button Number plus (Number of buttons * 2) if Long press trailing edge
+
   static unsigned long lastButtonTime = 0;
   static unsigned long longPressTimer = 0;
   static boolean longPress = false;
@@ -1041,15 +1082,17 @@ byte getAnalogButton()
   if (analogButtonValue <= _Button_array_max_value[num_of_analog_buttons-1]) {
     for (cnt = 0; cnt < num_of_analog_buttons; cnt++) {
       if  ((analogButtonValue > _Button_array_min_value[cnt]) &&
-          (analogButtonValue <=  _Button_array_max_value[cnt])) {
+        (analogButtonValue <=  _Button_array_max_value[cnt])) {
         thisButton = cnt + 1;
       }
     }  
-  } else thisButton = 0;
+  } 
+  else thisButton = 0;
   // See if we got 2 identical samples in a row
   if(thisButton != lastButtonValue) {
     lastButtonValue = thisButton; // No but setting up now for next sample match.
-  } else { // We have a valid button press or a valid button release
+  } 
+  else { // We have a valid button press or a valid button release
     if(thisButton != 0) { // It is a press so save the button and check for a long press
       if(currentButton != thisButton) {
         currentButton = thisButton;
@@ -1058,14 +1101,17 @@ byte getAnalogButton()
       if((millis() - longPressTimer) > LONG_PRESS_TIME) {
         retVal = currentButton + num_of_analog_buttons;
         longPress = true;
-      } else retVal = 0;
-    } else { // We are releasing the button so check if it is from a short or long press
+      } 
+      else retVal = 0;
+    } 
+    else { // We are releasing the button so check if it is from a short or long press
       if(longPress) {
-//        Serial.println("At ... if((millis() - longPressTimer) > LONG_PRESS_TIME)");
+        //        Serial.println("At ... if((millis() - longPressTimer) > LONG_PRESS_TIME)");
         retVal = currentButton + num_of_analog_buttons + num_of_analog_buttons;
         currentButton = 0;
         longPress = false;
-      } else {
+      } 
+      else {
         retVal = currentButton;
         currentButton = 0;
         longPressTimer = 0;
@@ -1080,41 +1126,41 @@ byte getAnalogButton()
 void processShortPressTE(byte button)
 {
   static unsigned long repeatValue = 0;
-  
+
   if((millis() - repeatValue) > 60) {      
-      switch (button) {
-      case 1: 
-        {
-          _status.C_relays++;
-          setRelays();
-          break;
-        }
-      case 2: 
-        {
-          _status.C_relays--;
-          setRelays();
-          break;
-        }
-      case 3: 
-        {
-          _status.L_relays++;
-          setRelays();
-          break;
-        }
-      case 4: 
-        {
-          _status.L_relays--;
-          setRelays();
-        } 
+    switch (button) {
+    case 1: 
+      {
+        _status.C_relays++;
+        setRelays();
+        break;
       }
+    case 2: 
+      {
+        _status.C_relays--;
+        setRelays();
+        break;
+      }
+    case 3: 
+      {
+        _status.L_relays++;
+        setRelays();
+        break;
+      }
+    case 4: 
+      {
+        _status.L_relays--;
+        setRelays();
+      } 
+    }
   }
 #ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A short press trailing edge detected on button ");
-      Serial.println(button);
+  Serial.print("Loop:  A short press trailing edge detected on button ");
+  Serial.println(button);
 #endif
 #ifdef DEBUG_TUNE_SUMMARY
-      printStatus(printHeader);
-      printStatus(printBody);
+  printStatus(printHeader);
+  printStatus(printBody);
 #endif
 }
 
@@ -1122,48 +1168,49 @@ void processShortPressTE(byte button)
 void processLongPressLE(byte button)
 {
   static unsigned long repeatValue = 0;
-  
+
   if((millis() - repeatValue) > 60) {
     repeatValue = millis();
-      switch (button) {
-      case 1: 
-        {
-          _status.C_relays++;
-          setRelays();
-          break;
-        }
-      case 2: 
-        {
-          _status.C_relays--;
-          setRelays();
-          break;
-        }
-      case 3: 
-        {
-          _status.L_relays++;
-          setRelays();
-          break;
-        }
-      case 4: 
-        {
-          _status.L_relays--;
-          setRelays();
-        } 
+    switch (button) {
+    case 1: 
+      {
+        _status.C_relays++;
+        setRelays();
+        break;
       }
+    case 2: 
+      {
+        _status.C_relays--;
+        setRelays();
+        break;
+      }
+    case 3: 
+      {
+        _status.L_relays++;
+        setRelays();
+        break;
+      }
+    case 4: 
+      {
+        _status.L_relays--;
+        setRelays();
+      } 
+    }
   }
 }
-/**********************************************************************************************************/      
+/**********************************************************************************************************/
 void processLongPressTE(byte button)
 {
   static unsigned long repeatValue = 0;
-  
+
   if((millis() - repeatValue) > 60) {
-    
+
   }
 #ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A long press trailing edge detected on button ");      
-      Serial.println(button);
+  Serial.print("Loop:  A long press trailing edge detected on button ");      
+  Serial.println(button);
 #endif
 }
 
-/**********************************************************************************************************/ 
+/**********************************************************************************************************/
+
