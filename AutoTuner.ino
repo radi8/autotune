@@ -14,7 +14,7 @@
 //#define DEBUG_RELAY_FINE_STEPS
 //#define DEBUG_RELAY_STATE
 #define DEBUG_COARSE_TUNE_STATUS
-//#define DEBUG_TUNE_SUMMARY
+#define DEBUG_TUNE_SUMMARY
 //#define DEBUG_status.rawSWR_VALUES
 //#define DEBUG_SHIFT
 
@@ -204,13 +204,13 @@ void lcdPrintStatus()
     lcd.home();   
     dtostrf(float(_status.rawSWR) / 100000, 7, 4, charVal);  //7 is mininum width, 3 is precision;
     //display character array                                  float value is copied onto buffer
-    Serial.print("charVal:");
+//    Serial.print("charVal:");
 //    for(int i=0;i<sizeof(charVal);i++)
     for(int i=0;i<7;i++) // only print 6 characters plus decimal
     {
-      Serial.print(charVal[i]);
+//      Serial.print(charVal[i]);
     }
-    Serial.println();
+//    Serial.println();
     //print number to LCD
     for(int i=0;i<7;i++)
     {
@@ -347,7 +347,7 @@ void tryPresets()
   }
 
   // Try 20 M wire antenna centred on 14.025 mHz
-  _status.C_relays = B00111111; // Debug settings for C and L relays
+  _status.C_relays = B01011110; // Debug settings for C and L relays
   _status.L_relays = B00000011;
   _status.outputZ  = loZ;
   setRelays();
@@ -1197,6 +1197,10 @@ void processLongPressLE(byte button)
       } 
     }
   }
+#ifdef DEBUG_TUNE_SUMMARY
+  printStatus(printHeader);
+  printStatus(printBody);
+#endif  
 }
 /**********************************************************************************************************/
 void processLongPressTE(byte button)
