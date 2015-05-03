@@ -29,14 +29,17 @@
 #define SWR_AVERAGE_COUNT  10     // Number of analog readings to combat jitter
 
 // Shift Register for L & C driver Pin assign
-#define Cclock 2           // Pin 8 of 74HC164 U4, pin 20 of Arduino nano
-#define Cdata 3            // Pin 2 of 74HC164 U4, pin 21 of Arduino nano
-#define Lclock 4           // Pin 8 of 74HC164 U3, pin 22 of Arduino nano
-#define Ldata 5            // Pins 1 & 2 of 74HC164 U3, pin 23 of Arduino nano
+#define Cclock 4           // Pin 11 of 74HC164 U5 to pin 7 of Arduino Nano
+#define Clatch 3           // Pin 12 of 74HC164 U5 to pin 6 of Arduino Nano
+#define Cdata 2            // Pin 14 of 74HC164 U5 to pin 5 of Arduino Nano
 
-#define coRelay        7   // Capacitor set c/o relay
-#define swrGain        8   // Switchable gain for swr amplifiers
-#define BUTTON_PIN     6   // Push Button
+#define Lclock 8           // Pin 11 of 74HC595 U3 to pin 11 of Arduino Nano
+#define Llatch 7           // Pin 12 of 74HC595 U4 to pin 10 of Arduino Nano
+#define Ldata 6            // Pin 14 of 74HC595 U3 to pin 9 of Arduino Nano
+
+#define coRelay        9   // Capacitor set c/o relay
+#define swrGain       12   // Switchable gain for swr amplifiers
+#define BUTTON_PIN    A7   // Push Button
 #define LEDpin        13   // A LED is connected to this pin
 #define forward       A0   // Measure forward SWR on this pin
 #define reverse       A1   // Measure reverse SWR on this pin
@@ -59,7 +62,7 @@
 // Analog pushbutton settings
 #define analog_buttons_pin A2
 #define num_of_analog_buttons 4
-#define analog_buttons_r1 7.5 //Resistor value connected to button // with internal pullup in "K's"
+#define analog_buttons_r1 6.667 //Resistor value connected to button // with internal pullup in "K's"
 #define analog_buttons_r2 1.2
 #define LONG_PRESS_TIME 800 //msec before button considered a long press
 #define analog_Button_Debounce_Millis 10
@@ -102,16 +105,18 @@ byte _cmd = 0;  // Holds the command to be processed
 
 /**********************************************************************************************************/
 
-void setup() { 
+void setup() {
   pinMode(Cclock, OUTPUT); // make the Capacitor clock pin an output
+  pinMode(Clatch, OUTPUT); // make the Capacitor latch pin an output
   pinMode(Cdata , OUTPUT); // make the Capacitor data pin an output
   pinMode(Lclock, OUTPUT); // make the Inductor clock pin an output
+  pinMode(Llatch, OUTPUT); // make the Inductor latch pin an output
   pinMode(Ldata , OUTPUT); // make the Inductor data pin an output  
   pinMode(coRelay, OUTPUT);
   pinMode(swrGain, OUTPUT);
   pinMode(LEDpin, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
-
+  
   digitalWrite(swrGain, LOW); // Turns off fet shunting swr Start with highest gain for amps.voltages
   _status.ampGain = hi;
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
@@ -146,7 +151,7 @@ void setup() {
 
 void loop(){
   byte buttonNumber;
-
+  static unsigned long heartbeat = millis();
 
   getSWR();
   lcdPrintStatus();
@@ -185,6 +190,14 @@ void loop(){
     } 
     else _cmd = TUNE;
   }
+  // Do heartbeat of 1 sec on and 1 sec off as non blocking routine
+ if(millis() > heartbeat) {
+   if(digitalRead(LEDpin)) {
+     digitalWrite(LEDpin, LOW);   // turn the LED off
+   }
+   else digitalWrite(LEDpin, HIGH);    // turn the LED on by making the voltage HIGH
+   heartbeat = (millis() + 1000);
+ }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -824,16 +837,31 @@ void setRelays() {
   // this the HiZ/LoZ changeover is set to match _status.outputZ (hiZ = true; loZ = false). The capacitor
   // changeover relay switches caps to input (not operated) for hiZ loads and output (operated) for loZ.
 
+  // Due to a screw up in my circuit it is necessary to map the relays to the right pins on the relays
+
+  byte Cmap = _status.C_relays;
+  byte Lmap = _status.L_relays;
+  boolean temp;
+
   // Set the C Relays from _status.C_relays;
-  shiftOut(Cdata, Cclock, MSBFIRST, _status.C_relays); // send this binary value to the Capacitor shift register
-
+  digitalWrite(Clatch, LOW);
+  temp = bitRead(Cmap, 7);
+  Cmap = Cmap << 1;
+  bitWrite(Cmap, 0, temp); 
+  shiftOut(Cdata, Cclock, MSBFIRST, Cmap); // send this binary value to the Capacitor shift register
+  digitalWrite(Clatch, HIGH);
+  
   // Set the L Relays from _status.L_relays;
-  shiftOut(Ldata, Lclock, MSBFIRST, _status.L_relays); // send this binary value to the Inductor shift register
-
+  digitalWrite(Llatch, LOW);
+  temp = bitRead(Lmap, 7);
+  Lmap = Lmap << 1;
+  bitWrite(Lmap, 0, temp);
+  shiftOut(Ldata, Lclock, MSBFIRST, Lmap); // send this binary value to the Inductor shift register
+  digitalWrite(Llatch, HIGH);
+  
   // Set the HiZ/LoZ Changeover Relay from the value of _status.outputZ
   if(_status.outputZ) {
     digitalWrite(coRelay, CAPS_at_OUTPUT); // HiZ loads, relay operated
-
   } 
   else {
     digitalWrite(coRelay, CAPS_at_INPUT); // LoZ loads, relay not operated
@@ -843,6 +871,7 @@ void setRelays() {
 #endif
   delay(DELAY); // Let the relays do their contact bounce settling
 }
+
 /**********************************************************************************************************/
 
 void getSWR() {
