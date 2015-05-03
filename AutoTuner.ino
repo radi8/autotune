@@ -19,7 +19,7 @@
 //#define DEBUG_SHIFT
 
 #define DEBUG_BUTTON_ARRAY
-//#define DEBUG_BUTTON_INFO
+#define DEBUG_BUTTON_INFO
 #define DEBUG_BUTTONS
 #define DEBUG_STEP_BUTTON
 
@@ -39,12 +39,13 @@
 
 #define coRelay        9   // Capacitor set c/o relay
 #define swrGain       12   // Switchable gain for swr amplifiers
-#define BUTTON_PIN    A7   // Push Button
-#define LEDpin        13   // A LED is connected to this pin
-#define forward       A0   // Measure forward SWR on this pin
-#define reverse       A1   // Measure reverse SWR on this pin
+#define BUTTON_PIN    A0   // Push Button (Analog pin used as digital)
+#define LEDpin        13   // A LED is connected to this pin, use for heartbeat
+#define forward       A2   // Measure forward SWR on this pin
+#define reverse       A3   // Measure reverse SWR on this pin
 
-#define DELAY         50   // Delay for relay debounce settle time ms
+#define Button_Debounce_Millis 10   // Delay for pushbutton debounce settle time ms
+#define Relay_Settle_Millis    50   // Delay for relay debounce settle time ms
 
 #define C             true    // Capacitor relay set
 #define L             false   // Inductor relay set
@@ -60,10 +61,10 @@
 
 
 // Analog pushbutton settings
-#define analog_buttons_pin A2
+#define analog_buttons_pin A6
 #define num_of_analog_buttons 4
-#define analog_buttons_r1 6.667 //Resistor value connected to button // with internal pullup in "K's"
-#define analog_buttons_r2 1.2
+#define analog_buttons_r1 10  // Resistor value connected to button chain in "K's"
+#define analog_buttons_r2 1.2 // Value of each resistor in the chain in "K's"
 #define LONG_PRESS_TIME 800 //msec before button considered a long press
 #define analog_Button_Debounce_Millis 10
 
@@ -869,7 +870,7 @@ void setRelays() {
 #ifdef DEBUG_RELAY_STATE
   dbugRelayState();
 #endif
-  delay(DELAY); // Let the relays do their contact bounce settling
+  delay(Relay_Settle_Millis); // Let the relays do their contact bounce settling
 }
 
 /**********************************************************************************************************/
@@ -1029,7 +1030,7 @@ boolean handle_button() {
   int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
   event = button_now_pressed && !button_was_pressed;
   if (event) { // Check if button changed
-    delay(10);
+    delay(Button_Debounce_Millis);
     int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
     event = button_now_pressed && !button_was_pressed;
   }
@@ -1107,6 +1108,12 @@ byte getAnalogButton()
     analogButtonValue = analogButtonValue + analogRead(analog_buttons_pin);
   }
   analogButtonValue = analogButtonValue / cnt;
+#ifdef DEBUG_BUTTONS
+ if(analogButtonValue < 1020) {
+    Serial.print("The raw button press value is ");
+    Serial.println(analogButtonValue);
+ }
+#endif  
   // Now determine which button was pressed if any
   if (analogButtonValue <= _Button_array_max_value[num_of_analog_buttons-1]) {
     for (cnt = 0; cnt < num_of_analog_buttons; cnt++) {
