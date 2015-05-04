@@ -184,13 +184,39 @@ void loop(){
 
   // This button press will auto step the selected Capacitor or Inductor relays
   // handle button
-  boolean button_pressed = handle_button();
+  byte button_pressed = handle_button(); 
+  if (button_pressed) {
+    if(_cmd != TUNED) {
+      _cmd = TUNED; // Halt a pending tune with no RF applied
+    }
+    else {
+      switch (button_pressed) {
+      case 1: 
+        { // Short press, Bypass tuner
+          Serial.println("Short press, Bypass tuner");
+          break;
+        }
+      case 2:
+        { // Medium press, Initiate Autotune when RF present
+            Serial.println("Medium press, Initiate Autotune when RF present");
+          break;
+        } 
+      case 3: 
+        { // Long press, Not allocated yet
+          Serial.println("Long press, Not allocated yet");
+        }
+      }
+    }
+  }
+
+/*  
   if (button_pressed) {
     if(_cmd != TUNED) {
       _cmd = TUNED; // Halt a pending tune with no RF applied
     } 
     else _cmd = TUNE;
   }
+*/   
   // Do heartbeat of 1 sec on and 1 sec off as non blocking routine
  if(millis() > heartbeat) {
    if(digitalRead(LEDpin)) {
@@ -199,6 +225,7 @@ void loop(){
    else digitalWrite(LEDpin, HIGH);    // turn the LED on by making the voltage HIGH
    heartbeat = (millis() + 1000);
  }
+ 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1023,19 +1050,41 @@ void dbugRelayState(){
 }
 
 /**********************************************************************************************************/
-boolean handle_button() {
+byte handle_button() {
   static boolean button_was_pressed = false;
+  static unsigned long timer = 0;
   boolean event;
+  byte retval = 0;
 
   int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
   event = button_now_pressed && !button_was_pressed;
   if (event) { // Check if button changed
+  Serial.println("Got an event");
     delay(Button_Debounce_Millis);
     int button_now_pressed = !digitalRead(BUTTON_PIN); // pin low -> pressed
     event = button_now_pressed && !button_was_pressed;
+    Serial.print("Button value, event = ");
+    Serial.print(button_now_pressed);
+    Serial.print(", ");
+    Serial.println(event);
+  }
+  if(event) { // OK the re-read says it is a valid change of button state
+    if(button_now_pressed) { // The button has changed from released to pressed
+      int timer = millis();  // so start the button press length timer
+      Serial.println("Timer set");
+    }
+    else { // The button has changed from pressed to released so calc button press type.
+      timer = millis() - timer;
+      Serial.println("Button released");
+      if(timer <= 100) { // Short press
+        retval = 1;
+      } else if(timer < 500) {
+        retval = 2;
+      } else retval =3;
+    }
   }
   button_was_pressed = button_now_pressed;
-  return event;
+  return retval; // Will be 0 unless button went from pressed to released
 }
 
 /**********************************************************************************************************/
