@@ -6,9 +6,8 @@
 /////////////////////////////////////////////////////////////////
 
 #include <stdlib.h>
-
-// plugin Defines
-#define plugIn_2W_LCD // Also need to comment out 3 LCD related lines further down if not using.
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
 
 // Debug Defines
 //#define DEBUG_RELAY_FINE_STEPS
@@ -17,6 +16,7 @@
 #define DEBUG_TUNE_SUMMARY
 //#define DEBUG_status.rawSWR_VALUES
 //#define DEBUG_SHIFT
+#define I2C_LCD
 
 #define DEBUG_BUTTON_ARRAY
 //#define DEBUG_BUTTON_INFO
@@ -68,13 +68,10 @@
 #define LONG_PRESS_TIME 800 //msec before button considered a long press
 #define analog_Button_Debounce_Millis 10
 
-// Comment out block below out if not using LCD.   TODO ... Check if compiler can do this automatically
-#include <Wire.h>              // used for I2C functionality and serial LCD
-#include <LiquidCrystal_SR.h>  // Using Liquid Crystal display in 2 wire mode
-LiquidCrystal_SR lcd(11,12,TWO_WIRE); // Change pins to suit schematic
-//                   |  |
-//                   |  \-- Clock Pin
-//                   \----- Data/Enable Pin
+// set the LCD address to 0x27 for a 20 chars 4 line display
+// Set the pins on the I2C chip used for LCD connections:
+//                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 // Global variables always start with an underscore
 int _Button_array_max_value[num_of_analog_buttons];
@@ -107,6 +104,7 @@ byte _cmd = 0;  // Holds the command to be processed
 /**********************************************************************************************************/
 
 void setup() {
+  // First thing up, set C & L Relays to all off.
   pinMode(Cclock, OUTPUT); // make the Capacitor clock pin an output
   pinMode(Clatch, OUTPUT); // make the Capacitor latch pin an output
   pinMode(Cdata , OUTPUT); // make the Capacitor data pin an output
@@ -114,6 +112,12 @@ void setup() {
   pinMode(Llatch, OUTPUT); // make the Inductor latch pin an output
   pinMode(Ldata , OUTPUT); // make the Inductor data pin an output  
   pinMode(coRelay, OUTPUT);
+  digitalWrite(Cclock, LOW);
+  _status.C_relays = 0;
+  _status.L_relays = 0;
+  _status.outputZ = loZ; // Caps switched to input side of L network
+  setRelays(); // Switch off all the relays & set c/o relay to input.
+  
   pinMode(swrGain, OUTPUT);
   pinMode(LEDpin, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
@@ -122,13 +126,19 @@ void setup() {
   _status.ampGain = hi;
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
   digitalWrite(analog_buttons_pin, HIGH); // pull-up activated
-  digitalWrite(Cclock, LOW);
   digitalWrite(LEDpin, LOW);
-  _status.C_relays = 0;
-  _status.L_relays = 0;
-  _status.outputZ = loZ; // Caps switched to input side of L network
-  setRelays(); // Switch off all the relays & set c/o relay to input.
 
+  lcd.begin(16,2);               // initialize the lcd
+  lcd.noBacklight();
+  delay(500);
+
+  lcd.home();                   // go home
+  lcd.print("ARDUINO TUNER by");  
+  lcd.setCursor (0, 1);        // go to the next line
+  lcd.print("ZL2APV (c) 2015 ");
+  lcd.backlight(); // finish with backlight on
+  delay ( 5000 );
+  
   //Initialize serial and wait for port to open:
   Serial.begin(115200); 
   while (!Serial) {
@@ -138,16 +148,8 @@ void setup() {
   Serial.println("Copyright (C) 2015, Graeme Jury ZL2APV");
   Serial.println();
   initialize_analog_button_array();
+}
 
-#ifdef plugIn_2W_LCD
-  lcd.begin(16,2);               // initialize the lcd
-  lcd.home();                   // go home
-  lcd.print("Arduino Autotune");
-  lcd.setCursor(0, 1); // go to second line (position, line_number)
-  lcd.print("ZL2APV (c) 2015");
-#endif // plugIn_2W_LCD
-
-} 
 /**********************************************************************************************************/
 
 void loop(){
@@ -228,7 +230,7 @@ void loop(){
 // Subroutines start here
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef plugIn_2W_LCD
+#ifdef I2C_LCD
 void lcdPrintStatus()
 {
   static unsigned long displayUpdate = 0;
@@ -256,7 +258,7 @@ void lcdPrintStatus()
 
   } // endif ((millis() - displayUpdate) > 50)
 }
-#endif // plugIn_2W_LCD
+#endif // I2C_LCD
 
 /**********************************************************************************************************/
 byte processCommand(byte cmd)
