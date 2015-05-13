@@ -23,7 +23,7 @@
 #define DEBUG_BUTTONS
 //#define DEBUG_STEP_BUTTON
 
-#define TX_LEVEL_THRESHOLD 5
+#define TX_LEVEL_THRESHOLD 20
 #define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
 #define CAPS_at_OUTPUT     HIGH
 #define SWR_AVERAGE_COUNT  10     // Number of analog readings to combat jitter
@@ -129,16 +129,11 @@ void setup() {
   digitalWrite(LEDpin, LOW);
 
   lcd.begin(16,2);               // initialize the lcd
-  lcd.noBacklight();
-  delay(500);
+//  lcd.noBacklight();
+  delay(100);
 
-  lcd.home();                   // go home
-  lcd.print("ARDUINO TUNER by");  
-  lcd.setCursor (0, 1);        // go to the next line
-  lcd.print("ZL2APV (c) 2015 ");
-  lcd.backlight(); // finish with backlight on
-  delay ( 5000 );
-  
+  lcdPrintSplash();
+    
   //Initialize serial and wait for port to open:
   Serial.begin(115200); 
   while (!Serial) {
@@ -157,7 +152,6 @@ void loop(){
   static unsigned long heartbeat = millis();
 
   getSWR();
-  lcdPrintStatus();
   _cmd = processCommand(_cmd);
   //  buttonNumber = check_step_buttons();
   buttonNumber = getAnalogButton();
@@ -212,6 +206,7 @@ void loop(){
           _status.L_relays = 0;
           _status.outputZ = loZ; // Caps switched to input side of L network
           setRelays(); // Switch off all the relays & set c/o relay to input.
+          lcdPrintSplash();
         }
       }
     }
@@ -233,33 +228,63 @@ void loop(){
 #ifdef I2C_LCD
 void lcdPrintStatus()
 {
-  static unsigned long displayUpdate = 0;
-  float floatVal=3.56;
-  char charVal[20];          //buffer, temporarily holds data from values 
-  String stringVal = "";     //data on buff is copied to this string
+//  static unsigned long displayUpdate = 0;
+  float freq = 14.02345;
+  char charVal[10];          //buffer, temporarily holds data from values 
 
-  if(displayUpdate < millis()) {
-    displayUpdate = (millis() + 10000);
+
+//  if(displayUpdate < millis()) {
+//    displayUpdate = (millis() + 10000);
     lcd.home();   
-    dtostrf(float(_status.rawSWR) / 100000, 7, 4, charVal);  //7 is mininum width, 3 is precision;
-    //display character array                                  float value is copied onto buffer
-//    Serial.print("charVal:");
-//    for(int i=0;i<sizeof(charVal);i++)
-    for(int i=0;i<7;i++) // only print 6 characters plus decimal
-    {
-//      Serial.print(charVal[i]);
-    }
-//    Serial.println();
-    //print number to LCD
+    dtostrf(float(_status.rawSWR) / 100000, 7, 3, charVal);  //7 is mininum width, 3 is precision;
+                                                             //  float value is copied onto buffer
     for(int i=0;i<7;i++)
     {
       lcd.write(charVal[i]);
     }
-
-  } // endif ((millis() - displayUpdate) > 50)
+    
+    // Temporary replace frequency with reverse voltage
+    sprintf(charVal, " %4d  ", _status.rev);
+    lcd.print(charVal);
+    
+/*    
+    lcd.print(" ");
+    dtostrf(freq, 6, 3, charVal);  // 6 is mininum width, 3 is precision;
+    for(int i=0;i<6;i++)
+    {
+      lcd.write(charVal[i]);
+    }
+*/    
+    if(_status.outputZ == hiZ) {
+      lcd.print(" H");
+    } else lcd.print(" L");
+    lcd.setCursor(0,1);
+    
+    sprintf(charVal, "%4dp ", _status.totC);
+    lcd.print(charVal);
+    
+    sprintf(charVal, "%4du ", _status.totL);
+    lcd.print(charVal);
+    
+    sprintf(charVal, "%4d", _status.fwd);
+    lcd.print(charVal);
+//  } // endif ((millis() - displayUpdate) > 50)
 }
 #endif // I2C_LCD
 
+/**********************************************************************************************************/
+
+#ifdef I2C_LCD
+void lcdPrintSplash()
+{
+  lcd.home();                   // go home
+  lcd.print("ARDUINO TUNER by");  
+  lcd.setCursor (0, 1);        // go to the next line
+  lcd.print("ZL2APV (c) 2015 ");
+//  lcd.backlight(); // finish with backlight on
+//  delay ( 5000 );
+}
+#endif // I2C_LCD
 /**********************************************************************************************************/
 byte processCommand(byte cmd)
 {
@@ -315,6 +340,7 @@ byte processCommand(byte cmd)
       }
       doRelayFineSteps();
       cmd = TUNED;
+      lcdPrintStatus();
     }
   default: 
     cmd = TUNED; 
@@ -862,6 +888,7 @@ void setRelays() {
   // Writes the bytes from _status.C_relays and _status.L_relays to the associated shift register. Following
   // this the HiZ/LoZ changeover is set to match _status.outputZ (hiZ = true; loZ = false). The capacitor
   // changeover relay switches caps to input (not operated) for hiZ loads and output (operated) for loZ.
+  // The total value of C and L is calculated and placed in _status
 
   // Due to a screw up in my circuit it is necessary to map the relays to the right pins on the relays
 
@@ -884,6 +911,10 @@ void setRelays() {
   bitWrite(Lmap, 0, temp);
   shiftOut(Ldata, Lclock, MSBFIRST, Lmap); // send this binary value to the Inductor shift register
   digitalWrite(Llatch, HIGH);
+  
+  // Write the total capacitor and inductor values into the "_status" struct.
+  _status.totC = calcXvalue(true);
+  _status.totL = calcXvalue(false);
   
   // Set the HiZ/LoZ Changeover Relay from the value of _status.outputZ
   if(_status.outputZ) {
@@ -1233,6 +1264,8 @@ void processShortPressTE(byte button)
         setRelays();
       } 
     }
+    getSWR();
+    lcdPrintStatus();
   }
 #ifdef DEBUG_BUTTON_INFO      
   Serial.print("Loop:  A short press trailing edge detected on button ");
