@@ -45,7 +45,7 @@
 #define reverse       A3   // Measure reverse SWR on this pin
 
 #define Button_Debounce_Millis 10   // Delay for pushbutton debounce settle time ms
-#define Relay_Settle_Millis    50   // Delay for relay debounce settle time ms
+#define Relay_Settle_Millis    20   // Delay for relay debounce settle time ms
 
 #define C             true    // Capacitor relay set
 #define L             false   // Inductor relay set
@@ -137,7 +137,7 @@ void setup() {
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
   digitalWrite(analog_buttons_pin, HIGH); // pull-up activated
   digitalWrite(LEDpin, LOW);
-
+/*
   // -- initializing the LCD
   lcd.createChar(1, p1);
   lcd.createChar(2, p2);
@@ -145,11 +145,17 @@ void setup() {
   lcd.createChar(4, p4);
   lcd.createChar(5, p5);
   lcd.createChar(6, p6);
-  
+*/  
   lcd.begin(lcdNumRows, lcdNumCols);
-//  lcd.clear(); TODO check if this can be removed as splash will write whole screen
+//  lcd.clear(); //TODO check if this can be removed as splash will write whole screen
   // -- do some delay: some times I've got broken visualization
   delay(100);
+  lcd.createChar(1, p1);
+  lcd.createChar(2, p2);
+  lcd.createChar(3, p3);
+  lcd.createChar(4, p4);
+  lcd.createChar(5, p5);
+  lcd.createChar(6, p6);
   lcdPrintSplash();
     
   //Initialize serial and wait for port to open:
@@ -609,7 +615,9 @@ void doRelayCourseSteps(){
         bestL = _status.L_relays;
         bestZ = _status.outputZ;
       }
-
+      displayAnalog(0, 0, _status.fwd);
+      displayAnalog(0, 1, _status.rev);
+      
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(cnt);
       Serial.print("   ");
