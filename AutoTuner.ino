@@ -68,10 +68,20 @@
 #define LONG_PRESS_TIME 800 //msec before button considered a long press
 #define analog_Button_Debounce_Millis 10
 
+// Setup LCD stuff
+#define lcdNumCols 16 // -- number of columns in the LCD
+#define lcdNumRows  2 // -- number of rowss in the LCD
 // set the LCD address to 0x27 for a 20 chars 4 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+// Bar part block characters definitions. Use lcd.write(6) for an empty bar
+byte p1[8] = {0x00,0x00,0x10,0x10,0x10,0x10,0x00,0x00}; // 1 part of bar block
+byte p2[8] = {0x00,0x00,0x18,0x18,0x18,0x18,0x00,0x00};
+byte p3[8] = {0x00,0x00,0x1C,0x1C,0x1C,0x1C,0x00,0x00};
+byte p4[8] = {0x00,0x00,0x1E,0x1E,0x1E,0x1E,0x00,0x00}; // 4 parts of bar block
+byte p5[8] = {0x00,0x00,0x1F,0x1F,0x1F,0x1F,0x00,0x00}; // full bar block
+byte p6[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}; // blank bar block
 
 // Global variables always start with an underscore
 int _Button_array_max_value[num_of_analog_buttons];
@@ -128,10 +138,18 @@ void setup() {
   digitalWrite(analog_buttons_pin, HIGH); // pull-up activated
   digitalWrite(LEDpin, LOW);
 
-  lcd.begin(16,2);               // initialize the lcd
-//  lcd.noBacklight();
+  // -- initializing the LCD
+  lcd.createChar(1, p1);
+  lcd.createChar(2, p2);
+  lcd.createChar(3, p3);
+  lcd.createChar(4, p4);
+  lcd.createChar(5, p5);
+  lcd.createChar(6, p6);
+  
+  lcd.begin(lcdNumRows, lcdNumCols);
+//  lcd.clear(); TODO check if this can be removed as splash will write whole screen
+  // -- do some delay: some times I've got broken visualization
   delay(100);
-
   lcdPrintSplash();
     
   //Initialize serial and wait for port to open:
@@ -224,6 +242,58 @@ void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Subroutines start here
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef I2C_LCD
+/* The analog input ranges from 0 to 1023 (1024 values) and on a 16 column display will have a
+value 0f 1024/16 = 64 per column. A number like 400 would be represented by 6 full columns i.e.
+(400/64 = 6.25) which is 6 full columns of dots with a remainder of .25 or 64 * .25 = 16. As 
+each column is broken into 5 dots per row so we can represent the partial block value as int(.25*5) = 1.
+*/
+void displayAnalog(byte col, byte row, int value) {
+  
+  int cnt;
+  byte blocks = value / 64;
+  byte partBlock = value % 64;
+  byte remSpaces = 0; // Number of spaces to write to overwrite old data in the line
+  
+  lcd.setCursor(col,row);
+  // Calculate how many blank blocks to write to overwrite old data when bargraph is less than full row.
+  if(blocks < 15) remSpaces = 16 - (blocks + 1); // We will tack a part block on end of 15 or less
+
+  // Print out the full blocks in bargraph
+  for(cnt = 1; cnt < (blocks + 1); cnt++) {
+    lcd.write(5);
+  }
+
+  // If < 16 full blocks print out the part block of barcode
+  if(blocks < 16) {
+    if(partBlock < 7)     lcd.write(6); // value too small to show as part block so print blank.
+    else if(partBlock < 20) lcd.write(1);
+    else if(partBlock < 33) lcd.write(2);
+    else if(partBlock < 45) lcd.write(3);
+    else if(partBlock < 58) lcd.write(4);
+    else lcd.write(5); // Value so close to full block we will show it as so.
+  }
+
+  // Now blank rest of blocks in row so barcode not corrupted by old data.
+  for(cnt = 0; cnt < remSpaces; cnt++) {
+    lcd.write(6);
+  }
+/*  
+  // Debug stuff
+  lcd.setCursor(0,0);
+  for(cnt = 0; cnt < 16; cnt++) { // Clear row 0
+    lcd.print(" ");
+  }
+  lcd.setCursor(0,0);
+  lcd.print(blocks);
+  lcd.print(", ");
+  lcd.print(partBlock);
+  */
+}
+#endif // I2C_LCD
+
+/**********************************************************************************************************/
 
 #ifdef I2C_LCD
 void lcdPrintStatus()
@@ -340,7 +410,7 @@ byte processCommand(byte cmd)
       }
       doRelayFineSteps();
       cmd = TUNED;
-      lcdPrintStatus();
+      lcdPrintStatus();      
     }
   default: 
     cmd = TUNED; 
@@ -613,6 +683,10 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
   if(_status.C_relays != B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
     do {
       bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
+      
+      displayAnalog(0, 0, _status.fwd);
+      displayAnalog(0, 1, _status.rev);
+      
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We print the swr & status values at entry then each time after relays are stepped.
       Serial.print(float(bestSWR)/100000, 4); 
@@ -624,6 +698,10 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
       getSWR();
     } 
     while(_status.rawSWR <= bestSWR);
+    
+    displayAnalog(0, 0, _status.fwd);
+    displayAnalog(0, 1, _status.rev);
+    
 #ifdef DEBUG_RELAY_FINE_STEPS
     // We have not printed the values which caused the loop to exit so do it now
     Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit. 
@@ -634,6 +712,9 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
     _status.C_relays--; // On exit, we have stepped one capacitor step too far, so back up one to best value.
     setRelays();
     getSWR();
+
+    displayAnalog(0, 0, _status.fwd);
+    displayAnalog(0, 1, _status.rev);
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
     Serial.println("Values on exit from capacitor fine steps up. The extra step has been corrected.");
@@ -646,6 +727,10 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
   else {
     // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
     // we do nothing and leave the C_Relays at entry state.
+    
+    displayAnalog(0, 0, _status.fwd);
+    displayAnalog(0, 1, _status.rev);
+    
 #ifdef DEBUG_RELAY_FINE_STEPS
     Serial.println("_status.C_Relays = b1111_1111 so are not going to step C_Relays up one");
     Serial.print(float(bestSWR)/100000, 4); 
@@ -675,6 +760,10 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
         getSWR();
       } 
       while(_status.rawSWR <= bestSWR);
+      
+      displayAnalog(0, 0, _status.fwd);
+      displayAnalog(0, 1, _status.rev);
+      
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We have not printed the values which caused the loop to exit so do it now
       Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit.
@@ -684,6 +773,9 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
       _status.C_relays++; // On exit, we have stepped one capacitor step too far, so back up one to best value.
       setRelays();
       getSWR();
+      
+      displayAnalog(0, 0, _status.fwd);
+      displayAnalog(0, 1, _status.rev);
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
       Serial.println("Values on exit from capacitor fine steps down. The extra step has been corrected.");
@@ -695,6 +787,10 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
     else {
       // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
       // we do nothing and leave the C_Relays at entry state.
+      
+      displayAnalog(0, 0, _status.fwd);
+      displayAnalog(0, 1, _status.rev);
+      
 #ifdef DEBUG_RELAY_FINE_STEPS
       Serial.println("_status.C_Relays = b'0000_0000' so are not going to step C_Relays down one");
       Serial.print(float(bestSWR)/100000, 4); 
