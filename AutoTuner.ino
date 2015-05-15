@@ -137,15 +137,7 @@ void setup() {
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
   digitalWrite(analog_buttons_pin, HIGH); // pull-up activated
   digitalWrite(LEDpin, LOW);
-/*
-  // -- initializing the LCD
-  lcd.createChar(1, p1);
-  lcd.createChar(2, p2);
-  lcd.createChar(3, p3);
-  lcd.createChar(4, p4);
-  lcd.createChar(5, p5);
-  lcd.createChar(6, p6);
-*/  
+
   lcd.begin(lcdNumRows, lcdNumCols);
 //  lcd.clear(); //TODO check if this can be removed as splash will write whole screen
   // -- do some delay: some times I've got broken visualization
@@ -163,7 +155,7 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  Serial.println("Arduino antenna tuner ver 0.1.1");
+  Serial.println("Arduino antenna tuner ver 1.0.0");
   Serial.println("Copyright (C) 2015, Graeme Jury ZL2APV");
   Serial.println();
   initialize_analog_button_array();
@@ -249,14 +241,13 @@ void loop(){
 // Subroutines start here
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef I2C_LCD
 /* The analog input ranges from 0 to 1023 (1024 values) and on a 16 column display will have a
 value 0f 1024/16 = 64 per column. A number like 400 would be represented by 6 full columns i.e.
 (400/64 = 6.25) which is 6 full columns of dots with a remainder of .25 or 64 * .25 = 16. As 
 each column is broken into 5 dots per row so we can represent the partial block value as int(.25*5) = 1.
 */
-void displayAnalog(byte col, byte row, int value) {
-  
+void displayAnalog(byte col, byte row, int value)
+{
   int cnt;
   byte blocks = value / 64;
   byte partBlock = value % 64;
@@ -297,11 +288,9 @@ void displayAnalog(byte col, byte row, int value) {
   lcd.print(partBlock);
   */
 }
-#endif // I2C_LCD
 
 /**********************************************************************************************************/
 
-#ifdef I2C_LCD
 void lcdPrintStatus()
 {
 //  static unsigned long displayUpdate = 0;
@@ -346,11 +335,9 @@ void lcdPrintStatus()
     lcd.print(charVal);
 //  } // endif ((millis() - displayUpdate) > 50)
 }
-#endif // I2C_LCD
 
 /**********************************************************************************************************/
 
-#ifdef I2C_LCD
 void lcdPrintSplash()
 {
   lcd.home();                   // go home
@@ -360,7 +347,7 @@ void lcdPrintSplash()
 //  lcd.backlight(); // finish with backlight on
 //  delay ( 5000 );
 }
-#endif // I2C_LCD
+
 /**********************************************************************************************************/
 byte processCommand(byte cmd)
 {
@@ -561,8 +548,8 @@ void tryPresets()
 
 /**********************************************************************************************************/
 
-void doRelayCourseSteps(){
-
+void doRelayCourseSteps()
+{
   unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
   byte bestC;
   byte bestL;
@@ -640,8 +627,8 @@ void doRelayCourseSteps(){
 }
 
 /**********************************************************************************************************/
-void doRelayFineSteps() {
-
+void doRelayFineSteps()
+{
   unsigned long bestSWR;  
   unsigned long swrTemp;
 
@@ -677,8 +664,8 @@ void doRelayFineSteps() {
 }
 
 /**********************************************************************************************************/
-unsigned long fineStep_C(){ // Enter with swr and relay status up to date
-
+unsigned long fineStep_C() // Enter with swr and relay status up to date
+{
   unsigned long bestSWR;
   byte C_RelaysTmp = _status.C_relays; //Later will compare the value of _status.C_relays to see if we changed.
 
@@ -812,8 +799,8 @@ unsigned long fineStep_C(){ // Enter with swr and relay status up to date
 }
 
 /**********************************************************************************************************/
-unsigned long fineStep_L() { // Enter with swr and relay status up to date
-
+unsigned long fineStep_L() // Enter with swr and relay status up to date
+{
   unsigned long bestSWR;
   byte L_RelaysTmp = _status.L_relays; //Later will compare the value of _status.L_relays to see if we changed.
 
@@ -918,8 +905,8 @@ unsigned long fineStep_L() { // Enter with swr and relay status up to date
 }
 
 /**********************************************************************************************************/
-void printStatus(boolean doHeader) {
-
+void printStatus(boolean doHeader)
+{
   if(doHeader) {
     Serial.println("C_relays\tL_relays\ttotC\ttotL\tfwdVolt\trevVolt\tGain\toutZ\trawSWR");
   } 
@@ -947,7 +934,8 @@ void printStatus(boolean doHeader) {
 }
 
 /**********************************************************************************************************/
-void printFineSteps(float bestSWR) {
+void printFineSteps(float bestSWR)
+{
   Serial.print(bestSWR, 4); 
   Serial.print("\t"); 
   Serial.print(_status.fwd);
@@ -966,7 +954,8 @@ void printFineSteps(float bestSWR) {
 
 /**********************************************************************************************************/
 // We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
-unsigned int calcXvalue(bool CorL){
+unsigned int calcXvalue(bool CorL)
+{
   unsigned int val = 0;
 
   for (byte cnt = 0; cnt < 8; cnt++) {
@@ -988,7 +977,8 @@ unsigned int calcXvalue(bool CorL){
 
 /**********************************************************************************************************/
 
-void setRelays() {
+void setRelays()
+{
   // Writes the bytes from _status.C_relays and _status.L_relays to the associated shift register. Following
   // this the HiZ/LoZ changeover is set to match _status.outputZ (hiZ = true; loZ = false). The capacitor
   // changeover relay switches caps to input (not operated) for hiZ loads and output (operated) for loZ.
@@ -1035,7 +1025,8 @@ void setRelays() {
 
 /**********************************************************************************************************/
 
-void getSWR() {
+void getSWR()
+{
   // Worst case would be max analog in voltage of 5 volts fwd and 5 volts rev. The term
   // (fwdPwr + revPwr) * 1000 = (1023 + 1023) * 1000 = 2046000 so a long is needed.
 
@@ -1155,7 +1146,8 @@ void print_binary(int v, int num_places)
 
 /**********************************************************************************************************/
 
-void dbugRelayState(){
+void dbugRelayState()
+{
   Serial.print("_status.C_relays value = ");
   Serial.print(_status.C_relays);
   Serial.print(", C = ");
@@ -1183,7 +1175,8 @@ void dbugRelayState(){
 }
 
 /**********************************************************************************************************/
-byte handle_button() {
+byte handle_button()
+{
   static boolean button_was_pressed = true; // True = no press i.e. pullup voltage
   static unsigned long timer = 0;
   boolean event;
@@ -1219,7 +1212,8 @@ byte handle_button() {
 
 /**********************************************************************************************************/
 
-void initialize_analog_button_array() {
+void initialize_analog_button_array()
+{
   /* 
    typical button values:
    
