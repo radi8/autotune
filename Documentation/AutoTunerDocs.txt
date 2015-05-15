@@ -1,0 +1,126 @@
+void displayAnalog(byte col, byte row, int value)
+
+The analog input ranges from 0 to 1023 (1024 values) and on a 16 column display will have a
+value 0f 1024/16 = 64 per column. A number like 400 would be represented by 6 full columns i.e.
+(400/64 = 6.25) which is 6 full columns of dots with a remainder of .25 or 64 * .25 = 16. As 
+each column is broken into 5 dots per row so we can represent the partial block value as int(.25*5) = 1.
+
+     ----------------------------------------------------------------------------------
+void lcdPrintStatus()
+
+Line 1, Print ... VSWR, Frequency
+Line 2, Print ... Tot Capacitance, Tot Inductance, Power out
+note: During testing, Frequency is replaced by rev volts and Power by fwd volts.
+
+     ----------------------------------------------------------------------------------
+void lcdPrintSplash()
+
+Prints the splash screen ...
+ARDUINO TUNER by
+ZL2APV (c) 2015
+
+     ----------------------------------------------------------------------------------
+byte processCommand(byte cmd)
+
+
+     ----------------------------------------------------------------------------------
+void tryPresets()
+
+
+     ----------------------------------------------------------------------------------
+void doRelayCourseSteps()
+
+
+     ----------------------------------------------------------------------------------
+void doRelayFineSteps()
+
+
+     ----------------------------------------------------------------------------------
+unsigned long fineStep_C()
+
+Enter with swr and relay status up to date
+
+     ----------------------------------------------------------------------------------
+unsigned long fineStep_L()
+
+Enter with swr and relay status up to date
+
+     ----------------------------------------------------------------------------------
+void printStatus(boolean doHeader)
+
+
+     ----------------------------------------------------------------------------------
+void printFineSteps(float bestSWR)
+
+
+     ----------------------------------------------------------------------------------
+unsigned int calcXvalue(bool CorL)
+
+
+     ----------------------------------------------------------------------------------
+void setRelays()
+
+Writes the bytes from _status.C_relays and _status.L_relays to the associated shift register. Following
+this the HiZ/LoZ changeover is set to match _status.outputZ (hiZ = true; loZ = false). The capacitor
+changeover relay switches caps to input (not operated) for hiZ loads and output (operated) for loZ.
+The total value of C and L is calculated and placed in _status
+
+Due to a screw up in my circuit it is necessary to map the relays to the right pins on the relays
+
+     ----------------------------------------------------------------------------------
+void getSWR()
+
+
+
+     ----------------------------------------------------------------------------------
+void formatINT(int number)
+
+
+
+
+     ----------------------------------------------------------------------------------
+void print_binary(int v, int num_places)
+
+
+
+     ----------------------------------------------------------------------------------
+void dbugRelayState()
+
+
+
+     ----------------------------------------------------------------------------------
+byte handle_button() {
+
+
+
+     ----------------------------------------------------------------------------------
+void initialize_analog_button_array()
+
+
+
+     ----------------------------------------------------------------------------------
+byte getAnalogButton()
+
+Buttons are checked for either a short or a long press. The first time the poll detects a button press it saves the button info and waits 10 msec to re-sample the button. A short press is determined by a release being detected within LONG_PRESS_TIME. A Long press by checking button is held for more than LONG_PRESS_TIME.
+Returns: 0 if no button is pressed 
+         0 for short pressed button leading edge or 'short press time' button hold.
+         button number if short press trailing edge
+         button Number plus Number of buttons if Long press leading edge
+         button Number plus (Number of buttons * 2) if Long press trailing edge
+
+     ----------------------------------------------------------------------------------
+void processShortPressTE(byte button)
+
+
+
+     ----------------------------------------------------------------------------------
+void processLongPressLE(byte button)
+
+
+
+     ----------------------------------------------------------------------------------
+void processLongPressTE(byte button)
+
+
+
+     ----------------------------------------------------------------------------------
