@@ -15,8 +15,17 @@
 #define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
 //#define DEBUG_status.rawSWR_VALUES
-//#define DEBUG_SHIFT
-#define I2C_LCD
+
+// We need the printStatus() subroutine for any of these debugs
+#if defined  DEBUG_COARSE_TUNE_STATUS
+#define PRINT_STATUS
+#elif defined DEBUG_TUNE_SUMMARY
+#define PRINT_STATUS
+#elif defined DEBUG_RELAY_FINE_STEPS
+#define PRINT_STATUS
+#elif defined DEBUG_RELAY_STATE
+#define PRINT_STATUS
+#endif
 
 #define DEBUG_BUTTON_ARRAY
 //#define DEBUG_BUTTON_INFO
@@ -563,7 +572,7 @@ void doRelayCourseSteps()
   setRelays(); // Switch off all the relays
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
-    Serial.print("doRelayCourseSteps():  Doing Capacitor sequence with caps at ");
+  Serial.print("doRelayCourseSteps():  Doing Capacitor sequence with caps at ");
   if(_status.outputZ == hiZ) Serial.println("Output"); 
   else Serial.println("Input");
   Serial.print("cnt");
@@ -637,11 +646,9 @@ void doRelayFineSteps()
 
 #ifdef DEBUG_RELAY_FINE_STEPS
   int cnt = 1;
-  Serial.print("doRelayFineSteps: entry, _status.rawSWR = "); 
-  Serial.print(_status.rawSWR);
-  Serial.print("\t("); 
-  Serial.print(float(_status.rawSWR)/100000, 5); 
-  Serial.println(")");
+  Serial.println("doRelayFineSteps: Values on entry"); 
+  printStatus(printHeader);
+  printStatus(printBody);
 #endif
 
   do {
@@ -657,10 +664,12 @@ void doRelayFineSteps()
 #endif    
   } 
   while(swrTemp < bestSWR); // If swr was improved, go again
-
+  
+#ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Exiting doRelayFineSteps(): values on exit ...");
   printStatus(printHeader);
   printStatus(printBody);
+#endif  
 }
 
 /**********************************************************************************************************/
@@ -863,8 +872,8 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
         bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
 #ifdef DEBUG_RELAY_FINE_STEPS
         // We print the swr & status values at entry then each time after relays are stepped.
-        Serial.print(float(bestSWR)/100000, 4); 
-        Serial.print("\t");
+//        Serial.print(float(bestSWR)/100000, 4); 
+//        Serial.print("\t");
         printStatus(printBody);
 #endif        
         _status.L_relays--;
@@ -905,33 +914,38 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
 }
 
 /**********************************************************************************************************/
+#ifdef PRINT_STATUS
 void printStatus(boolean doHeader)
 {
   if(doHeader) {
-    Serial.println("C_relays\tL_relays\ttotC\ttotL\tfwdVolt\trevVolt\tGain\toutZ\trawSWR");
+    Serial.println("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR");
   } 
   else {
+    char buffer[16];
+    
     print_binary(_status.C_relays, 8); 
-    Serial.print("\t"); 
-    print_binary(_status.L_relays, 8); 
-    Serial.print("\t");
-    Serial.print(calcXvalue(C)); 
-    Serial.print("\t"); 
-    Serial.print(calcXvalue(L)); 
-    Serial.print("\t");
-    Serial.print(_status.fwd);
-    Serial.print("\t"); 
-    Serial.print(_status.rev); 
-    Serial.print("\t");
+    Serial.print("  "); 
+    print_binary(_status.L_relays, 8);
+    sprintf(buffer, "  %4u  ", _status.totC); 
+    Serial.print(buffer);
+    sprintf(buffer, "%4u  ", _status.totL); 
+    Serial.print(buffer);
+    sprintf(buffer, "   %4u  ", _status.fwd); 
+    Serial.print(buffer);
+    sprintf(buffer, "   %4u  ", _status.rev); 
+    Serial.print(buffer); 
     if(_status.ampGain == hi) Serial.print("High"); 
     else Serial.print(" Low"); 
-    Serial.print("\t");
-    if(_status.outputZ == hiZ) Serial.print("HiZ"); 
-    else Serial.print(" LoZ"); 
-    Serial.print("\t");  
-    Serial.println(_status.rawSWR);
+    Serial.print("  ");
+    if(_status.outputZ == hiZ) Serial.print(" HiZ  "); 
+    else Serial.print(" LoZ  ");  
+    sprintf(buffer, "%8lu  ", _status.rawSWR); 
+    Serial.print(buffer);
+  // NOTE: sprintf doesn't support floats
+    Serial.println(float(_status.rawSWR) / 100000, 4);
   }
 }
+#endif
 
 /**********************************************************************************************************/
 void printFineSteps(float bestSWR)
@@ -1018,7 +1032,9 @@ void setRelays()
     digitalWrite(coRelay, CAPS_at_INPUT); // LoZ loads, relay not operated
   }
 #ifdef DEBUG_RELAY_STATE
-  dbugRelayState();
+//  dbugRelayState();
+  printStatus(printHeader);
+  printStatus(printBody);
 #endif
   delay(Relay_Settle_Millis); // Let the relays do their contact bounce settling
 }
@@ -1145,7 +1161,7 @@ void print_binary(int v, int num_places)
 }
 
 /**********************************************************************************************************/
-
+/*
 void dbugRelayState()
 {
   Serial.print("_status.C_relays value = ");
@@ -1173,7 +1189,7 @@ void dbugRelayState()
   getSWR();
   Serial.println(float(_status.rawSWR) / 10000);
 }
-
+*/
 /**********************************************************************************************************/
 byte handle_button()
 {
