@@ -2,7 +2,7 @@
 // Copyright ©2014 Graeme Jury ZL2APV
 // Released under the lgpl License - Please alter and share.
 // Controller for the EB104.ru Auto Antenna Tuner
-// Course stepping through L & C for best SWR
+// Coarse stepping through L & C for best SWR
 /////////////////////////////////////////////////////////////////
 
 #include <stdlib.h>
@@ -85,12 +85,18 @@
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 // Bar part block characters definitions. Use lcd.write(6) for an empty bar
-byte p1[8] = {0x00,0x00,0x10,0x10,0x10,0x10,0x00,0x00}; // 1 part of bar block
-byte p2[8] = {0x00,0x00,0x18,0x18,0x18,0x18,0x00,0x00};
-byte p3[8] = {0x00,0x00,0x1C,0x1C,0x1C,0x1C,0x00,0x00};
-byte p4[8] = {0x00,0x00,0x1E,0x1E,0x1E,0x1E,0x00,0x00}; // 4 parts of bar block
-byte p5[8] = {0x00,0x00,0x1F,0x1F,0x1F,0x1F,0x00,0x00}; // full bar block
-byte p6[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}; // blank bar block
+byte p1[8] = {
+  0x00,0x00,0x10,0x10,0x10,0x10,0x00,0x00}; // 1 part of bar block
+byte p2[8] = {
+  0x00,0x00,0x18,0x18,0x18,0x18,0x00,0x00};
+byte p3[8] = {
+  0x00,0x00,0x1C,0x1C,0x1C,0x1C,0x00,0x00};
+byte p4[8] = {
+  0x00,0x00,0x1E,0x1E,0x1E,0x1E,0x00,0x00}; // 4 parts of bar block
+byte p5[8] = {
+  0x00,0x00,0x1F,0x1F,0x1F,0x1F,0x00,0x00}; // full bar block
+byte p6[8] = {
+  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}; // blank bar block
 
 // Global variables always start with an underscore
 int _Button_array_max_value[num_of_analog_buttons];
@@ -136,11 +142,11 @@ void setup() {
   _status.L_relays = 0;
   _status.outputZ = loZ; // Caps switched to input side of L network
   setRelays(); // Switch off all the relays & set c/o relay to input.
-  
+
   pinMode(swrGain, OUTPUT);
   pinMode(LEDpin, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
-  
+
   digitalWrite(swrGain, LOW); // Turns off fet shunting swr Start with highest gain for amps.voltages
   _status.ampGain = hi;
   digitalWrite(BUTTON_PIN, HIGH); // pull-up activated
@@ -148,7 +154,7 @@ void setup() {
   digitalWrite(LEDpin, LOW);
 
   lcd.begin(lcdNumRows, lcdNumCols);
-//  lcd.clear(); //TODO check if this can be removed as splash will write whole screen
+  //  lcd.clear(); //TODO check if this can be removed as splash will write whole screen
   // -- do some delay: some times I've got broken visualization
   delay(100);
   lcd.createChar(1, p1);
@@ -158,7 +164,7 @@ void setup() {
   lcd.createChar(5, p5);
   lcd.createChar(6, p6);
   lcdPrintSplash();
-    
+
   //Initialize serial and wait for port to open:
   Serial.begin(115200); 
   while (!Serial) {
@@ -251,17 +257,17 @@ void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* The analog input ranges from 0 to 1023 (1024 values) and on a 16 column display will have a
-value 0f 1024/16 = 64 per column. A number like 400 would be represented by 6 full columns i.e.
-(400/64 = 6.25) which is 6 full columns of dots with a remainder of .25 or 64 * .25 = 16. As 
-each column is broken into 5 dots per row so we can represent the partial block value as int(.25*5) = 1.
-*/
+ value 0f 1024/16 = 64 per column. A number like 400 would be represented by 6 full columns i.e.
+ (400/64 = 6.25) which is 6 full columns of dots with a remainder of .25 or 64 * .25 = 16. As 
+ each column is broken into 5 dots per row so we can represent the partial block value as int(.25*5) = 1.
+ */
 void displayAnalog(byte col, byte row, int value)
 {
   int cnt;
   byte blocks = value / 64;
   byte partBlock = value % 64;
   byte remSpaces = 0; // Number of spaces to write to overwrite old data in the line
-  
+
   lcd.setCursor(col,row);
   // Calculate how many blank blocks to write to overwrite old data when bargraph is less than full row.
   if(blocks < 15) remSpaces = 16 - (blocks + 1); // We will tack a part block on end of 15 or less
@@ -285,64 +291,65 @@ void displayAnalog(byte col, byte row, int value)
   for(cnt = 0; cnt < remSpaces; cnt++) {
     lcd.write(6);
   }
-/*  
-  // Debug stuff
-  lcd.setCursor(0,0);
-  for(cnt = 0; cnt < 16; cnt++) { // Clear row 0
-    lcd.print(" ");
-  }
-  lcd.setCursor(0,0);
-  lcd.print(blocks);
-  lcd.print(", ");
-  lcd.print(partBlock);
-  */
+  /*  
+   // Debug stuff
+   lcd.setCursor(0,0);
+   for(cnt = 0; cnt < 16; cnt++) { // Clear row 0
+   lcd.print(" ");
+   }
+   lcd.setCursor(0,0);
+   lcd.print(blocks);
+   lcd.print(", ");
+   lcd.print(partBlock);
+   */
 }
 
 /**********************************************************************************************************/
 
 void lcdPrintStatus()
 {
-//  static unsigned long displayUpdate = 0;
+  //  static unsigned long displayUpdate = 0;
   float freq = 14.02345;
   char charVal[10];          //buffer, temporarily holds data from values 
 
 
-//  if(displayUpdate < millis()) {
-//    displayUpdate = (millis() + 10000);
-    lcd.home();   
-    dtostrf(float(_status.rawSWR) / 100000, 7, 3, charVal);  //7 is mininum width, 3 is precision;
-                                                             //  float value is copied onto buffer
-    for(int i=0;i<7;i++)
-    {
-      lcd.write(charVal[i]);
-    }
-    
-    // Temporary replace frequency with reverse voltage
-    sprintf(charVal, " %4d  ", _status.rev);
-    lcd.print(charVal);
-    
-/*    
-    lcd.print(" ");
-    dtostrf(freq, 6, 3, charVal);  // 6 is mininum width, 3 is precision;
-    for(int i=0;i<6;i++)
-    {
-      lcd.write(charVal[i]);
-    }
-*/    
-    if(_status.outputZ == hiZ) {
-      lcd.print(" H");
-    } else lcd.print(" L");
-    lcd.setCursor(0,1);
-    
-    sprintf(charVal, "%4dp ", _status.totC);
-    lcd.print(charVal);
-    
-    sprintf(charVal, "%4du ", _status.totL);
-    lcd.print(charVal);
-    
-    sprintf(charVal, "%4d", _status.fwd);
-    lcd.print(charVal);
-//  } // endif ((millis() - displayUpdate) > 50)
+  //  if(displayUpdate < millis()) {
+  //    displayUpdate = (millis() + 10000);
+  lcd.home();   
+  dtostrf(float(_status.rawSWR) / 100000, 7, 3, charVal);  //7 is mininum width, 3 is precision;
+  //  float value is copied onto buffer
+  for(int i=0;i<7;i++)
+  {
+    lcd.write(charVal[i]);
+  }
+
+  // Temporary replace frequency with reverse voltage
+  sprintf(charVal, " %4d  ", _status.rev);
+  lcd.print(charVal);
+
+  /*    
+   lcd.print(" ");
+   dtostrf(freq, 6, 3, charVal);  // 6 is mininum width, 3 is precision;
+   for(int i=0;i<6;i++)
+   {
+   lcd.write(charVal[i]);
+   }
+   */
+  if(_status.outputZ == hiZ) {
+    lcd.print(" H");
+  } 
+  else lcd.print(" L");
+  lcd.setCursor(0,1);
+
+  sprintf(charVal, "%4dp ", _status.totC);
+  lcd.print(charVal);
+
+  sprintf(charVal, "%4du ", _status.totL);
+  lcd.print(charVal);
+
+  sprintf(charVal, "%4d", _status.fwd);
+  lcd.print(charVal);
+  //  } // endif ((millis() - displayUpdate) > 50)
 }
 
 /**********************************************************************************************************/
@@ -353,8 +360,8 @@ void lcdPrintSplash()
   lcd.print("ARDUINO TUNER by");  
   lcd.setCursor (0, 1);        // go to the next line
   lcd.print("ZL2APV (c) 2015 ");
-//  lcd.backlight(); // finish with backlight on
-//  delay ( 5000 );
+  //  lcd.backlight(); // finish with backlight on
+  //  delay ( 5000 );
 }
 
 /**********************************************************************************************************/
@@ -388,7 +395,7 @@ byte processCommand(byte cmd)
       tryPresets();
       if(_status.rawSWR > 150000) {
         _status.outputZ = hiZ;
-        doRelayCourseSteps();
+        doRelayCoarseSteps();
         //Save SWR and relay states and see if better with C/O relay on output
         C_RelaysTmp = _status.C_relays;
         L_RelaysTmp = _status.L_relays;
@@ -398,7 +405,7 @@ byte processCommand(byte cmd)
 
         if(_status.rawSWR > 120000) { // Only try again if swr needs improving
           _status.outputZ = loZ;
-          doRelayCourseSteps(); //Run it again and see if better with C/O relay operated
+          doRelayCoarseSteps(); //Run it again and see if better with C/O relay operated
           //If not better restore relays to input state
           getSWR();
           if(SWRtmp <= _status.rawSWR) {             //Capacitors on Input side gave best result so
@@ -557,7 +564,7 @@ void tryPresets()
 
 /**********************************************************************************************************/
 
-void doRelayCourseSteps()
+void doRelayCoarseSteps()
 {
   unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
   byte bestC;
@@ -572,7 +579,7 @@ void doRelayCourseSteps()
   setRelays(); // Switch off all the relays
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
-  Serial.print("doRelayCourseSteps():  Doing Capacitor sequence with caps at ");
+    Serial.print("doRelayCoarseSteps():  Doing Capacitor sequence with caps at ");
   if(_status.outputZ == hiZ) Serial.println("Output"); 
   else Serial.println("Input");
   Serial.print("cnt");
@@ -589,7 +596,7 @@ void doRelayCourseSteps()
   // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
   // the lowest SWR
 
-    for(cnt_L = 0; cnt_L < 9; cnt_L++) {
+    for(cnt_L = 0; cnt_L < 9; cnt_L++){
     if(cnt_L > 0){
       _status.L_relays = 0;
       bitSet(_status.L_relays,cnt_L - 1);
@@ -613,7 +620,7 @@ void doRelayCourseSteps()
       }
       displayAnalog(0, 0, _status.fwd);
       displayAnalog(0, 1, _status.rev);
-      
+
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(cnt);
       Serial.print("   ");
@@ -622,7 +629,6 @@ void doRelayCourseSteps()
       printStatus(printBody);
 #endif
     } // end of inner for loop
-
   } // end of outer for loop
   _status.C_relays = bestC;
   _status.L_relays = bestL;
@@ -664,7 +670,7 @@ void doRelayFineSteps()
 #endif    
   } 
   while(swrTemp < bestSWR); // If swr was improved, go again
-  
+
 #ifdef DEBUG_RELAY_FINE_STEPS
   Serial.println("Exiting doRelayFineSteps(): values on exit ...");
   printStatus(printHeader);
@@ -687,10 +693,10 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
   if(_status.C_relays != B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
     do {
       bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
-      
+
       displayAnalog(0, 0, _status.fwd);
       displayAnalog(0, 1, _status.rev);
-      
+
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We print the swr & status values at entry then each time after relays are stepped.
       Serial.print(float(bestSWR)/100000, 4); 
@@ -702,10 +708,10 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
       getSWR();
     } 
     while(_status.rawSWR <= bestSWR);
-    
+
     displayAnalog(0, 0, _status.fwd);
     displayAnalog(0, 1, _status.rev);
-    
+
 #ifdef DEBUG_RELAY_FINE_STEPS
     // We have not printed the values which caused the loop to exit so do it now
     Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit. 
@@ -731,10 +737,10 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
   else {
     // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
     // we do nothing and leave the C_Relays at entry state.
-    
+
     displayAnalog(0, 0, _status.fwd);
     displayAnalog(0, 1, _status.rev);
-    
+
 #ifdef DEBUG_RELAY_FINE_STEPS
     Serial.println("_status.C_Relays = b1111_1111 so are not going to step C_Relays up one");
     Serial.print(float(bestSWR)/100000, 4); 
@@ -764,10 +770,10 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
         getSWR();
       } 
       while(_status.rawSWR <= bestSWR);
-      
+
       displayAnalog(0, 0, _status.fwd);
       displayAnalog(0, 1, _status.rev);
-      
+
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We have not printed the values which caused the loop to exit so do it now
       Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit.
@@ -777,7 +783,7 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
       _status.C_relays++; // On exit, we have stepped one capacitor step too far, so back up one to best value.
       setRelays();
       getSWR();
-      
+
       displayAnalog(0, 0, _status.fwd);
       displayAnalog(0, 1, _status.rev);
 
@@ -791,10 +797,10 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
     else {
       // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
       // we do nothing and leave the C_Relays at entry state.
-      
+
       displayAnalog(0, 0, _status.fwd);
       displayAnalog(0, 1, _status.rev);
-      
+
 #ifdef DEBUG_RELAY_FINE_STEPS
       Serial.println("_status.C_Relays = b'0000_0000' so are not going to step C_Relays down one");
       Serial.print(float(bestSWR)/100000, 4); 
@@ -872,8 +878,8 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
         bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
 #ifdef DEBUG_RELAY_FINE_STEPS
         // We print the swr & status values at entry then each time after relays are stepped.
-//        Serial.print(float(bestSWR)/100000, 4); 
-//        Serial.print("\t");
+        //        Serial.print(float(bestSWR)/100000, 4); 
+        //        Serial.print("\t");
         printStatus(printBody);
 #endif        
         _status.L_relays--;
@@ -922,7 +928,7 @@ void printStatus(boolean doHeader)
   } 
   else {
     char buffer[16];
-    
+
     print_binary(_status.C_relays, 8); 
     Serial.print("  "); 
     print_binary(_status.L_relays, 8);
@@ -941,7 +947,7 @@ void printStatus(boolean doHeader)
     else Serial.print(" LoZ  ");  
     sprintf(buffer, "%8lu  ", _status.rawSWR); 
     Serial.print(buffer);
-  // NOTE: sprintf doesn't support floats
+    // NOTE: sprintf doesn't support floats
     Serial.println(float(_status.rawSWR) / 100000, 4);
   }
 }
@@ -998,9 +1004,9 @@ void setRelays()
   // changeover relay switches caps to input (not operated) for hiZ loads and output (operated) for loZ.
   // The total value of C and L is calculated and placed in _status
 
-  // Due to a screw up in my circuit it is necessary to map the relays to the right pins on the relays
+    // Due to a screw up in my circuit it is necessary to map the relays to the right pins on the relays
 
-  byte Cmap = _status.C_relays;
+    byte Cmap = _status.C_relays;
   byte Lmap = _status.L_relays;
   boolean temp;
 
@@ -1011,7 +1017,7 @@ void setRelays()
   bitWrite(Cmap, 0, temp); 
   shiftOut(Cdata, Cclock, MSBFIRST, Cmap); // send this binary value to the Capacitor shift register
   digitalWrite(Clatch, HIGH);
-  
+
   // Set the L Relays from _status.L_relays;
   digitalWrite(Llatch, LOW);
   temp = bitRead(Lmap, 7);
@@ -1019,11 +1025,11 @@ void setRelays()
   bitWrite(Lmap, 0, temp);
   shiftOut(Ldata, Lclock, MSBFIRST, Lmap); // send this binary value to the Inductor shift register
   digitalWrite(Llatch, HIGH);
-  
+
   // Write the total capacitor and inductor values into the "_status" struct.
   _status.totC = calcXvalue(true);
   _status.totL = calcXvalue(false);
-  
+
   // Set the HiZ/LoZ Changeover Relay from the value of _status.outputZ
   if(_status.outputZ) {
     digitalWrite(coRelay, CAPS_at_OUTPUT); // HiZ loads, relay operated
@@ -1032,7 +1038,7 @@ void setRelays()
     digitalWrite(coRelay, CAPS_at_INPUT); // LoZ loads, relay not operated
   }
 #ifdef DEBUG_RELAY_STATE
-//  dbugRelayState();
+  //  dbugRelayState();
   printStatus(printHeader);
   printStatus(printBody);
 #endif
@@ -1103,24 +1109,6 @@ void getSWR()
   Serial.println(_status.rawSWR);
 #endif
 }
-/**********************************************************************************************************/
-// Pads an integer number for printing to be right justified over 4 digits
-// Expects a positive integer up to 4 digits i.e. 0 ... 9999
-void formatINT(int number)
-{
-  if (number < 10)
-  {
-    Serial.print("   ");
-  }
-  else if (number <100)
-  {
-    Serial.print("  ");
-  }
-  else if (number <1000)
-  {
-    Serial.print(" ");
-  }
-} //Exit with no padded spaces if number >= 1000
 
 /**********************************************************************************************************/
 
@@ -1134,27 +1122,19 @@ void print_binary(int v, int num_places)
 {
   int mask=0, n;
 
-  for (n=1; n<=num_places; n++)
-  {
+  for (n=1; n<=num_places; n++) {
     mask = (mask << 1) | 0x0001;
   }
   v = v & mask;  // truncate v to specified number of places
-
-  while(num_places)
-  {
-
-    if (v & (0x0001 << num_places-1))
-    {
+  while(num_places) {
+    if (v & (0x0001 << num_places-1)) {
       Serial.print("1");
     }
-    else
-    {
+    else {
       Serial.print("0");
     }
-
     --num_places;
-    if(((num_places%4) == 0) && (num_places != 0))
-    {
+    if(((num_places%4) == 0) && (num_places != 0)) {
       Serial.print("_");
     }
   }
@@ -1163,33 +1143,33 @@ void print_binary(int v, int num_places)
 /**********************************************************************************************************/
 /*
 void dbugRelayState()
-{
-  Serial.print("_status.C_relays value = ");
-  Serial.print(_status.C_relays);
-  Serial.print(", C = ");
-  Serial.print(calcXvalue(C));
-  Serial.print(" pF");
-  Serial.print("      ... _status.L_relays value = ");
-  Serial.print(_status.L_relays);
-  Serial.print(", L = ");
-  Serial.print(calcXvalue(L));
-  Serial.println(" nH");
-  Serial.println("C Relay# 1 2 3 4 5 6 7 8 ... L Relay# 1 2 3 4 5 6 7 8");
-  Serial.print("         ");
-  for(int x = 0; x < 8; x++){
-    Serial.print(bitRead(_status.C_relays, x));
-    Serial.print(" ");
-  }
-  Serial.print("             ");
-  for(int x = 0; x < 8; x++){
-    Serial.print(bitRead(_status.L_relays, x));
-    Serial.print(" ");
-  }
-  Serial.print("SWR = ");
-  getSWR();
-  Serial.println(float(_status.rawSWR) / 10000);
-}
-*/
+ {
+ Serial.print("_status.C_relays value = ");
+ Serial.print(_status.C_relays);
+ Serial.print(", C = ");
+ Serial.print(calcXvalue(C));
+ Serial.print(" pF");
+ Serial.print("      ... _status.L_relays value = ");
+ Serial.print(_status.L_relays);
+ Serial.print(", L = ");
+ Serial.print(calcXvalue(L));
+ Serial.println(" nH");
+ Serial.println("C Relay# 1 2 3 4 5 6 7 8 ... L Relay# 1 2 3 4 5 6 7 8");
+ Serial.print("         ");
+ for(int x = 0; x < 8; x++){
+ Serial.print(bitRead(_status.C_relays, x));
+ Serial.print(" ");
+ }
+ Serial.print("             ");
+ for(int x = 0; x < 8; x++){
+ Serial.print(bitRead(_status.L_relays, x));
+ Serial.print(" ");
+ }
+ Serial.print("SWR = ");
+ getSWR();
+ Serial.println(float(_status.rawSWR) / 10000);
+ }
+ */
 /**********************************************************************************************************/
 byte handle_button()
 {
@@ -1217,9 +1197,11 @@ byte handle_button()
 #endif      
       if(timer <= 200) { // Short press
         retval = 1;
-      } else if(timer < 1000) {
+      } 
+      else if(timer < 1000) {
         retval = 2;
-      } else retval =3;
+      } 
+      else retval =3;
     }
     button_was_pressed = button_now_pressed;
   }  
@@ -1298,10 +1280,10 @@ byte getAnalogButton()
   }
   analogButtonValue = analogButtonValue / cnt;
 #ifdef DEBUG_BUTTONS
- if(analogButtonValue < 1020) {
+  if(analogButtonValue < 1020) {
     Serial.print("The raw button press value is ");
     Serial.println(analogButtonValue);
- }
+  }
 #endif  
   // Now determine which button was pressed if any
   if (analogButtonValue <= _Button_array_max_value[num_of_analog_buttons-1]) {
@@ -1444,4 +1426,7 @@ void processLongPressTE(byte button)
 }
 
 /**********************************************************************************************************/
+
+
+
 
