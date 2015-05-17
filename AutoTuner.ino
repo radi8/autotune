@@ -29,7 +29,7 @@
 
 #define DEBUG_BUTTON_ARRAY
 //#define DEBUG_BUTTON_INFO
-#define DEBUG_BUTTONS
+//#define DEBUG_BUTTONS
 //#define DEBUG_STEP_BUTTON
 
 #define TX_LEVEL_THRESHOLD 20
@@ -400,23 +400,38 @@ byte processCommand(byte cmd)
         C_RelaysTmp = _status.C_relays;
         L_RelaysTmp = _status.L_relays;
         bestZ = _status.outputZ;
-        getSWR();
+#ifdef DEBUG_COARSE_TUNE_STATUS
+  Serial.println("HiZ coarse tune results");
+  printStatus(printHeader);
+  printStatus(printBody);
+#endif        
+//        getSWR();
         SWRtmp = _status.rawSWR;
 
         if(_status.rawSWR > 120000) { // Only try again if swr needs improving
           _status.outputZ = loZ;
           doRelayCoarseSteps(); //Run it again and see if better with C/O relay operated
           //If not better restore relays to input state
-          getSWR();
+//          getSWR();
+#ifdef DEBUG_COARSE_TUNE_STATUS
+  Serial.println("LoZ coarse tune results");
+  printStatus(printHeader);
+  printStatus(printBody);
+#endif
           if(SWRtmp <= _status.rawSWR) {             //Capacitors on Input side gave best result so
             _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
             _status.L_relays = L_RelaysTmp;
             _status.outputZ = bestZ;
             setRelays();
-          }
-          getSWR();
+            getSWR();            
+          }        
         }
       }
+#ifdef DEBUG_COARSE_TUNE_STATUS
+  Serial.println("Final coarse tune results");
+  printStatus(printHeader);
+  printStatus(printBody);
+#endif      
       doRelayFineSteps();
       cmd = TUNED;
       lcdPrintStatus();      
@@ -566,20 +581,26 @@ void tryPresets()
 
 void doRelayCoarseSteps()
 {
+  // For each L relay set in turn from 0 relays to the 8th relay we set the capacitor
+  // relays one by one from 0 relays operated (cnt = 0) through 1st to 8th relay
+  // (cnt = 1 to cnt = 8), checking to see which relays produce the lowest SWR.
+  
+  // Entry: The caller sets the C/O relay to HiZ or LoZ as required
+  // Exit with relay settings which give best SWR for the C/O relay setting on entry.
+  
   unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
   byte bestC;
   byte bestL;
-  boolean bestZ;
   byte cnt = 0;
   byte cnt_L = 0;
 
-  // Initialise with no relays operated, changeover relay set by caller.
+  // Initialise with no relays operated, C/O relay was set by the caller.
   _status.C_relays = 0;
   _status.L_relays = 0;
   setRelays(); // Switch off all the relays
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
-    Serial.print("doRelayCoarseSteps():  Doing Capacitor sequence with caps at ");
+    Serial.print("doRelayCoarseSteps(): Caps are connected to ");
   if(_status.outputZ == hiZ) Serial.println("Output"); 
   else Serial.println("Input");
   Serial.print("cnt");
@@ -592,10 +613,8 @@ void doRelayCoarseSteps()
   getSWR();  //Get SWR with no relays operated at this point.
 
   // currentSWR first time through for loop
-  // here we set the capacitor relays one by one from 0 relays operated (cnt = 0)
-  // through first to 8th relay (cnt = 1 to 8), checking to see which relay produces
-  // the lowest SWR
 
+  
     for(cnt_L = 0; cnt_L < 9; cnt_L++){
     if(cnt_L > 0){
       _status.L_relays = 0;
@@ -616,7 +635,7 @@ void doRelayCoarseSteps()
         bestSWR = _status.rawSWR;
         bestC = _status.C_relays;
         bestL = _status.L_relays;
-        bestZ = _status.outputZ;
+//        bestZ = _status.outputZ;
       }
       displayAnalog(0, 0, _status.fwd);
       displayAnalog(0, 1, _status.rev);
@@ -630,15 +649,13 @@ void doRelayCoarseSteps()
 #endif
     } // end of inner for loop
   } // end of outer for loop
+  
+  // Now set the relays to the state which gave best SWR
   _status.C_relays = bestC;
   _status.L_relays = bestL;
-  _status.outputZ = bestZ;
+//  _status.outputZ = bestZ;
   setRelays();
-  getSWR();
-#ifdef DEBUG_COARSE_TUNE_STATUS  
-  printStatus(printHeader);
-  printStatus(printBody);
-#endif  
+  getSWR();  
 }
 
 /**********************************************************************************************************/
