@@ -10,7 +10,7 @@
 #include <LiquidCrystal_I2C.h>
 
 // Debug Defines
-//#define DEBUG_RELAY_FINE_STEPS
+#define DEBUG_RELAY_FINE_STEPS
 //#define DEBUG_RELAY_STATE
 #define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
@@ -170,8 +170,8 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-  Serial.println("Arduino antenna tuner ver 1.0.0");
-  Serial.println("Copyright (C) 2015, Graeme Jury ZL2APV");
+  Serial.println(F("Arduino antenna tuner ver 1.0.0"));
+  Serial.println(F("Copyright (C) 2015, Graeme Jury ZL2APV"));
   Serial.println();
   initialize_analog_button_array();
 }
@@ -198,7 +198,7 @@ void loop(){
       buttonNumber = buttonNumber - num_of_analog_buttons;
       processLongPressLE(buttonNumber);
 #ifdef DEBUG_BUTTON_INFO      
-      Serial.print("Loop:  A long press leading edge detected on button ");
+      Serial.print(F("Loop:  A long press leading edge detected on button "));
       Serial.println(buttonNumber);
 #endif      
     } 
@@ -220,19 +220,19 @@ void loop(){
       switch (button_pressed) {
       case 1: 
         { // Short press, Bypass tuner
-          Serial.println("Short press, Initiate Autotune when RF present");
+          Serial.println(F("Short press, Initiate Autotune when RF present"));
           _cmd = TUNE;
           break;
         }
       case 2:
         { // Medium press, Initiate Autotune when RF present
-          Serial.println("Medium press, Initiate Autotune when RF present");
+          Serial.println(F("Medium press, Initiate Autotune when RF present"));
           _cmd = TUNE;
           break;
         } 
       case 3: 
         { // Long press, Not allocated yet
-          Serial.println("Long press, Bypass tuner");
+          Serial.println(F("Long press, Bypass tuner"));
           _status.C_relays = 0;
           _status.L_relays = 0;
           _status.outputZ = loZ; // Caps switched to input side of L network
@@ -357,9 +357,9 @@ void lcdPrintStatus()
 void lcdPrintSplash()
 {
   lcd.home();                   // go home
-  lcd.print("ARDUINO TUNER by");  
+  lcd.print(F("ARDUINO TUNER by"));  
   lcd.setCursor (0, 1);        // go to the next line
-  lcd.print("ZL2APV (c) 2015 ");
+  lcd.print(F("ZL2APV (c) 2015 "));
   //  lcd.backlight(); // finish with backlight on
   //  delay ( 5000 );
 }
@@ -376,13 +376,13 @@ byte processCommand(byte cmd)
   switch (cmd) {
   case TUNED: 
     { // Update LCD display
-      //      Serial.print("Got to TUNED, cmd = ");
+      //      Serial.print(F("Got to TUNED, cmd = "));
       //      Serial.println(cmd);
       break;
     }
   case TUNE:
     { // Wait for sufficient RF fwd pwr then start tuning
-      //      Serial.print("Got to TUNE, cmd = ");
+      //      Serial.print(F("Got to TUNE, cmd = "));
       //      Serial.println(cmd);
       if(_status.fwd > TX_LEVEL_THRESHOLD) {
         cmd = TUNING;
@@ -401,7 +401,7 @@ byte processCommand(byte cmd)
         L_RelaysTmp = _status.L_relays;
         bestZ = _status.outputZ;
 #ifdef DEBUG_COARSE_TUNE_STATUS
-  Serial.println("HiZ coarse tune results");
+  Serial.println(F("HiZ coarse tune results"));
   printStatus(printHeader);
   printStatus(printBody);
 #endif        
@@ -414,7 +414,7 @@ byte processCommand(byte cmd)
           //If not better restore relays to input state
 //          getSWR();
 #ifdef DEBUG_COARSE_TUNE_STATUS
-  Serial.println("LoZ coarse tune results");
+  Serial.println(F("LoZ coarse tune results"));
   printStatus(printHeader);
   printStatus(printBody);
 #endif
@@ -428,7 +428,7 @@ byte processCommand(byte cmd)
         }
       }
 #ifdef DEBUG_COARSE_TUNE_STATUS
-  Serial.println("Final coarse tune results");
+  Serial.println(F("Final coarse tune results"));
   printStatus(printHeader);
   printStatus(printBody);
 #endif      
@@ -567,7 +567,7 @@ void tryPresets()
   _status.L_relays = B00000000;
   _status.outputZ  = hiZ;
   setRelays();
-  Serial.println("Relays set at zero");
+  Serial.println(F("Relays set at zero"));
   if(_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
   }
@@ -600,13 +600,13 @@ void doRelayCoarseSteps()
   setRelays(); // Switch off all the relays
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
-    Serial.print("doRelayCoarseSteps(): Caps are connected to ");
-  if(_status.outputZ == hiZ) Serial.println("Output"); 
-  else Serial.println("Input");
-  Serial.print("cnt");
-  Serial.print(" ");
-  Serial.print("bestSWR");
-  Serial.print("\t");
+    Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
+  if(_status.outputZ == hiZ) Serial.println(F("Output")); 
+  else Serial.println(F("Input"));
+  Serial.print(F("cnt"));
+  Serial.print(F(" "));
+  Serial.print(F("bestSWR"));
+  Serial.print(F("\t"));
   printStatus(printHeader);
 #endif
 
@@ -642,9 +642,9 @@ void doRelayCoarseSteps()
 
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(cnt);
-      Serial.print("   ");
+      Serial.print(F("   "));
       Serial.print(float(bestSWR)/100000, 4);
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif
     } // end of inner for loop
@@ -669,7 +669,7 @@ void doRelayFineSteps()
 
 #ifdef DEBUG_RELAY_FINE_STEPS
   int cnt = 1;
-  Serial.println("doRelayFineSteps: Values on entry"); 
+  Serial.println(F("doRelayFineSteps: Values on entry")); 
   printStatus(printHeader);
   printStatus(printBody);
 #endif
@@ -679,17 +679,17 @@ void doRelayFineSteps()
     swrTemp = fineStep_L(); // Returns best SWR obtained from stepping L both up and down
     swrTemp = fineStep_C(); // Starts with best from stepping L and returns best C swr.
 #ifdef DEBUG_RELAY_FINE_STEPS    
-    Serial.print("doRelayFineSteps():  Been through loop "); 
+    Serial.print(F("doRelayFineSteps():  Been through loop ")); 
     Serial.print(cnt); 
-    Serial.println(" times.");
+    Serial.println(F(" times."));
     cnt++;
-    Serial.println("-----------------------------------------------------------------------------------");
+    Serial.println(F("-----------------------------------------------------------------------------------"));
 #endif    
   } 
   while(swrTemp < bestSWR); // If swr was improved, go again
 
 #ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("Exiting doRelayFineSteps(): values on exit ...");
+  Serial.println(F("Exiting doRelayFineSteps(): values on exit ..."));
   printStatus(printHeader);
   printStatus(printBody);
 #endif  
@@ -702,8 +702,8 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
   byte C_RelaysTmp = _status.C_relays; //Later will compare the value of _status.C_relays to see if we changed.
 
 #ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("fineStep_C():  Stepping capacitors up."); 
-  Serial.print("bestSWR\t"); 
+  Serial.println(F("fineStep_C():  Stepping capacitors up.")); 
+  Serial.print(F("bestSWR\t")); 
   printStatus(printHeader);
 #endif
   //Start off by tweaking the C relays. We will increase capacitance as first try.
@@ -717,7 +717,7 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We print the swr & status values at entry then each time after relays are stepped.
       Serial.print(float(bestSWR)/100000, 4); 
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif      
       _status.C_relays++;
@@ -732,7 +732,7 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
     // We have not printed the values which caused the loop to exit so do it now
     Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit. 
-    Serial.print("\t");
+    Serial.print(F("\t"));
     printStatus(printBody);
 #endif
 
@@ -744,9 +744,9 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
     displayAnalog(0, 1, _status.rev);
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-    Serial.println("Values on exit from capacitor fine steps up. The extra step has been corrected.");
+    Serial.println(F("Values on exit from capacitor fine steps up. The extra step has been corrected."));
     Serial.print(float(bestSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point.
-    Serial.print("\t");
+    Serial.print(F("\t"));
     printStatus(printBody);
     //  Serial.print("C_RelaysTmp, _status.C_relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_status.C_relays);
 #endif
@@ -759,9 +759,9 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
     displayAnalog(0, 1, _status.rev);
 
 #ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println("_status.C_Relays = b1111_1111 so are not going to step C_Relays up one");
+    Serial.println(F("_status.C_Relays = b1111_1111 so are not going to step C_Relays up one"));
     Serial.print(float(bestSWR)/100000, 4); 
-    Serial.print("\t"); 
+    Serial.print(F("\t")); 
     printStatus(printBody);
 #endif
   }
@@ -769,8 +769,8 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
   if(C_RelaysTmp == _status.C_relays) { // We didn't improve by trying to increase C so try reducing it.
     bestSWR = _status.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println("fineStep_C():  Stepping capacitors down."); 
-    Serial.print("bestSWR\t"); 
+    Serial.println(F("fineStep_C():  Stepping capacitors down.")); 
+    Serial.print(F("bestSWR\t")); 
     printStatus(printHeader);
 #endif
     if(_status.C_relays != B00000000) { // Step next capacitor down only if it won't roll up to maximum C.
@@ -779,7 +779,7 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
         // We print the swr & status values at entry then each time after relays are stepped.
         Serial.print(float(bestSWR)/100000, 4); 
-        Serial.print("\t");
+        Serial.print(F("\t"));
         printStatus(printBody);
 #endif        
         _status.C_relays--;
@@ -794,7 +794,7 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We have not printed the values which caused the loop to exit so do it now
       Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit.
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif
       _status.C_relays++; // On exit, we have stepped one capacitor step too far, so back up one to best value.
@@ -805,9 +805,9 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
       displayAnalog(0, 1, _status.rev);
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-      Serial.println("Values on exit from capacitor fine steps down. The extra step has been corrected.");
+      Serial.println(F("Values on exit from capacitor fine steps down. The extra step has been corrected."));
       Serial.print(float(bestSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point. 
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif
     } // end if(_status.C_relays != B00000000)
@@ -819,9 +819,9 @@ unsigned long fineStep_C() // Enter with swr and relay status up to date
       displayAnalog(0, 1, _status.rev);
 
 #ifdef DEBUG_RELAY_FINE_STEPS
-      Serial.println("_status.C_Relays = b'0000_0000' so are not going to step C_Relays down one");
+      Serial.println(F("_status.C_Relays = b'0000_0000' so are not going to step C_Relays down one"));
       Serial.print(float(bestSWR)/100000, 4); 
-      Serial.print("\t"); 
+      Serial.print(F("\t")); 
       printStatus(printBody);
 #endif
     }
@@ -837,8 +837,8 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
   byte L_RelaysTmp = _status.L_relays; //Later will compare the value of _status.L_relays to see if we changed.
 
 #ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println("fineStep_L():  Stepping inductors up."); 
-  Serial.print("bestSWR\t"); 
+  Serial.println(F("fineStep_L():  Stepping inductors up.")); 
+  Serial.print(F("bestSWR\t")); 
   printStatus(printHeader);
 #endif
   //Start off by tweaking the L relays. We will increase inductance as first try.
@@ -848,7 +848,7 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We print the swr & status values at entry then each time after relays are stepped.
       Serial.print(float(bestSWR)/100000, 4); 
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif      
       _status.L_relays++;
@@ -859,16 +859,16 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
     // We have not printed the values which caused the loop to exit so do it now
     Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit. 
-    Serial.print("\t");
+    Serial.print(F("\t"));
     printStatus(printBody);
 #endif
     _status.L_relays--; // On exit, we have stepped one inductor step too far, so back up one to best value.
     setRelays();
     getSWR();
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-    Serial.println("Values on exit from inductor fine steps up. The extra step has been corrected.");
+    Serial.println(F("Values on exit from inductor fine steps up. The extra step has been corrected."));
     Serial.print(float(_status.rawSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point.
-    Serial.print("\t");
+    Serial.print(F("\t"));
     printStatus(printBody);
 #endif
   } // end if(_status.L_relays != B11111111)
@@ -876,9 +876,9 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
     // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
     // we do nothing and leave the L_Relays at entry state; swrTemp has already been set to best SWR
 #ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println("_status.L_Relays = b1111_1111 so are not going to step L_Relays up one");
+    Serial.println(F("_status.L_Relays = b1111_1111 so are not going to step L_Relays up one"));
     Serial.print(float(bestSWR)/100000, 4); 
-    Serial.print("\t"); 
+    Serial.print(F("\t")); 
     printStatus(printBody);
 #endif
   }
@@ -886,8 +886,8 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
   if(L_RelaysTmp == _status.L_relays) { // We didn't improve by trying to increase L so try reducing it.
     bestSWR = _status.rawSWR;
 #ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println("fineStep_L():  Stepping inductors down."); 
-    Serial.print("bestSWR\t"); 
+    Serial.println(F("fineStep_L():  Stepping inductors down.")); 
+    Serial.print(F("bestSWR\t")); 
     printStatus(printHeader);
 #endif
     if(_status.L_relays != B00000000) { // Step next inductor down only if it won't roll up to maximum L.
@@ -907,7 +907,7 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
 #ifdef DEBUG_RELAY_FINE_STEPS
       // We have not printed the values which caused the loop to exit so do it now
       Serial.print(float(_status.rawSWR)/100000, 4); // Print the actual swr on exit.
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif
       _status.L_relays++; // On exit, we have stepped one inductor step too far, so back up one to best value.
@@ -915,9 +915,9 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
       getSWR();
 
 #ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-      Serial.println("Values on exit from inductor fine steps down. The extra step has been corrected.");
+      Serial.println(F("Values on exit from inductor fine steps down. The extra step has been corrected."));
       Serial.print(float(bestSWR)/100000, 4); // rawSWR should be equal to bestSWR at this point. 
-      Serial.print("\t");
+      Serial.print(F("\t"));
       printStatus(printBody);
 #endif
     } // end if(_status.L_relays != B00000000)
@@ -925,9 +925,9 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
       // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
       // we do nothing and leave the L_Relays at entry state.
 #ifdef DEBUG_RELAY_FINE_STEPS
-      Serial.println("_status.L_Relays = b'0000_0000' so are not going to step L_Relays down one");
+      Serial.println(F("_status.L_Relays = b'0000_0000' so are not going to step L_Relays down one"));
       Serial.print(float(bestSWR)/100000, 4); 
-      Serial.print("\t"); 
+      Serial.print(F("\t")); 
       printStatus(printBody);
 #endif
     }
@@ -941,13 +941,13 @@ unsigned long fineStep_L() // Enter with swr and relay status up to date
 void printStatus(boolean doHeader)
 {
   if(doHeader) {
-    Serial.println("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR");
+    Serial.println(F("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR"));
   } 
   else {
     char buffer[16];
 
     print_binary(_status.C_relays, 8); 
-    Serial.print("  "); 
+    Serial.print(F("  ")); 
     print_binary(_status.L_relays, 8);
     sprintf(buffer, "  %4u  ", _status.totC); 
     Serial.print(buffer);
@@ -957,11 +957,11 @@ void printStatus(boolean doHeader)
     Serial.print(buffer);
     sprintf(buffer, "   %4u  ", _status.rev); 
     Serial.print(buffer); 
-    if(_status.ampGain == hi) Serial.print("High"); 
-    else Serial.print(" Low"); 
-    Serial.print("  ");
-    if(_status.outputZ == hiZ) Serial.print(" HiZ  "); 
-    else Serial.print(" LoZ  ");  
+    if(_status.ampGain == hi) Serial.print(F("High")); 
+    else Serial.print(F(" Low")); 
+    Serial.print(F("  "));
+    if(_status.outputZ == hiZ) Serial.print(F(" HiZ  ")); 
+    else Serial.print(F(" LoZ  "));  
     sprintf(buffer, "%8lu  ", _status.rawSWR); 
     Serial.print(buffer);
     // NOTE: sprintf doesn't support floats
@@ -974,17 +974,17 @@ void printStatus(boolean doHeader)
 void printFineSteps(float bestSWR)
 {
   Serial.print(bestSWR, 4); 
-  Serial.print("\t"); 
+  Serial.print(F("\t")); 
   Serial.print(_status.fwd);
-  Serial.print("\t");
+  Serial.print(F("\t"));
   Serial.print(_status.rev);
-  Serial.print("\t");
+  Serial.print(F("\t"));
   Serial.print(calcXvalue(C));
-  Serial.print("\t");
+  Serial.print(F("\t"));
   Serial.print(calcXvalue(L));
-  Serial.print("\t");
+  Serial.print(F("\t"));
   print_binary(_status.C_relays, 8);
-  Serial.print("\t");
+  Serial.print(F("\t"));
   print_binary(_status.L_relays, 8);
   Serial.println();
 }
@@ -1116,13 +1116,13 @@ void getSWR()
     _status.rawSWR = 99900000;
   }
 #ifdef DEBUG_status.rawSWR_VALUES
-  Serial.print("getSWR: fwd, rev, floatSWR, rawSWR = ");
+  Serial.print(F("getSWR: fwd, rev, floatSWR, rawSWR = "));
   Serial.print(_status.fwd);
-  Serial.print(", ");
+  Serial.print(F(", "));
   Serial.print(_status.rev);
-  Serial.print(", ");
+  Serial.print(F(", "));
   Serial.print(float(_status.rawSWR) / 100000, 6);
-  Serial.print(", ");
+  Serial.print(F(", "));
   Serial.println(_status.rawSWR);
 #endif
 }
@@ -1145,49 +1145,20 @@ void print_binary(int v, int num_places)
   v = v & mask;  // truncate v to specified number of places
   while(num_places) {
     if (v & (0x0001 << num_places-1)) {
-      Serial.print("1");
+      Serial.print(F("1"));
     }
     else {
-      Serial.print("0");
+      Serial.print(F("0"));
     }
     --num_places;
     if(((num_places%4) == 0) && (num_places != 0)) {
-      Serial.print("_");
+      Serial.print(F("_"));
     }
   }
 }
 
 /**********************************************************************************************************/
-/*
-void dbugRelayState()
- {
- Serial.print("_status.C_relays value = ");
- Serial.print(_status.C_relays);
- Serial.print(", C = ");
- Serial.print(calcXvalue(C));
- Serial.print(" pF");
- Serial.print("      ... _status.L_relays value = ");
- Serial.print(_status.L_relays);
- Serial.print(", L = ");
- Serial.print(calcXvalue(L));
- Serial.println(" nH");
- Serial.println("C Relay# 1 2 3 4 5 6 7 8 ... L Relay# 1 2 3 4 5 6 7 8");
- Serial.print("         ");
- for(int x = 0; x < 8; x++){
- Serial.print(bitRead(_status.C_relays, x));
- Serial.print(" ");
- }
- Serial.print("             ");
- for(int x = 0; x < 8; x++){
- Serial.print(bitRead(_status.L_relays, x));
- Serial.print(" ");
- }
- Serial.print("SWR = ");
- getSWR();
- Serial.println(float(_status.rawSWR) / 10000);
- }
- */
-/**********************************************************************************************************/
+
 byte handle_button()
 {
   static boolean button_was_pressed = true; // True = no press i.e. pullup voltage
@@ -1209,7 +1180,7 @@ byte handle_button()
     else { // The button has changed from pressed to released so calc button press type.
       timer = millis() - timer;
 #ifdef DEBUG_BUTTONS     
-      Serial.print("Button released, Timer value = ");
+      Serial.print(F("Button released, Timer value = "));
       Serial.println(timer);
 #endif      
       if(timer <= 200) { // Short press
@@ -1250,11 +1221,11 @@ void initialize_analog_button_array()
     _Button_array_max_value[x] = (button_value + ((higher_button_value - button_value)/2));
 
 #ifdef DEBUG_BUTTON_ARRAY    
-    Serial.print("initialize_analog_button_array: ");
+    Serial.print(F("initialize_analog_button_array: "));
     Serial.print(x);
-    Serial.print(":  ");
+    Serial.print(F(":  "));
     Serial.print(_Button_array_min_value[x]);
-    Serial.print(" - ");
+    Serial.print(F(" - "));
     Serial.println(_Button_array_max_value[x]);
 #endif //DEBUG_BUTTON_ARRAY/*  
   }
@@ -1298,7 +1269,7 @@ byte getAnalogButton()
   analogButtonValue = analogButtonValue / cnt;
 #ifdef DEBUG_BUTTONS
   if(analogButtonValue < 1020) {
-    Serial.print("The raw button press value is ");
+    Serial.print(F("The raw button press value is "));
     Serial.println(analogButtonValue);
   }
 #endif  
@@ -1330,7 +1301,7 @@ byte getAnalogButton()
     } 
     else { // We are releasing the button so check if it is from a short or long press
       if(longPress) {
-        //        Serial.println("At ... if((millis() - longPressTimer) > LONG_PRESS_TIME)");
+        //        Serial.println(F("At ... if((millis() - longPressTimer) > LONG_PRESS_TIME)"));
         retVal = currentButton + num_of_analog_buttons + num_of_analog_buttons;
         currentButton = 0;
         longPress = false;
@@ -1381,7 +1352,7 @@ void processShortPressTE(byte button)
     lcdPrintStatus();
   }
 #ifdef DEBUG_BUTTON_INFO      
-  Serial.print("Loop:  A short press trailing edge detected on button ");
+  Serial.print(F("Loop:  A short press trailing edge detected on button "));
   Serial.println(button);
 #endif
 #ifdef DEBUG_TUNE_SUMMARY
@@ -1437,7 +1408,7 @@ void processLongPressTE(byte button)
 
   }
 #ifdef DEBUG_BUTTON_INFO      
-  Serial.print("Loop:  A long press trailing edge detected on button ");      
+  Serial.print(F("Loop:  A long press trailing edge detected on button "));      
   Serial.println(button);
 #endif
 }
