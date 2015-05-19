@@ -170,10 +170,14 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
+  
+  initialize_analog_button_array();
+  
   Serial.println(F("Arduino antenna tuner ver 1.0.0"));
   Serial.println(F("Copyright (C) 2015, Graeme Jury ZL2APV"));
+  Serial.print(F("available RAM = "));
+  Serial.println(freeRam());
   Serial.println();
-  initialize_analog_button_array();
 }
 
 /**********************************************************************************************************/
@@ -393,7 +397,7 @@ byte processCommand(byte cmd)
   case TUNING: 
     { // Tuning is under way so process until finished
       tryPresets();
-      if(_status.rawSWR > 150000) {
+      if(_status.rawSWR > 160000) {
         _status.outputZ = hiZ;
         doRelayCoarseSteps();
         //Save SWR and relay states and see if better with C/O relay on output
@@ -506,11 +510,14 @@ void tryPresets()
   }
 
   // Try 20 M wire antenna centred on 14.025 mHz
-  _status.C_relays = B01011110; // Debug settings for C and L relays
+  _status.C_relays = B11100000; // Debug settings for C and L relays
   _status.L_relays = B00000011;
   _status.outputZ  = loZ;
   setRelays();
+//  delay(50);
   getSWR();
+  Serial.print(F("20M rawSWR = "));
+  Serial.println(_status.rawSWR);
   if(_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
   }
@@ -1415,6 +1422,12 @@ void processLongPressTE(byte button)
 
 /**********************************************************************************************************/
 
+int freeRam () {
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
 
+/**********************************************************************************************************/
 
 
