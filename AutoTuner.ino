@@ -9,6 +9,7 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 
+uint8_t * heapptr, * stackptr;  // I declared these globally for memory checks
 // Debug Defines
 #define DEBUG_RELAY_FINE_STEPS
 //#define DEBUG_RELAY_STATE
@@ -177,6 +178,8 @@ void setup() {
   Serial.println(F("Copyright (C) 2015, Graeme Jury ZL2APV"));
   Serial.print(F("available RAM = "));
   Serial.println(freeRam());
+  Serial.println ((int) stackptr);
+  Serial.println ((int) heapptr);
   Serial.println();
 }
 
@@ -392,7 +395,10 @@ byte processCommand(byte cmd)
         cmd = TUNING;
         break;
       } 
-      else break;
+      else {
+        cmd = TUNING; // TODO remove this line in final code (debug only)
+        break;
+      }
     }
   case TUNING: 
     { // Tuning is under way so process until finished
@@ -654,6 +660,8 @@ void doRelayCoarseSteps()
       Serial.print(F("\t"));
       printStatus(printBody);
 #endif
+//  Serial.println(freeRam());
+
     } // end of inner for loop
   } // end of outer for loop
   
@@ -972,7 +980,8 @@ void printStatus(boolean doHeader)
     sprintf(buffer, "%8lu  ", _status.rawSWR); 
     Serial.print(buffer);
     // NOTE: sprintf doesn't support floats
-    Serial.println(float(_status.rawSWR) / 100000, 4);
+    Serial.print(float(_status.rawSWR) / 100000, 4);
+    Serial.println(F("  "));
   }
 }
 #endif
@@ -1430,4 +1439,10 @@ int freeRam () {
 
 /**********************************************************************************************************/
 
-
+void check_mem() {
+  //uint8_t * heapptr, * stackptr;  // I declared these globally
+  stackptr = (uint8_t *)malloc(4);  // use stackptr temporarily
+  heapptr = stackptr;                  // save value of heap pointer
+  free(stackptr);                        // free up the memory again (sets stackptr to 0)
+  stackptr =  (uint8_t *)(SP);       // save value of stack pointer
+  }
