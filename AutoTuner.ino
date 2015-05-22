@@ -178,8 +178,8 @@ void setup() {
   Serial.println(F("Copyright (C) 2015, Graeme Jury ZL2APV"));
   Serial.print(F("available RAM = "));
   Serial.println(freeRam());
-  Serial.println ((int) stackptr);
-  Serial.println ((int) heapptr);
+//  Serial.println ((int) stackptr);
+//  Serial.println ((int) heapptr);
   Serial.println();
 }
 
@@ -403,7 +403,8 @@ byte processCommand(byte cmd)
   case TUNING: 
     { // Tuning is under way so process until finished
       tryPresets();
-      if(_status.rawSWR > 160000) {
+//      if(_status.rawSWR > 160000) { // Debug change to force coarse tuning
+      if(_status.rawSWR > 1) {
         _status.outputZ = hiZ;
         doRelayCoarseSteps();
         //Save SWR and relay states and see if better with C/O relay on output
@@ -591,7 +592,7 @@ void tryPresets()
 }
 
 /**********************************************************************************************************/
-
+/*
 void doRelayCoarseSteps()
 {
   // For each L relay set in turn from 0 relays to the 8th relay we set the capacitor
@@ -672,7 +673,7 @@ void doRelayCoarseSteps()
   setRelays();
   getSWR();  
 }
-
+*/
 /**********************************************************************************************************/
 void doRelayFineSteps()
 {
@@ -1446,3 +1447,91 @@ void check_mem() {
   free(stackptr);                        // free up the memory again (sets stackptr to 0)
   stackptr =  (uint8_t *)(SP);       // save value of stack pointer
   }
+  
+/**********************************************************************************************************/    
+
+void doRelayCoarseSteps()
+{
+  // For each L relay set in turn from 0 relays to the 8th relay we set the capacitor
+  // relays one by one from 0 relays operated (cnt = 0) through 1st to 8th relay
+  // (cnt = 1 to cnt = 8), checking to see which relays produce the lowest SWR.
+  
+  // Entry: The caller sets the C/O relay to HiZ or LoZ as required
+  // Exit with relay settings which give best SWR for the C/O relay setting on entry.
+  
+  unsigned long initialSWR = 0;
+  unsigned long bestSWR = 0;
+  byte bestC;
+  byte bestL;
+  byte cnt = 0;
+  byte cnt_L = 0;
+
+  // Initialise with no L relays operated, all C relays operated and C/O relay set by the caller.
+  _status.C_relays = B11111111;
+  _status.L_relays = 0;
+  setRelays();
+
+#ifdef DEBUG_COARSE_TUNE_STATUS
+    Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
+  if(_status.outputZ == hiZ) Serial.println(F("Output")); 
+  else Serial.println(F("Input"));
+  Serial.print(F("cnt"));
+  Serial.print(F(" "));
+  Serial.print(F("bestSWR"));
+  Serial.print(F("\t"));
+  printStatus(printHeader);
+#endif
+
+  getSWR();  //Get SWR with relays at initial state.
+  initialSWR = _status.rawSWR;
+  bestSWR = _status.rawSWR;
+
+// We are looking for the region where altering both C and L are producing an effect on SWR. At this point
+// the fine tune can take over and give us the best tune reactances possible.
+  
+  while((_status.rawSWR <= (bestSWR + 20000)) && (_status.C_relays > 0)) {
+    
+
+    // Increment the inductors looking for the best SWR
+    while((_status.rawSWR <= (bestSWR + 20000)) && (_status.L_relays < B11111111)) {
+      
+      setRelays(); // Stepping through the Inductor relays
+      getSWR();
+      displayAnalog(0, 0, _status.fwd);
+      displayAnalog(0, 1, _status.rev);
+      if(_status.rawSWR <= bestSWR){
+        bestSWR = _status.rawSWR;
+        bestC = _status.C_relays;
+        bestL = _status.L_relays;        
+      }
+#ifdef DEBUG_COARSE_TUNE_STATUS
+      Serial.print(cnt);
+      Serial.print(F("   "));
+      Serial.print(float(bestSWR)/100000, 4);
+      Serial.print(F("\t"));
+      printStatus(printBody);
+#endif
+      _status.L_relays++;
+    }
+    _status.C_relays = _status.C_relays /2; // If no definite dip halve the capacitors and try again
+    _status.L_relays = 0;
+    setRelays(); // Stepping through the capacitor relays
+    getSWR();
+  }
+#ifdef DEBUG_COARSE_TUNE_STATUS
+      Serial.print(cnt);
+      Serial.print(F("   "));
+      Serial.print(float(bestSWR)/100000, 4);
+      Serial.print(F("\t"));
+      printStatus(printBody);
+#endif  
+  
+  // Now set the relays to the state which gave best SWR
+  _status.C_relays = bestC;
+  _status.L_relays = bestL;
+//  _status.outputZ = bestZ;
+  setRelays();
+  getSWR();  
+}
+
+/**********************************************************************************************************/  
