@@ -1465,7 +1465,7 @@ void doRelayCoarseSteps()
   byte L_cnt = 0;
   byte bestC;
   byte bestL;
-  boolean noMatch = true;
+  boolean matched = false;
   boolean improved = false;
 
   // Initialise with no L relays operated, all C relays operated and C/O relay set by the caller.
@@ -1490,7 +1490,7 @@ void doRelayCoarseSteps()
 // We are looking for the region where altering both C and L are producing an effect on SWR. At this point
 // the fine tune can take over and give us the best tune reactances possible.
   
-  while((noMatch) && (C_cnt >= 0)) {
+  while((!matched) && (C_cnt >= 0)) {
     
 
     // Increment the inductors looking for the best SWR. On exit from this ...
@@ -1523,7 +1523,9 @@ void doRelayCoarseSteps()
       setRelays(); // Stepping through the Inductor relays
       getSWR();
     } // End of stepping inductor up loop
+    
     L_cnt = 0; //Reset counter
+    _status.L_relays = _status.L_relays - 6;
     
     // If we made no improvement from stepping inductors up, try stepping down.
     // _status.L_relays will have been stepped up by 4 to meet loop exit requirements.
@@ -1543,7 +1545,7 @@ void doRelayCoarseSteps()
       
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(L_cnt); // While in inductor loop we print the L_cnt
-      Serial.print(F("   "));
+      Serial.print(F("..."));
       Serial.print(float(bestSWR)/100000, 4);
       Serial.print(F("\t"));
       printStatus(printBody);
@@ -1553,6 +1555,12 @@ void doRelayCoarseSteps()
       setRelays(); // Stepping down through the Inductor relays
       getSWR();
     } // End of stepping inductor up loop
+    
+    L_cnt = 0; //Reset counter
+    Serial.print(F("bestSWR = ")); Serial.println(bestSWR);
+    if(bestSWR < 120000) break; // Finish search if SWR low enough for fine tune to capture
+    improved = false;
+    _status.L_relays = 0;
     
     //Step to the next C relay
     if(C_cnt > 1) {
