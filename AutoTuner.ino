@@ -1518,7 +1518,8 @@ void doRelayCoarseSteps()
       Serial.print(F("\t"));
       printStatus(printBody);
 #endif
-      _status.L_relays++;
+      if(_status.L_relays < B11111111) _status.L_relays++;
+      else break;
       setRelays(); // Stepping through the Inductor relays
       getSWR();
     } // End of stepping inductor up loop
@@ -1535,7 +1536,7 @@ void doRelayCoarseSteps()
         bestSWR = _status.rawSWR;
         bestC = _status.C_relays;
         bestL = _status.L_relays;
-        improved = true;
+//        improved = true;
         L_cnt = 0;        
       }
       else L_cnt++;
@@ -1547,15 +1548,19 @@ void doRelayCoarseSteps()
       Serial.print(F("\t"));
       printStatus(printBody);
 #endif
-      _status.L_relays--;
+      if(_status.L_relays > 0) _status.L_relays--;
+      else break;
       setRelays(); // Stepping down through the Inductor relays
       getSWR();
     } // End of stepping inductor up loop
     
     //Step to the next C relay
-    if(C_cnt > 1) bitSet(_status.C_relays, (C_cnt - 2));
+    if(C_cnt > 1) {
+      _status.C_relays = 0;
+      bitSet(_status.C_relays, (C_cnt - 2));
+    }
     else _status.C_relays = 0;
-    C_cnt++;
+    C_cnt--;
     setRelays(); // Stepping through the capacitor relays
     getSWR();
   } // End of capacitor stepping loop
