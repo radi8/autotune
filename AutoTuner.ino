@@ -692,8 +692,8 @@ void doRelayFineSteps()
 
   do {
     bestSWR = swrTemp;
-    swrTemp = fineStep_L(); // Returns best SWR obtained from stepping L both up and down
     swrTemp = fineStep_C(); // Starts with best from stepping L and returns best C swr.
+    swrTemp = fineStep_L(); // Returns best SWR obtained from stepping L both up and down
 #ifdef DEBUG_RELAY_FINE_STEPS    
     Serial.print(F("doRelayFineSteps():  Been through loop ")); 
     Serial.print(cnt); 
@@ -1459,13 +1459,13 @@ void doRelayCoarseSteps()
   // Entry: The caller sets the C/O relay to HiZ or LoZ as required
   // Exit with relay settings which give best SWR for the C/O relay setting on entry.
   
-  unsigned long initialSWR = 0;
+//  unsigned long initialSWR = 0;
   unsigned long bestSWR = 0;
   int C_cnt = 9;
   byte L_cnt = 0;
   byte bestC;
   byte bestL;
-  boolean matched = false;
+//  boolean matched = false;
   boolean improved = false;
 
   // Initialise with no L relays operated, all C relays operated and C/O relay set by the caller.
@@ -1473,7 +1473,7 @@ void doRelayCoarseSteps()
   _status.L_relays = 0;
   setRelays();
   getSWR();  //Get SWR with relays at initial state.
-  initialSWR = _status.rawSWR;
+//  initialSWR = _status.rawSWR;
   bestSWR = _status.rawSWR;
   
 #ifdef DEBUG_COARSE_TUNE_STATUS // Print the DEBUG header
@@ -1487,16 +1487,23 @@ void doRelayCoarseSteps()
   printStatus(printHeader);
 #endif
 
+// Start of main outer loop ....................................
+
 // We are looking for the region where altering both C and L are producing an effect on SWR. At this point
 // the fine tune can take over and give us the best tune reactances possible.
   
-  while((!matched) && (C_cnt >= 0)) {
+  while(C_cnt >= 0) {
     
 
     // Increment the inductors looking for the best SWR. On exit from this ...
     // If improvement found best_C, best_L and bestSWR will hold values for best spot.
     // If no improvement best_C, best_L and bestSWR will be set to Capacitor entry values.
-// TODO trap trying to overflow L relay settings
+    
+// TODO Maybe a store of the _status.L_relays so we can get back to the initial value
+// would be useful. See TODO further down.
+   // L_relaysTmp = _status.L_relays; // TODO possible solution to step_up/step_dn problem
+
+// start of inductor step up inner loop ---------------------------------------
 
     while(L_cnt < 4) {
 
@@ -1513,7 +1520,7 @@ void doRelayCoarseSteps()
       
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(L_cnt); // While in inductor loop we print the L_cnt
-      Serial.print(F("   "));
+      Serial.print(F("---"));
       Serial.print(float(bestSWR)/100000, 4);
       Serial.print(F("\t"));
       printStatus(printBody);
@@ -1523,9 +1530,18 @@ void doRelayCoarseSteps()
       setRelays(); // Stepping through the Inductor relays
       getSWR();
     } // End of stepping inductor up loop
-    
+
+// End of inductor step up inner loop ---------------------------------------
+
     L_cnt = 0; //Reset counter
-    _status.L_relays = _status.L_relays - 6;
+    // _status.L_relays = L_relaysTmp; // TODO possible solution to step up/step dn problem
+    
+    // TODO If the step up loop immediately started getting worse we need to set the
+    // step down loop to start from where the beginning of the step up loop was but
+    // only if it was not from zero as first time through will be because we can't
+    // step down from there.
+
+// Start of inductor step down inner loop ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     // If we made no improvement from stepping inductors up, try stepping down.
     // _status.L_relays will have been stepped up by 4 to meet loop exit requirements.
@@ -1545,7 +1561,7 @@ void doRelayCoarseSteps()
       
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(L_cnt); // While in inductor loop we print the L_cnt
-      Serial.print(F("..."));
+      Serial.print(F("~~~"));
       Serial.print(float(bestSWR)/100000, 4);
       Serial.print(F("\t"));
       printStatus(printBody);
@@ -1555,11 +1571,14 @@ void doRelayCoarseSteps()
       setRelays(); // Stepping down through the Inductor relays
       getSWR();
     } // End of stepping inductor up loop
+
+// End of inductor step down inner loop ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     L_cnt = 0; //Reset counter
     Serial.print(F("bestSWR = ")); Serial.println(bestSWR);
     if(bestSWR < 120000) break; // Finish search if SWR low enough for fine tune to capture
     improved = false;
+//    _status.L_relays = _status.L_relays / 2;
     _status.L_relays = 0;
     
     //Step to the next C relay
@@ -1572,10 +1591,12 @@ void doRelayCoarseSteps()
     setRelays(); // Stepping through the capacitor relays
     getSWR();
   } // End of capacitor stepping loop
+
+// End of main outer loop ....................................
   
 #ifdef DEBUG_COARSE_TUNE_STATUS
       Serial.print(C_cnt);  // After exiting capacitor loop we print the C_cnt
-      Serial.print(F("   "));
+      Serial.print(F("..."));
       Serial.print(float(bestSWR)/100000, 4);
       Serial.print(F("\t"));
       printStatus(printBody);
