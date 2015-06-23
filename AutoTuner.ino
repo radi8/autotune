@@ -30,7 +30,7 @@ uint8_t * heapptr, * stackptr;  // I declared these globally for memory checks
 
 #define DEBUG_BUTTON_ARRAY
 //#define DEBUG_BUTTON_INFO
-//#define DEBUG_BUTTONS
+#define DEBUG_BUTTONS
 //#define DEBUG_STEP_BUTTON
 
 #define TX_LEVEL_THRESHOLD 20
@@ -54,7 +54,7 @@ uint8_t * heapptr, * stackptr;  // I declared these globally for memory checks
 #define forward       A2   // Measure forward SWR on this pin
 #define reverse       A3   // Measure reverse SWR on this pin
 
-#define Button_Debounce_Millis 10   // Delay for pushbutton debounce settle time ms
+#define Button_Debounce_Millis 20   // Delay for pushbutton debounce settle time ms
 #define Relay_Settle_Millis    20   // Delay for relay debounce settle time ms
 
 #define C             true    // Capacitor relay set
@@ -348,10 +348,10 @@ void lcdPrintStatus()
   else lcd.print(" L");
   lcd.setCursor(0,1);
 
-  sprintf(charVal, "%4dp ", _status.totC);
+  sprintf(charVal, "%4du ", _status.totL);
   lcd.print(charVal);
 
-  sprintf(charVal, "%4du ", _status.totL);
+  sprintf(charVal, "%4dp ", _status.totC);
   lcd.print(charVal);
 
   sprintf(charVal, "%4d", _status.fwd);
@@ -403,8 +403,8 @@ byte processCommand(byte cmd)
   case TUNING: 
     { // Tuning is under way so process until finished
       tryPresets();
-//      if(_status.rawSWR > 160000) { // Debug change to force coarse tuning
-      if(_status.rawSWR > 1) {
+      if(_status.rawSWR > 130000) { // Debug change to force coarse tuning
+//      if(_status.rawSWR > 1) {
         _status.outputZ = hiZ;
         doRelayCoarseSteps();
         //Save SWR and relay states and see if better with C/O relay on output
@@ -495,8 +495,8 @@ void tryPresets()
   }
 
   // Try 40 M wire antenna centred on 7.05 mHz
-  _status.C_relays = B01000001; // Debug settings for C and L relays
-  _status.L_relays = B00001100;
+  _status.C_relays = B00101100; // Debug settings for C and L relays
+  _status.L_relays = B00010000;
   _status.outputZ  = hiZ;
   setRelays();
   getSWR();
@@ -505,9 +505,9 @@ void tryPresets()
     statusTemp = _status;
   }
 
-  // Try 30 M wire antenna centred on 10.025 mHz
-  _status.C_relays = B01001011; // Debug settings for C and L relays
-  _status.L_relays = B00001101;
+  // Try 30 M wire antenna centred on 10.125 mHz
+  _status.C_relays = B01001111; // Debug settings for C and L relays
+  _status.L_relays = B00001100;
   _status.outputZ  = hiZ;
   setRelays();
   getSWR();
@@ -1275,6 +1275,8 @@ byte getAnalogButton()
   if((millis() - lastButtonTime) < analog_Button_Debounce_Millis){
     return 0;
   }
+  
+  // OK we are over 'analog_Button_Debounce_Millis' since the last button read so process button.
   lastButtonTime = millis(); // Set timer for next sample period
   //See if a button was pressed
   //  if (analogRead(analog_buttons_pin) <= button_array_high_limit[num_of_analog_buttons-1]) {
@@ -1290,7 +1292,7 @@ byte getAnalogButton()
     Serial.println(analogButtonValue);
   }
 #endif  
-  // Now determine which button was pressed if any
+  // Now determine which button was pressed if any, else assign button value of 0
   if (analogButtonValue <= _Button_array_max_value[num_of_analog_buttons-1]) {
     for (cnt = 0; cnt < num_of_analog_buttons; cnt++) {
       if  ((analogButtonValue > _Button_array_min_value[cnt]) &&
@@ -1299,7 +1301,8 @@ byte getAnalogButton()
       }
     }  
   } 
-  else thisButton = 0;
+  else thisButton = 0; // End of "Now determine which button was pressed if any ..."
+  
   // See if we got 2 identical samples in a row
   if(thisButton != lastButtonValue) {
     lastButtonValue = thisButton; // No but setting up now for next sample match.
@@ -1329,7 +1332,8 @@ byte getAnalogButton()
         longPressTimer = 0;
       }
     }
-  } 
+  } // End of "See if we got 2 identical samples in a row"
+  
   return retVal;  
 }
 
