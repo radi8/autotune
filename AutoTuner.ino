@@ -565,8 +565,8 @@ void tryPresets()
   // Presets for beam antenna
 
   // Try 20 M beam antenna centred on 14.025 mHz
-  _status.C_relays = B00011100; // Debug settings for C and L relays
-  _status.L_relays = B00000011;
+  _status.C_relays = B00011110; // Debug settings for C and L relays
+  _status.L_relays = B00000010;
   _status.outputZ  = loZ;
   setRelays();
   getSWR();
