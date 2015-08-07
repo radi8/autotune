@@ -944,9 +944,11 @@ void printFineSteps(float bestSWR)
 }
 
 /**********************************************************************************************************/
-// We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
+
 unsigned int calcXvalue(bool CorL)
 {
+  // We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
+  
   unsigned int val = 0;
 
   for (byte cnt = 0; cnt < 8; cnt++) {
