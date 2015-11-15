@@ -1,0 +1,24 @@
+unsigned long fineStep_L() Line 787
+{
+  // Enter with swr and relay status up to date
+
+/**********************************************************************************************************/
+
+unsigned int calcXvalue(bool CorL) Line 948
+{
+  // We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
+
+/**********************************************************************************************************/
+
+void setRelays() Line 978
+{
+  // Writes the bytes from _status.C_relays and _status.L_relays to the associated shift register. Following
+  // this the HiZ/LoZ changeover is set to match _status.outputZ (hiZ = true; loZ = false). The capacitor
+  // changeover relay switches caps to input (not operated) for hiZ loads and output (operated) for loZ.
+  // The total value of C and L is calculated and placed in _status
+
+  // Due to a screw up in my circuit it is necessary to map the relays to the right pins on the relays
+
+/**********************************************************************************************************/
+
+

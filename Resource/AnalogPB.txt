@@ -1,0 +1,63 @@
+
+byte lastButtonPress = 0; // this variable used for debouncing
+unsigned long lastButtonTime = 0; // this variable used to enforce a delay between samples
+byte repeatedButtonPress = 0; // this variable used to disallow the user holding a button down and sending zillions of button press events
+
+// the setup routine runs once when you press reset:
+void setup() {
+
+  Serial.begin(38400);
+
+}
+
+// the loop routine runs over and over again forever:
+void loop() {
+
+  byte buttonPress = getButtonPress();
+
+  if (buttonPress) {
+    Serial.print(", button pressed: ");
+    Serial.println(buttonPress);
+  }
+
+}
+
+byte getButtonPress() {
+
+  if (millis() - lastButtonTime < 10) // if we already sampled less than 10ms ago,
+    return(0); //  give the resistor ladder voltage more time to stabilize
+
+  lastButtonTime = millis(); // grab a fresh timestamp so that next time we're called, we avoid sampling again too soon
+  byte thisButtonPress = 0; // a place to hold the button press result this time around
+  int sensorValue = analogRead(A0); // grab a reading from our resistor-ladder of buttons
+
+  if (sensorValue < 208) { // no button was pressed
+    lastButtonPress = 0;
+    return(0); // don't do anything, since no button was pressed
+  }
+  else if (sensorValue < 412) // button 1 was pressed
+    thisButtonPress = 1;
+  else if (sensorValue < 616) // button 2 was pressed
+    thisButtonPress = 2;
+  else if (sensorValue < 820) // button 3 was pressed
+    thisButtonPress = 3;
+  else                        // button 4 was pressed
+    thisButtonPress = 4;
+
+  // if we got this far, there was a legitimate button press
+  if (thisButtonPress == repeatedButtonPress) // hey, we already fired on this press, the user must have held the button down
+    return(0); // so do nothing
+
+  if (thisButtonPress == lastButtonPress) { // the same button was pressed at least two samples in a row
+    repeatedButtonPress = thisButtonPress; // keep track of this, so we never fire again on the this press
+    Serial.print("Sensor value: ");
+    Serial.print(sensorValue);
+    return(thisButtonPress); // finally, fire!
+  }
+  else { // we got a different button than last time, so wait for the next sample to match before we fire any event
+    lastButtonPress = thisButtonPress; // remember this press to compare to our next sample
+    repeatedButtonPress = 0; // no buttons were held down, so there was no repeat
+  }
+  return(0); // for some reason adding this in makes our sketch 2 bytes SMALLER?!
+}
+
