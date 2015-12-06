@@ -3,7 +3,7 @@
 //#define DEBUG_RELAY_STATE
 #define DEBUG_COARSE_TUNE_STATUS
 #define DEBUG_TUNE_SUMMARY
-//#define DEBUG_status.rawSWR_VALUES
+//#define DEBUG_status
 
 // We need the printStatus() subroutine for any of these debugs
 #if defined  DEBUG_COARSE_TUNE_STATUS
