@@ -1365,20 +1365,6 @@ void doRelayCoarseSteps()
   getSWR();  //Get SWR with relays at initial state.
   bestSWR = _status.rawSWR;
 
-#ifdef DEBUG_COARSE_TUNE_STATUS // Print the DEBUG header
-  Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
-  if (_status.outputZ == hiZ) Serial.print(F("Output (HiZ)"));
-  else Serial.print(F("Input (LoZ"));
-  Serial.println();
-  Serial.print("Cap\t");
-  for(int x = 0; x < 9; x++) {
-    Serial.print(F("  L")); 
-    Serial.print(x);
-    Serial.print(F("       "));
-  } 
-  Serial.println();
-#endif
-
   for(byte c =0; c < 9; c++) {
     if(c != 0) {
       _status.C_relays = 0;
@@ -1415,8 +1401,20 @@ void doRelayCoarseSteps()
   delay(20); // Extra settling time for an ultra stable final reading
   getSWR();  //Get SWR with relays at final state.
 
-#ifdef DEBUG_COARSE_TUNE_STATUS // Print the DEBUG body
-  // Print the debug data captured in the array
+#ifdef DEBUG_COARSE_TUNE_STATUS // Print the DEBUG header
+  Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
+  if (_status.outputZ == hiZ) Serial.print(F("Output (HiZ)"));
+  else Serial.print(F("Input (LoZ"));
+  Serial.println();
+  Serial.print("Cap\t");
+  for(int x = 0; x < 9; x++) {
+    Serial.print(F("  L")); 
+    Serial.print(x);
+    Serial.print(F("       "));
+  } 
+  Serial.println();
+  
+  // Now print the DEBUG body which is the debug data captured in the array
   for(byte c =0; c < 9; c++) {
     Serial.print(F("C"));
     Serial.print(c);
@@ -1450,6 +1448,5 @@ void doRelayCoarseSteps()
 unsigned long fineStep_C() // Enter with swr and relay status up to date
 {
 
-}
 }
 
