@@ -554,89 +554,6 @@ void tryPresets()
 }
 
 /**********************************************************************************************************/
-/*
-void doRelayCoarseSteps()
-{
-  // For each L relay set in turn from 0 relays to the 8th relay we set the capacitor
-  // relays one by one from 0 relays operated (cnt = 0) through 1st to 8th relay
-  // (cnt = 1 to cnt = 8), checking to see which relays produce the lowest SWR.
-
-  // Entry: The caller sets the C/O relay to HiZ or LoZ as required
-  // Exit with relay settings which give best SWR for the C/O relay setting on entry.
-
-  unsigned long bestSWR = 99900000; // Dummy value to force bestSWR to be written from
-  byte bestC;
-  byte bestL;
-  byte cnt = 0;
-  byte cnt_L = 0;
-
-  // Initialise with no relays operated, C/O relay was set by the caller.
-  _status.C_relays = 0;
-  _status.L_relays = 0;
-  setRelays(); // Switch off all the relays
-
-#ifdef DEBUG_COARSE_TUNE_STATUS
-    Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
-  if(_status.outputZ == hiZ) Serial.println(F("Output"));
-  else Serial.println(F("Input"));
-  Serial.print(F("cnt"));
-  Serial.print(F(" "));
-  Serial.print(F("bestSWR"));
-  Serial.print(F("\t"));
-  printStatus(printHeader);
-#endif
-
-  getSWR();  //Get SWR with no relays operated at this point.
-
-  // currentSWR first time through for loop
-
-
-    for(cnt_L = 0; cnt_L < 9; cnt_L++){
-    if(cnt_L > 0){
-      _status.L_relays = 0;
-      bitSet(_status.L_relays,cnt_L - 1);
-      _status.C_relays = 0; //Start C_Relay loop at b'0000_0000'
-      setRelays(); // Stepping through the Inductor relays
-      getSWR();
-    }
-    for(cnt = 0; cnt < 9; cnt++){
-      if(cnt > 0){
-        _status.C_relays = 0;
-        bitSet(_status.C_relays,cnt - 1);
-        setRelays(); // Stepping through the Capacitor relays
-        getSWR();
-      }
-      //      Serial.print(currentSWR, 4); Serial.print(" and "); Serial.println(bestSWR, 4);
-      if(_status.rawSWR <= bestSWR){
-        bestSWR = _status.rawSWR;
-        bestC = _status.C_relays;
-        bestL = _status.L_relays;
-//        bestZ = _status.outputZ;
-      }
-      displayAnalog(0, 0, _status.fwd);
-      displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_COARSE_TUNE_STATUS
-      Serial.print(cnt);
-      Serial.print(F("   "));
-      Serial.print(float(bestSWR)/100000, 4);
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-//  Serial.println(freeRam());
-
-    } // end of inner for loop
-  } // end of outer for loop
-
-  // Now set the relays to the state which gave best SWR
-  _status.C_relays = bestC;
-  _status.L_relays = bestL;
-//  _status.outputZ = bestZ;
-  setRelays();
-  getSWR();
-}
-*/
-/**********************************************************************************************************/
 void doRelayFineSteps()
 {
   unsigned long bestSWR;
@@ -674,6 +591,7 @@ void doRelayFineSteps()
 }
 
 /**********************************************************************************************************/
+/*
 unsigned long fineStep_C() // Enter with swr and relay status up to date
 {
   unsigned long bestSWR;
@@ -1209,211 +1127,213 @@ void initialize_analog_button_array()
     Serial.print(F(" - "));
     Serial.println(_Button_array_max_value[x]);
 #endif //DEBUG_BUTTON_ARRAY/*  
+  }
 }
-}
 
-    /**********************************************************************************************************/
-    byte getAnalogButton()
-    {
-      // Buttons are checked for either a short or a long press. The first time the poll detects a button press it saves
-      // the button info and waits 10 msec to re-sample the button. A short press is determined by a release being
-      // detected within LONG_PRESS_TIME. A Long press by checking button is held for more than LONG_PRESS_TIME.
-      // Returns: 0 if no button is pressed
-      //          0 for short pressed button leading edge or 'short press time' button hold.
-      //          button number if short press trailing edge
-      //          button Number plus Number of buttons if Long press leading edge
-      //          button Number plus (Number of buttons * 2) if Long press trailing edge
+/**********************************************************************************************************/
+byte getAnalogButton()
+{
+  // Buttons are checked for either a short or a long press. The first time the poll detects a button press it saves
+  // the button info and waits 10 msec to re-sample the button. A short press is determined by a release being
+  // detected within LONG_PRESS_TIME. A Long press by checking button is held for more than LONG_PRESS_TIME.
+  // Returns: 0 if no button is pressed
+  //          0 for short pressed button leading edge or 'short press time' button hold.
+  //          button number if short press trailing edge
+  //          button Number plus Number of buttons if Long press leading edge
+  //          button Number plus (Number of buttons * 2) if Long press trailing edge
 
-      static unsigned long lastButtonTime = 0;
-      static unsigned long longPressTimer = 0;
-      static boolean longPress = false;
-      static byte lastButtonValue = 0;
-      static byte currentButton = 0;
-      int analogButtonValue = 0;
-      int analog_read_temp = 0;
-      byte thisButton;
-      byte cnt;
-      byte retVal;
+  static unsigned long lastButtonTime = 0;
+  static unsigned long longPressTimer = 0;
+  static boolean longPress = false;
+  static byte lastButtonValue = 0;
+  static byte currentButton = 0;
+  int analogButtonValue = 0;
+  int analog_read_temp = 0;
+  byte thisButton;
+  byte cnt;
+  byte retVal;
 
-      //sample the analog input only every 'analog_Button_Debounce_Millis' intervals
-      if ((millis() - lastButtonTime) < analog_Button_Debounce_Millis) {
-        return 0;
-      }
+  //sample the analog input only every 'analog_Button_Debounce_Millis' intervals
+  if ((millis() - lastButtonTime) < analog_Button_Debounce_Millis) {
+    return 0;
+  }
 
-      // OK we are over 'analog_Button_Debounce_Millis' since the last button read so process button.
-      lastButtonTime = millis(); // Set timer for next sample period
-      //See if a button was pressed
-      //  if (analogRead(analog_buttons_pin) <= button_array_high_limit[num_of_analog_buttons-1]) {
+  // OK we are over 'analog_Button_Debounce_Millis' since the last button read so process button.
+  lastButtonTime = millis(); // Set timer for next sample period
+  //See if a button was pressed
+  //  if (analogRead(analog_buttons_pin) <= button_array_high_limit[num_of_analog_buttons-1]) {
 
-      // 32 reads of button effectively averages it
-      for (cnt = 0; cnt < 32; cnt++) {
-        analogButtonValue = analogButtonValue + analogRead(analog_buttons_pin);
-      }
-      analogButtonValue = analogButtonValue / cnt;
+  // 32 reads of button effectively averages it
+  for (cnt = 0; cnt < 32; cnt++) {
+    analogButtonValue = analogButtonValue + analogRead(analog_buttons_pin);
+  }
+  analogButtonValue = analogButtonValue / cnt;
 #ifdef DEBUG_BUTTONS
-if (analogButtonValue < 1020) {
-Serial.print(F("The raw button press value is "));
-Serial.println(analogButtonValue);
-}
+  if (analogButtonValue < 1020) {
+    Serial.print(F("The raw button press value is "));
+    Serial.println(analogButtonValue);
+  }
 #endif
 // Now determine which button was pressed if any, else assign button value of 0
-if (analogButtonValue <= _Button_array_max_value[num_of_analog_buttons - 1]) {
-for (cnt = 0; cnt < num_of_analog_buttons; cnt++) {
-if  ((analogButtonValue > _Button_array_min_value[cnt]) &&
-(analogButtonValue <=  _Button_array_max_value[cnt])) {
-thisButton = cnt + 1;
-}
-}
-} 
-else thisButton = 0; // End of "Now determine which button was pressed if any ..."
+  if (analogButtonValue <= _Button_array_max_value[num_of_analog_buttons - 1]) {
+    for (cnt = 0; cnt < num_of_analog_buttons; cnt++) {
+      if  ((analogButtonValue > _Button_array_min_value[cnt]) &&
+        (analogButtonValue <=  _Button_array_max_value[cnt])) {
+        thisButton = cnt + 1;
+      }
+    }
+  } 
+  else thisButton = 0; // End of "Now determine which button was pressed if any ..."
 
       // See if we got 2 identical samples in a row
-      if (thisButton != lastButtonValue) {
-        lastButtonValue = thisButton; // No but setting up now for next sample match.
+  if (thisButton != lastButtonValue) {
+    lastButtonValue = thisButton; // No but setting up now for next sample match.
+  }
+  else { // We have a valid button press or a valid button release
+    if (thisButton != 0) { // It is a press so save the button and check for a long press
+      if (currentButton != thisButton) {
+        currentButton = thisButton;
+        longPressTimer = millis();
       }
-      else { // We have a valid button press or a valid button release
-        if (thisButton != 0) { // It is a press so save the button and check for a long press
-          if (currentButton != thisButton) {
-            currentButton = thisButton;
-            longPressTimer = millis();
-          }
-          if ((millis() - longPressTimer) > LONG_PRESS_TIME) {
-            retVal = currentButton + num_of_analog_buttons;
-            longPress = true;
-          }
-          else retVal = 0;
-        }
-        else { // We are releasing the button so check if it is from a short or long press
-          if (longPress) {
-            //        Serial.println(F("At ... if((millis() - longPressTimer) > LONG_PRESS_TIME)"));
-            retVal = currentButton + num_of_analog_buttons + num_of_analog_buttons;
-            currentButton = 0;
-            longPress = false;
-          }
-          else {
-            retVal = currentButton;
-            currentButton = 0;
-            longPressTimer = 0;
-          }
-        }
-      } // End of "See if we got 2 identical samples in a row"
-
-      return retVal;
+      if ((millis() - longPressTimer) > LONG_PRESS_TIME) {
+        retVal = currentButton + num_of_analog_buttons;
+        longPress = true;
+      }
+      else retVal = 0;
     }
-
-    /**********************************************************************************************************/
-
-    void processShortPressTE(byte button)
-    {
-      static unsigned long repeatValue = 0;
-
-      if ((millis() - repeatValue) > 60) {
-        switch (button) {
-          case 1:
-            {
-              _status.C_relays++;
-              setRelays();
-              break;
-            }
-          case 2:
-            {
-              _status.C_relays--;
-              setRelays();
-              break;
-            }
-          case 3:
-            {
-              _status.L_relays++;
-              setRelays();
-              break;
-            }
-          case 4:
-            {
-              _status.L_relays--;
-              setRelays();
-            }
-        }
-        getSWR();
-        lcdPrintStatus();
+    else { // We are releasing the button so check if it is from a short or long press
+      if (longPress) {
+        //        Serial.println(F("At ... if((millis() - longPressTimer) > LONG_PRESS_TIME)"));
+        retVal = currentButton + num_of_analog_buttons + num_of_analog_buttons;
+        currentButton = 0;
+        longPress = false;
       }
-#ifdef DEBUG_BUTTON_INFO
-Serial.print(F("Loop:  A short press trailing edge detected on button "));
-Serial.println(button);
-#endif
-#ifdef DEBUG_TUNE_SUMMARY
-printStatus(printHeader);
-printStatus(printBody);
-#endif
+      else {
+        retVal = currentButton;
+        currentButton = 0;
+        longPressTimer = 0;
+      }
+    }
+  } // End of "See if we got 2 identical samples in a row"
+
+  return retVal;
 }
 
-      /**********************************************************************************************************/
-      void processLongPressLE(byte button)
-      {
-        static unsigned long repeatValue = 0;
-
-        if ((millis() - repeatValue) > 60) {
-          repeatValue = millis();
-          switch (button) {
-            case 1:
-              {
-                _status.C_relays++;
-                setRelays();
-                break;
-              }
-            case 2:
-              {
-                _status.C_relays--;
-                setRelays();
-                break;
-              }
-            case 3:
-              {
-                _status.L_relays++;
-                setRelays();
-                break;
-              }
-            case 4:
-              {
-                _status.L_relays--;
-                setRelays();
-              }
-          }
-        }
-#ifdef DEBUG_TUNE_SUMMARY
-printStatus(printHeader);
-printStatus(printBody);
-#endif
-}
 /**********************************************************************************************************/
-        void processLongPressTE(byte button)
+
+void processShortPressTE(byte button)
+{
+  static unsigned long repeatValue = 0;
+
+  if ((millis() - repeatValue) > 60) {
+    switch (button) {
+      case 1:
         {
-          static unsigned long repeatValue = 0;
-
-          if ((millis() - repeatValue) > 60) {
-
-          }
+          _status.C_relays++;
+          setRelays();
+          break;
+        }
+      case 2:
+        {
+          _status.C_relays--;
+          setRelays();
+          break;
+        }
+      case 3:
+        {
+          _status.L_relays++;
+          setRelays();
+          break;
+        }
+      case 4:
+        {
+          _status.L_relays--;
+          setRelays();
+        }
+    }
+    getSWR();
+    lcdPrintStatus();
+  }
 #ifdef DEBUG_BUTTON_INFO
-          Serial.print(F("Loop:  A long press trailing edge detected on button "));
-          Serial.println(button);
+  Serial.print(F("Loop:  A short press trailing edge detected on button "));
+  Serial.println(button);
+  #endif
+  #ifdef DEBUG_TUNE_SUMMARY
+  printStatus(printHeader);
+  printStatus(printBody);
 #endif
+}
+
+/**********************************************************************************************************/
+void processLongPressLE(byte button)
+{
+  static unsigned long repeatValue = 0;
+
+  if ((millis() - repeatValue) > 60) {
+    repeatValue = millis();
+    switch (button) {
+      case 1:
+        {
+          _status.C_relays++;
+          setRelays();
+          break;
         }
+      case 2:
+        {
+          _status.C_relays--;
+          setRelays();
+          break;
+        }
+      case 3:
+        {
+          _status.L_relays++;
+          setRelays();
+          break;
+        }
+      case 4:
+        {
+          _status.L_relays--;
+          setRelays();
+        }
+    }
+  }
+#ifdef DEBUG_TUNE_SUMMARY
+  printStatus(printHeader);
+  printStatus(printBody);
+#endif
+}
+/**********************************************************************************************************/
+
+void processLongPressTE(byte button)
+{
+  static unsigned long repeatValue = 0;
+  
+  if ((millis() - repeatValue) > 60) {
+
+  }
+#ifdef DEBUG_BUTTON_INFO
+  Serial.print(F("Loop:  A long press trailing edge detected on button "));
+  Serial.println(button);
+#endif
+}
 
 /**********************************************************************************************************/
 
-        int freeRam () {
-          extern int __heap_start, *__brkval;
-          int v;
-          return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-        }
+int freeRam ()
+{
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
 /**********************************************************************************************************/
 
-        void check_mem() {
-          //uint8_t * heapptr, * stackptr;  // I declared these globally
-          stackptr = (uint8_t *)malloc(4);  // use stackptr temporarily
-          heapptr = stackptr;                  // save value of heap pointer
-          free(stackptr);                        // free up the memory again (sets stackptr to 0)
-          stackptr =  (uint8_t *)(SP);       // save value of stack pointer
-        }
+void check_mem() {
+  //uint8_t * heapptr, * stackptr;  // I declared these globally
+  stackptr = (uint8_t *)malloc(4);  // use stackptr temporarily
+  heapptr = stackptr;               // save value of heap pointer
+  free(stackptr);                   // free up the memory again (sets stackptr to 0)
+  stackptr =  (uint8_t *)(SP);      // save value of stack pointer
+}
 
 /**********************************************************************************************************/
 
@@ -1526,3 +1446,10 @@ void doRelayCoarseSteps()
 } //end subroutine
 
 /**********************************************************************************************************/
+
+unsigned long fineStep_C() // Enter with swr and relay status up to date
+{
+
+}
+}
+
