@@ -1271,6 +1271,9 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 
   while(cnt != 4) {
     if(((lowRelay == 0) && (cnt < 5)) || ((lowRelay == 247) && (cnt > 3))) {
+#ifdef DEBUG_FINE_STEP
+      Serial.println(F("We will overflow so choosing best value"));
+#endif      
       break;
     } else if(cnt < 4) { // We need to search down
 //      cout << "cnt = " << int(cnt) << " so searching down" << endl;
@@ -1290,6 +1293,19 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       values[0] = _status.rawSWR;
     } else { // We need to search up
 //      cout << "cnt = " << int(cnt) << " so searching up" << endl;
+#ifdef DEBUG_FINE_STEP
+  if(header) {
+    Serial.print(F("cnt > 4 so searching up using "));
+    if(reactance == INDUCTANCE) {
+      Serial.println(F("INDUCTORS"));
+    } else {
+      Serial.println(F("CAPACITORS"));
+    }
+    printStatus(printHeader);
+    header = false;
+  }
+  printStatus(printBody);
+#endif
       lowRelay++;
       shiftLeft(values, 8);
       *pReactance = lowRelay + 8;
@@ -1308,6 +1324,16 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 //  cout << "cnt = " << int(cnt) << ";  _status.C_relays = " << int(*pReactance) << "; _status.rawSWR = " << _status.rawSWR << endl;
   displayAnalog(0, 0, _status.fwd);
   displayAnalog(0, 1, _status.rev);
+#ifdef DEBUG_FINE_STEP
+    Serial.print(F("fineStep: Values on exit using "));
+    if(reactance == INDUCTANCE) {
+      Serial.println(F("INDUCTORS"));
+    } else {
+      Serial.println(F("CAPACITORS"));
+    }
+    printStatus(printHeader);
+    printStatus(printBody);
+#endif  
   return _status.rawSWR;
 }
 
