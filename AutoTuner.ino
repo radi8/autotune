@@ -86,6 +86,7 @@ const unsigned int _strayL = 0;
 const unsigned int _capacitors[] = { 6,  11,  22,  44,   88,  168,  300,  660 };  // capacitor values in pF
 const unsigned int _strayC = 0;
 
+enum {INDUCTANCE, CAPACITANCE};
 enum commandMode {TUNED, TUNE, TUNING};
 byte _cmd = 0;  // Holds the command to be processed
 
@@ -571,8 +572,8 @@ void doRelayFineSteps()
 
   do {
     bestSWR = swrTemp;
-    swrTemp = fineStep_C(); // Starts with best from stepping L and returns best C swr.
-    swrTemp = fineStep_L(); // Returns best SWR obtained from stepping L both up and down
+    swrTemp = fineStep(CAPACITANCE); // Starts with best from stepping L and returns best C swr.
+    swrTemp = fineStep(INDUCTANCE); // Returns best SWR obtained from stepping L both up and down
 #ifdef DEBUG_RELAY_FINE_STEPS
     Serial.print(F("doRelayFineSteps():  Been through loop "));
     Serial.print(cnt);
@@ -591,248 +592,7 @@ void doRelayFineSteps()
 }
 
 /**********************************************************************************************************/
-/*
-unsigned long fineStep_C() // Enter with swr and relay status up to date
-{
-  unsigned long bestSWR;
-  byte C_RelaysTmp = _status.C_relays; //Later will compare the value of _status.C_relays to see if we changed.
 
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println(F("fineStep_C():  Stepping capacitors up."));
-  Serial.print(F("bestSWR\t"));
-  printStatus(printHeader);
-#endif
-  //Start off by tweaking the C relays. We will increase capacitance as first try.
-  if (_status.C_relays != B11111111) { // Step to next capacitor value only if it won't step beyond maximum C.
-    do {
-      bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
-
-      displayAnalog(0, 0, _status.fwd);
-      displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-      // We print the swr & status values at entry then each time after relays are stepped.
-      Serial.print(float(bestSWR) / 100000, 4);
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-      _status.C_relays++;
-      setRelays();
-      getSWR();
-    }
-    while (_status.rawSWR <= bestSWR);
-
-    displayAnalog(0, 0, _status.fwd);
-    displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-    // We have not printed the values which caused the loop to exit so do it now
-    Serial.print(float(_status.rawSWR) / 100000, 4); // Print the actual swr on exit.
-    Serial.print(F("\t"));
-    printStatus(printBody);
-#endif
-
-    _status.C_relays--; // On exit, we have stepped one capacitor step too far, so back up one to best value.
-    setRelays();
-    getSWR();
-
-    displayAnalog(0, 0, _status.fwd);
-    displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-    Serial.println(F("Values on exit from capacitor fine steps up. The extra step has been corrected."));
-    Serial.print(float(bestSWR) / 100000, 4); // rawSWR should be equal to bestSWR at this point.
-    Serial.print(F("\t"));
-    printStatus(printBody);
-    //  Serial.print("C_RelaysTmp, _status.C_relays = "); Serial.print(C_RelaysTmp); Serial.print("' ");Serial.println(_status.C_relays);
-#endif
-  } // end if(_status.C_relays != B11111111)
-  else {
-    // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
-    // we do nothing and leave the C_Relays at entry state.
-
-    displayAnalog(0, 0, _status.fwd);
-    displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println(F("_status.C_Relays = b1111_1111 so are not going to step C_Relays up one"));
-    Serial.print(float(bestSWR) / 100000, 4);
-    Serial.print(F("\t"));
-    printStatus(printBody);
-#endif
-  }
-  //------------------------------------------------------------------
-  if (C_RelaysTmp == _status.C_relays) { // We didn't improve by trying to increase C so try reducing it.
-    bestSWR = _status.rawSWR;
-#ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println(F("fineStep_C():  Stepping capacitors down."));
-    Serial.print(F("bestSWR\t"));
-    printStatus(printHeader);
-#endif
-    if (_status.C_relays != B00000000) { // Step next capacitor down only if it won't roll up to maximum C.
-      do {
-        bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
-#ifdef DEBUG_RELAY_FINE_STEPS
-        // We print the swr & status values at entry then each time after relays are stepped.
-        Serial.print(float(bestSWR) / 100000, 4);
-        Serial.print(F("\t"));
-        printStatus(printBody);
-#endif
-        _status.C_relays--;
-        setRelays();
-        getSWR();
-      }
-      while (_status.rawSWR <= bestSWR);
-
-      displayAnalog(0, 0, _status.fwd);
-      displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-      // We have not printed the values which caused the loop to exit so do it now
-      Serial.print(float(_status.rawSWR) / 100000, 4); // Print the actual swr on exit.
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-      _status.C_relays++; // On exit, we have stepped one capacitor step too far, so back up one to best value.
-      setRelays();
-      getSWR();
-
-      displayAnalog(0, 0, _status.fwd);
-      displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-      Serial.println(F("Values on exit from capacitor fine steps down. The extra step has been corrected."));
-      Serial.print(float(bestSWR) / 100000, 4); // rawSWR should be equal to bestSWR at this point.
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-    } // end if(_status.C_relays != B00000000)
-    else {
-      // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
-      // we do nothing and leave the C_Relays at entry state.
-
-      displayAnalog(0, 0, _status.fwd);
-      displayAnalog(0, 1, _status.rev);
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-      Serial.println(F("_status.C_Relays = b'0000_0000' so are not going to step C_Relays down one"));
-      Serial.print(float(bestSWR) / 100000, 4);
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-    }
-  } // end if(C_RelaysTmp == _status.C_relays)
-
-  return _status.rawSWR;
-}
-
-/**********************************************************************************************************/
-unsigned long fineStep_L() // Enter with swr and relay status up to date
-{
-  unsigned long bestSWR;
-  byte L_RelaysTmp = _status.L_relays; //Later will compare the value of _status.L_relays to see if we changed.
-
-#ifdef DEBUG_RELAY_FINE_STEPS
-  Serial.println(F("fineStep_L():  Stepping inductors up."));
-  Serial.print(F("bestSWR\t"));
-  printStatus(printHeader);
-#endif
-  //Start off by tweaking the L relays. We will increase inductance as first try.
-  if (_status.L_relays != B11111111) { // Step to next inductor value only if it won't step beyond maximum L.
-    do {
-      bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
-#ifdef DEBUG_RELAY_FINE_STEPS
-      // We print the swr & status values at entry then each time after relays are stepped.
-      Serial.print(float(bestSWR) / 100000, 4);
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-      _status.L_relays++;
-      setRelays();
-      getSWR();
-    }
-    while (_status.rawSWR <= bestSWR);
-#ifdef DEBUG_RELAY_FINE_STEPS
-    // We have not printed the values which caused the loop to exit so do it now
-    Serial.print(float(_status.rawSWR) / 100000, 4); // Print the actual swr on exit.
-    Serial.print(F("\t"));
-    printStatus(printBody);
-#endif
-    _status.L_relays--; // On exit, we have stepped one inductor step too far, so back up one to best value.
-    setRelays();
-    getSWR();
-#ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-    Serial.println(F("Values on exit from inductor fine steps up. The extra step has been corrected."));
-    Serial.print(float(_status.rawSWR) / 100000, 4); // rawSWR should be equal to bestSWR at this point.
-    Serial.print(F("\t"));
-    printStatus(printBody);
-#endif
-  } // end if(_status.L_relays != B11111111)
-  else {
-    // Relays were at b'1111_1111' so stepping them up would have rolled over to b'0000_0000' therefore
-    // we do nothing and leave the L_Relays at entry state; swrTemp has already been set to best SWR
-#ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println(F("_status.L_Relays = b1111_1111 so are not going to step L_Relays up one"));
-    Serial.print(float(bestSWR) / 100000, 4);
-    Serial.print(F("\t"));
-    printStatus(printBody);
-#endif
-  }
-  //------------------------------------------------------------------
-  if (L_RelaysTmp == _status.L_relays) { // We didn't improve by trying to increase L so try reducing it.
-    bestSWR = _status.rawSWR;
-#ifdef DEBUG_RELAY_FINE_STEPS
-    Serial.println(F("fineStep_L():  Stepping inductors down."));
-    Serial.print(F("bestSWR\t"));
-    printStatus(printHeader);
-#endif
-    if (_status.L_relays != B00000000) { // Step next inductor down only if it won't roll up to maximum L.
-      do {
-        bestSWR = _status.rawSWR; // 1st time through, bestSWR equals entry values
-#ifdef DEBUG_RELAY_FINE_STEPS
-        // We print the swr & status values at entry then each time after relays are stepped.
-        //        Serial.print(float(bestSWR)/100000, 4);
-        //        Serial.print("\t");
-        printStatus(printBody);
-#endif
-        _status.L_relays--;
-        setRelays();
-        getSWR();
-      }
-      while (_status.rawSWR <= bestSWR);
-#ifdef DEBUG_RELAY_FINE_STEPS
-      // We have not printed the values which caused the loop to exit so do it now
-      Serial.print(float(_status.rawSWR) / 100000, 4); // Print the actual swr on exit.
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-      _status.L_relays++; // On exit, we have stepped one inductor step too far, so back up one to best value.
-      setRelays();
-      getSWR();
-
-#ifdef DEBUG_RELAY_FINE_STEPS // Print values after extra step backed up 1
-      Serial.println(F("Values on exit from inductor fine steps down. The extra step has been corrected."));
-      Serial.print(float(bestSWR) / 100000, 4); // rawSWR should be equal to bestSWR at this point.
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-    } // end if(_status.L_relays != B00000000)
-    else {
-      // Relays were at b'0000_0000' so stepping them down would have rolled up to b'1111_1111' therefore
-      // we do nothing and leave the L_Relays at entry state.
-#ifdef DEBUG_RELAY_FINE_STEPS
-      Serial.println(F("_status.L_Relays = b'0000_0000' so are not going to step L_Relays down one"));
-      Serial.print(float(bestSWR) / 100000, 4);
-      Serial.print(F("\t"));
-      printStatus(printBody);
-#endif
-    }
-  } // end if(L_RelaysTmp == _status.L_relays)
-
-  return _status.rawSWR;
-}
-
-/**********************************************************************************************************/
 #ifdef PRINT_STATUS
 void printStatus(boolean doHeader)
 {
@@ -1445,8 +1205,144 @@ void doRelayCoarseSteps()
 
 /**********************************************************************************************************/
 
-unsigned long fineStep_C() // Enter with swr and relay status up to date
+uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 {
+  // On entry, the relays we are exploring (_status.C_relays or _status.L_relays) can be anywhere from 0 to
+  // 255. Initially we exploreint(lowRelay) the relays each side to see if we need to step up or step down. The SWR from
+  // the 8 reactances surrounding the "_status.X_relays" value are read into_status.C_relays an array and examined with the
+  // current value centred at values[4]. A check is made to ensure that less or more relays won't overflow
+  // or underflow 0 to 255 wheint(lowRelay)n attempting to set the current position data into values[4]
 
+  uint32_t values[9]; // An array of SWR values centred around the relays set in "_status"
+  uint8_t lowRelay;   // The relay combination which gives the SWR held in Values[0] (0 to 255)
+  uint8_t cnt;
+  uint8_t *pReactance;
+
+  if(reactance == INDUCTANCE) {
+    pReactance = &_status.L_relays;
+  } else {
+    pReactance = &_status.C_relays;
+  }
+
+  // Load the array with the SWR values obtained from the current "_status_X_Relays" and the relays 4 above
+  // & below. Check to see thaint(lowRelay)t relays stay in bounds, i.e not less than 0 or not greater than 255.
+  if((*pReactance  >= 4) && (*pReactance <= 251)) {  // Don't let lowRelay over or underflow
+    lowRelay = *pReactance - 4;
+//    cout << "Relays in bounds, lowRelay = " << int(lowRelay) << endl;
+  } else {
+    if(*pReactance < 4) {
+      lowRelay = 0;
+    } else lowRelay = 247;
+//    cout << "Relays out of bounds, lowRelay = " << int(lowRelay) << endl;
+  }
+  // Loading the array
+  cnt = 0;
+  for(int x = lowRelay; x < (lowRelay + 9); x++) {
+    *pReactance = x;
+    // setRelays();
+    getSWR();
+    values[cnt] = _status.rawSWR;
+    cnt++;
+  }
+  // On exit, _status.X_relays = lowRelays + 8; cnt = 9
+  displayAnalog(0, 0, _status.fwd);
+  displayAnalog(0, 1, _status.rev);
+//  cout << "_status.X_relays = " << int(*pReactance) << endl; // DEBUG
+//  displayArray(values, 9);  // DEBUG
+
+  cnt = findBestValue(values, 9);
+//  cout << "cnt = " << int(cnt) << ";  value = " << values[cnt] << "; lowRelay = " << int(lowRelay) << endl; // DEBUG
+
+  // Assume if cnt < 4, we need to search down but not if lowRelay at 0 or we will underflow
+  // If cnt = 4 we have found the SWR dip
+  // If cnt > 4, we need to search up but not if lowRelay at 247 or we will overflow
+
+
+  while(cnt != 4) {
+    if(((lowRelay == 0) && (cnt < 5)) || ((lowRelay == 247) && (cnt > 3))) {
+      break;
+    } else if(cnt < 4) { // We need to search down
+//      cout << "cnt = " << int(cnt) << " so searching down" << endl;
+      lowRelay--;
+      shiftRight(values, 8);
+      *pReactance = lowRelay;
+      // setRelays();
+      getSWR();
+      values[0] = _status.rawSWR;
+    } else { // We need to search up
+//      cout << "cnt = " << int(cnt) << " so searching up" << endl;
+      lowRelay++;
+      shiftLeft(values, 8);
+      *pReactance = lowRelay + 8;
+      // setRelays();
+      getSWR();
+      values[8] = _status.rawSWR;
+    }
+    cnt = findBestValue(values, 9);
+    displayAnalog(0, 0, _status.fwd);
+    displayAnalog(0, 1, _status.rev);
+  }
+  *pReactance = lowRelay + cnt;
+  _status.rawSWR = values[cnt];
+//  cout << "cnt = " << int(cnt) << ";  _status.C_relays = " << int(*pReactance) << "; _status.rawSWR = " << _status.rawSWR << endl;
+  displayAnalog(0, 0, _status.fwd);
+  displayAnalog(0, 1, _status.rev);
+  return _status.rawSWR;
 }
 
+/**********************************************************************************************************/
+
+void shiftLeft(uint32_t values[], uint8_t cnt)
+{
+    // Shift left "cnt" places. The leftmost value drops off, rightmost is left vacant (unchanged).
+    // cnt is equal to 1 less than the number of elements in the array to shift all elements
+
+  for(uint8_t i=0; i < cnt; i++){
+    values[i]=values[i+1];
+  }
+}
+
+/**********************************************************************************************************/
+
+void shiftRight(uint32_t values[], uint8_t cnt)
+{
+    // Shift right "cnt" places. The rightmost value drops off, leftmost is left vacant (unchanged).
+    // cnt must be equal to the number of elements in the array
+
+  for(uint8_t i = cnt; i > 0; --i){
+    values[i]=values[i-1];
+  }
+}
+
+/**********************************************************************************************************/
+/*
+void displayArray(uint32_t values[], uint8_t cnt)
+{
+
+  for(int x = 0; x < cnt; x++){
+    cout << "values[" << x <<"] = " << values[x] <<endl;
+  }
+}
+
+/**********************************************************************************************************/
+
+uint8_t findBestValue(uint32_t values[], uint8_t cnt)
+// Parses an array of uint32_t values, whose length is equal to cnt. The position in the array (0 to cnt-1)
+// containing the smallest value is returned. If all positions are of equal value then position 0 is returned.
+
+{
+  uint32_t bestValue = 0;
+  uint8_t bestPosition = 0;
+
+  bestValue--;  // Initialize by rolling back to set to maximum value
+
+  for (uint8_t x = 0; x < cnt; x++) {
+    if(values[x] < bestValue) {
+      bestValue = values[x];
+      bestPosition = x;
+    }
+  }
+  return bestPosition;
+}
+
+/**********************************************************************************************************/
