@@ -604,8 +604,7 @@ void printStatus(boolean doHeader)
 {
   if (doHeader) {
     Serial.println(F("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR"));
-  }
-  else {
+  } else {
     char buffer[16];
 
     print_binary(_status.C_relays, 8);
@@ -1230,11 +1229,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   } else {
     pReactance = &_status.C_relays;
   }
-#ifdef DEBUG_FINE_STEP
-  Serial.println(F("fineStep: Values on entry"));
-  printStatus(printHeader);
-  printStatus(printBody);
-#endif
+
   // Load the array with the SWR values obtained from the current "_status_X_Relays" and the relays 4 above
   // & below. Check to see thaint(lowRelay)t relays stay in bounds, i.e not less than 0 or not greater than 255.
   if((*pReactance  >= 4) && (*pReactance <= 251)) {  // Don't let lowRelay over or underflow
@@ -1262,7 +1257,12 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 //  displayArray(values, 9);  // DEBUG
 
   cnt = findBestValue(values, 9);
-//  cout << "cnt = " << int(cnt) << ";  value = " << values[cnt] << "; lowRelay = " << int(lowRelay) << endl; // DEBUG
+
+#ifdef DEBUG_FINE_STEP
+  Serial.println(F("fineStep: Values on entry"));
+  printFineValues(printHeader, values, cnt, lowRelay);
+  printFineValues(printBody, values, cnt, lowRelay);
+#endif  
 
   // Assume if cnt < 4, we need to search down but not if lowRelay at 0 or we will underflow
   // If cnt = 4 we have found the SWR dip
@@ -1337,6 +1337,35 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   return _status.rawSWR;
 }
 
+/**********************************************************************************************************/
+
+void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t lowRelay)
+{
+  int x;
+  char buffer[16];
+  
+  if(doHeader) {
+    for(x = 0; x < 9; x++) {
+      Serial.print(F("Values["));
+      Serial.print(x);
+      Serial.print(F("] "));
+      Serial.print(F("lowRelay "));
+      Serial.println(F("cnt"));
+    }
+  } else {
+    for(x = 0; x < 9; x++) {
+      sprintf(buffer, "%3lu",values[x] / 100000);
+      Serial.print(buffer);
+      Serial.print(F("."));
+      sprintf(buffer, "%-05lu ",values[x] % 100000);
+      Serial.print(buffer);
+      Serial.print(F(" "));
+    }
+      Serial.print(lowRelay);
+      Serial.print("\t");
+      Serial.println(cnt);
+  }
+}
 /**********************************************************************************************************/
 
 void shiftLeft(uint32_t values[], uint8_t cnt)
