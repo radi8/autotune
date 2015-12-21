@@ -1212,53 +1212,50 @@ void doRelayCoarseSteps()
 
 uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 {
-  // On entry, the relays we are exploring (_status.C_relays or _status.L_relays) can be anywhere from 0 to
-  // 255. Initially we exploreint(lowRelay) the relays each side to see if we need to step up or step down. The SWR from
-  // the 8 reactances surrounding the "_status.X_relays" value are read into_status.C_relays an array and examined with the
-  // current value centred at values[4]. A check is made to ensure that less or more relays won't overflow
-  // or underflow 0 to 255 wheint(lowRelay)n attempting to set the current position data into values[4]
+  // On entry, we look at the current SWR and the SWR from the 4 relay steps each side to see if there is a trend and
+  // in which direction. The SWR from the 9 relays is read into an array which is examined to see if we need to step up
+  // or step down. A check is made to ensure that stepping the relays won't overflow 255 or underflow 0 then the array
+  // is traversed up or down consecutive relays until the best SWR is centred at values[4]. The associated relays are
+  // set in _status array. Parameter reactance determines whether we are stepping _status.C_relays or _status.L_relays.
 
-  uint32_t values[9]; // An array of SWR values centred around the relays set in "_status"
+  uint32_t values[9]; // An array of SWR values centred around the relays set in "_status" at entry
   uint8_t lowRelay;   // The relay combination which gives the SWR held in Values[0] (0 to 255)
-  uint8_t cnt;
-  uint8_t *pReactance;
-  boolean header = true;
+  uint8_t cnt;  // Mostly used to point to a position in the array
+  uint8_t *pReactance; // A pointer to either _status.C_relays or _status.L_relays
+  boolean header = true; // Used to decide whether to print the data table header on debug
 
-  if(reactance == INDUCTANCE) {
+  if(reactance == INDUCTANCE) {  // set to operate on either _status.C_relays or _status.L_relays
     pReactance = &_status.L_relays;
   } else {
     pReactance = &_status.C_relays;
   }
 
-  // Load the array with the SWR values obtained from the current "_status_X_Relays" and the relays 4 above
-  // & below. Check to see thaint(lowRelay)t relays stay in bounds, i.e not less than 0 or not greater than 255.
-  if((*pReactance  >= 4) && (*pReactance <= 251)) {  // Don't let lowRelay over or underflow
+  // Load the array with the SWR values obtained from the current "_status_X_Relays" and the relays 4 above & below.
+  // Check to see that "uint8_t lowRelay" stay in bounds, i.e does not become less than 0 or greater than 255.
+  if((*pReactance  >= 4) && (*pReactance <= 251)) {  // Do only if lowRelay won't over or underflow
     lowRelay = *pReactance - 4;
-//    cout << "Relays in bounds, lowRelay = " << int(lowRelay) << endl;
   } else {
-    if(*pReactance < 4) {
+    if(*pReactance < 4) { // lowRelay could go out of bounds here so limit its value
       lowRelay = 0;
     } else lowRelay = 247;
-//    cout << "Relays out of bounds, lowRelay = " << int(lowRelay) << endl;
   }
-  // Loading the array
+  // Loading the array with SWR's from 9 relays centred around current relay
   cnt = 0;
   for(int x = lowRelay; x < (lowRelay + 9); x++) {
-    *pReactance = x;
-    setRelays();
+    *pReactance = x; // Select the relay starting from lowRelay and stepping up over a total of 9 relays.
+    setRelays();     // and operate it
     getSWR();
     values[cnt] = _status.rawSWR;
     cnt++;
-  }
-  // On exit, _status.X_relays = lowRelays + 8; cnt = 9
+  }        // On exit, _status.X_relays = lowRelays + 8; cnt = 9
+  
   displayAnalog(0, 0, _status.fwd);
   displayAnalog(0, 1, _status.rev);
-//  cout << "_status.X_relays = " << int(*pReactance) << endl; // DEBUG
-//  displayArray(values, 9);  // DEBUG
 
-  cnt = findBestValue(values, 9);
+  cnt = findBestValue(values, 9); // Get the array position holding the lowest SWR
 
-#ifdef DEBUG_FINE_STEP
+// Print the contents of the initialised array and if it is Inductor or Capacitor relays being stepped.
+#ifdef DEBUG_FINE_STEP  
     Serial.print(F("fineStep: Values on entry using "));
     if(reactance == INDUCTANCE) {
       Serial.println(F("INDUCTORS"));
@@ -1271,7 +1268,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 
   // Assume if cnt < 4, we need to search down but not if lowRelay at 0 or we will underflow
   // If cnt = 4 we have found the SWR dip
-  // If cnt > 4, we need to search up but not if lowRelay at 247 or we will overflow
+  // If cnt > 4, we need to search up but not if lowRelay at 247 or more else we will overflow
 
   while(cnt != 4) {
     if(((lowRelay == 0) && (cnt < 5)) || ((lowRelay == 247) && (cnt > 3))) {
@@ -1280,7 +1277,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 #endif      
       break;
     } // ----------------------------------------------------
-    else if(cnt < 4) { // We need to search down
+    else if(cnt < 4) { // We won't over/underflow and need to search down
 #ifdef DEBUG_FINE_STEP
   if(header) Serial.println(F("cnt < 4 so searching down"));
 #endif
@@ -1291,8 +1288,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       getSWR();
       values[0] = _status.rawSWR;     
     } // ----------------------------------------------------
-    else { // We need to search up
-//      cout << "cnt = " << int(cnt) << " so searching up" << endl;
+    else { // We won't over/underflow and need to search up
 #ifdef DEBUG_FINE_STEP
   if(header) Serial.println(F("cnt > 4 so searching up"));
 #endif
@@ -1304,8 +1300,8 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       values[8] = _status.rawSWR;
     } // ----------------------------------------------------
     cnt = findBestValue(values, 9);
-#ifdef DEBUG_FINE_STEP
-  if(header) {
+#ifdef DEBUG_FINE_STEP // Print a table of SWR values in the array at this point
+  if(header) {         // Do a header if first time through the "while" loop
     printFineValues(printHeader, values, cnt, lowRelay);
     header = false;
   }
@@ -1314,15 +1310,18 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     displayAnalog(0, 0, _status.fwd);
     displayAnalog(0, 1, _status.rev);
   } // End while =============================================
+
+  // Set up the _status struct with the relay pointed to by lowRelay plus the cnt offset which
+  // will correspond to the lowest SWR for this pass of fine tune.
   *pReactance = lowRelay + cnt;
   setRelays();
-  setRelays();   // Extra relay switching for an accurate final reading
-  delay(20); // Extra relay settling time for an accurate final reading
+  setRelays();     // Extra relay switching for an accurate final reading
+  delay(20);   // Extra relay settling time for an accurate final reading
   getSWR();
-//  _status.rawSWR = values[cnt];
-//  cout << "cnt = " << int(cnt) << ";  _status.C_relays = " << int(*pReactance) << "; _status.rawSWR = " << _status.rawSWR << endl;
+
   displayAnalog(0, 0, _status.fwd);
   displayAnalog(0, 1, _status.rev);
+  
 #ifdef DEBUG_FINE_STEP
     Serial.print(F("fineStep: Values on exit using "));
     if(reactance == INDUCTANCE) {
@@ -1332,11 +1331,6 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     }
     printStatus(printHeader);
     printStatus(printBody);
-//    Serial.println(cnt);
-//    Serial.println(lowRelay);
-//    Serial.println(*pReactance);
-//    Serial.println(_status.C_relays);
-//    Serial.println(_status.L_relays);
 #endif  
   return _status.rawSWR;
 }
@@ -1358,11 +1352,6 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
     Serial.println(F("cnt"));
   } else {
     for(x = 0; x < 9; x++) {
-//      sprintf(buffer, "%3lu",values[x] / 100000);
-//      Serial.print(buffer);
-//      Serial.print(F("."));
-//      sprintf(buffer, "%-05lu ",values[x] % 100000);
-//      Serial.print(buffer);
       Serial.print(float(values[x]) / 100000, 4);
       Serial.print(F("     "));
     }
