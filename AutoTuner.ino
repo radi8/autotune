@@ -1259,15 +1259,19 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   cnt = findBestValue(values, 9);
 
 #ifdef DEBUG_FINE_STEP
-  Serial.println(F("fineStep: Values on entry"));
-  printFineValues(printHeader, values, cnt, lowRelay);
-  printFineValues(printBody, values, cnt, lowRelay);
+    Serial.print(F("fineStep: Values on entry using "));
+    if(reactance == INDUCTANCE) {
+      Serial.println(F("INDUCTORS"));
+    } else {
+      Serial.println(F("CAPACITORS"));
+    }
+    printFineValues(printHeader, values, cnt, lowRelay);
+    printFineValues(printBody, values, cnt, lowRelay);
 #endif  
 
   // Assume if cnt < 4, we need to search down but not if lowRelay at 0 or we will underflow
   // If cnt = 4 we have found the SWR dip
   // If cnt > 4, we need to search up but not if lowRelay at 247 or we will overflow
-
 
   while(cnt != 4) {
     if(((lowRelay == 0) && (cnt < 5)) || ((lowRelay == 247) && (cnt > 3))) {
@@ -1275,36 +1279,22 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       Serial.println(F("We will overflow so choosing best value"));
 #endif      
       break;
-    } else if(cnt < 4) { // We need to search down
-//      cout << "cnt = " << int(cnt) << " so searching down" << endl;
+    } // ----------------------------------------------------
+    else if(cnt < 4) { // We need to search down
 #ifdef DEBUG_FINE_STEP
-  if(header) {
-    Serial.println(F("cnt < 4 so searching down"));
-    printStatus(printHeader);
-    header = false;
-  }
-  printStatus(printBody);
+  if(header) Serial.println(F("cnt < 4 so searching down"));
 #endif
       lowRelay--;
       shiftRight(values, 8);
       *pReactance = lowRelay;
       setRelays();
       getSWR();
-      values[0] = _status.rawSWR;
-    } else { // We need to search up
+      values[0] = _status.rawSWR;     
+    } // ----------------------------------------------------
+    else { // We need to search up
 //      cout << "cnt = " << int(cnt) << " so searching up" << endl;
 #ifdef DEBUG_FINE_STEP
-  if(header) {
-    Serial.print(F("cnt > 4 so searching up using "));
-    if(reactance == INDUCTANCE) {
-      Serial.println(F("INDUCTORS"));
-    } else {
-      Serial.println(F("CAPACITORS"));
-    }
-    printStatus(printHeader);
-    header = false;
-  }
-  printStatus(printBody);
+  if(header) Serial.println(F("cnt > 4 so searching up"));
 #endif
       lowRelay++;
       shiftLeft(values, 8);
@@ -1312,13 +1302,22 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       setRelays();
       getSWR();
       values[8] = _status.rawSWR;
-    }
+    } // ----------------------------------------------------
     cnt = findBestValue(values, 9);
+#ifdef DEBUG_FINE_STEP
+  if(header) {
+    printFineValues(printHeader, values, cnt, lowRelay);
+    header = false;
+  }
+  printFineValues(printBody, values, cnt, lowRelay);
+#endif     
     displayAnalog(0, 0, _status.fwd);
     displayAnalog(0, 1, _status.rev);
-  }
+  } // End while =============================================
   *pReactance = lowRelay + cnt;
   setRelays();
+  setRelays();   // Extra relay switching for an accurate final reading
+  delay(20); // Extra relay settling time for an accurate final reading
   getSWR();
 //  _status.rawSWR = values[cnt];
 //  cout << "cnt = " << int(cnt) << ";  _status.C_relays = " << int(*pReactance) << "; _status.rawSWR = " << _status.rawSWR << endl;
@@ -1333,6 +1332,11 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     }
     printStatus(printHeader);
     printStatus(printBody);
+//    Serial.println(cnt);
+//    Serial.println(lowRelay);
+//    Serial.println(*pReactance);
+//    Serial.println(_status.C_relays);
+//    Serial.println(_status.L_relays);
 #endif  
   return _status.rawSWR;
 }
@@ -1348,22 +1352,23 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
     for(x = 0; x < 9; x++) {
       Serial.print(F("Values["));
       Serial.print(x);
-      Serial.print(F("] "));
-      Serial.print(F("lowRelay "));
-      Serial.println(F("cnt"));
+      Serial.print(F("]  "));
     }
+    Serial.print(F("lowRelay "));
+    Serial.println(F("cnt"));
   } else {
     for(x = 0; x < 9; x++) {
-      sprintf(buffer, "%3lu",values[x] / 100000);
-      Serial.print(buffer);
-      Serial.print(F("."));
-      sprintf(buffer, "%-05lu ",values[x] % 100000);
-      Serial.print(buffer);
-      Serial.print(F(" "));
+//      sprintf(buffer, "%3lu",values[x] / 100000);
+//      Serial.print(buffer);
+//      Serial.print(F("."));
+//      sprintf(buffer, "%-05lu ",values[x] % 100000);
+//      Serial.print(buffer);
+      Serial.print(float(values[x]) / 100000, 4);
+      Serial.print(F("     "));
     }
-      Serial.print(lowRelay);
-      Serial.print("\t");
-      Serial.println(cnt);
+    Serial.print(lowRelay);
+    Serial.print("\t    ");
+    Serial.println(cnt);
   }
 }
 /**********************************************************************************************************/
@@ -1387,16 +1392,6 @@ void shiftRight(uint32_t values[], uint8_t cnt)
 
   for(uint8_t i = cnt; i > 0; --i){
     values[i]=values[i-1];
-  }
-}
-
-/**********************************************************************************************************/
-/*
-void displayArray(uint32_t values[], uint8_t cnt)
-{
-
-  for(int x = 0; x < cnt; x++){
-    cout << "values[" << x <<"] = " << values[x] <<endl;
   }
 }
 
