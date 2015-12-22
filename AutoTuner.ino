@@ -1282,7 +1282,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   if(header) Serial.println(F("cnt < 4 so searching down"));
 #endif
       lowRelay--;
-      for(uint8_t i = cnt; i > 0; --i){ // Shift the array to the right
+      for(uint8_t i = 8; i > 0; --i){ // Shift the array to the right 8 steps
         values[i]=values[i-1];   
       }
       *pReactance = lowRelay;
@@ -1295,7 +1295,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   if(header) Serial.println(F("cnt > 4 so searching up"));
 #endif
       lowRelay++;
-      for(uint8_t i=0; i < cnt; i++){ // Shift the array to the left
+      for(uint8_t i=0; i < 8; i++){ // Shift the array to the left 8 steps
         values[i]=values[i+1];
       }
       *pReactance = lowRelay + 8;

@@ -1,0 +1,233 @@
+18.090 MHz using 3 element tribander: Note that the capacitor values did not
+progress smoothly due to tolerences which was recovered by the algorithm.
+
+initialize_analog_button_array: 0:  -69 - 54
+initialize_analog_button_array: 1:  55 - 153
+initialize_analog_button_array: 2:  154 - 234
+initialize_analog_button_array: 3:  234 - 300
+Arduino antenna tuner ver 1.0.0
+Copyright (C) 2015, Graeme Jury ZL2APV
+available RAM = 1349
+
+Short press, Initiate Autotune when RF present
+6736363
+860000
+6620000
+1085714
+2403448
+20M rawSWR = 6700000
+2728571
+458666
+850769
+681333
+Relays set at zero
+doRelayCoarseSteps(): Caps are connected to Output (HiZ)
+Cap	  L0         L1         L2         L3         L4         L5         L6         L7         L8       
+C0	  6.62025    7.48000    8.42857    9.80000   25.42857   44.55555   68.69230   71.66666   73.80000  
+C1	 81.88888    7.36842    8.19444    9.63636   26.33333   44.55555   68.53846   66.7692    73.80000  
+C2	 73.80000    7.25974    8.19444    9.50746   24.44827   42.15789   68.69230   66.7692    73.80000  
+C3	 82.11111    6.92592    7.76315    9.35294   23.66666   42.15789   68.53846   66.23076   82.11111  
+C4	 82.11111    6.38636    7.19512    8.69863   22.25000   40.10000   68.53846   66.23076   74.0      
+C5	 73.80000    5.22429    5.88000    7.37209   18.17948   34.82608   63.71428   66.23076   74.0      
+C6	 61.50000    2.94535    3.40963    4.40000    9.5194    18.85714   49.33333   71.83333   67.0      
+C7	 67.72727    1.50267    1.54166    2.10752    5.41441   13.59259   49.0       66.38461   67.72727  
+C8	 82.77777   30.28571   29.23529   36.29411   99.0       71.54545   74.33333   71.83333   74.60000  
+bestC = 7; bestL = 1; SWR =   1.50267 
+HiZ coarse tune results
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0100_0000  0000_0001   300     6      234       47  High   HiZ    150267  1.5027  
+doRelayCoarseSteps(): Caps are connected to Input (LoZ
+Cap	  L0         L1         L2         L3         L4         L5         L6         L7         L8       
+C0	  6.46987    7.46753    9.0       14.52173   24.31250   44.0       59.71428   84.75000   99.0      
+C1	 94.33333    7.22500    9.76190   13.52000   23.41176   42.33333   65.16666  106.33333   94.0      
+C2	109.80000    7.17283    9.62500   13.35294   24.51515   40.63636   75.0      102.66666  109.80000  
+C3	101.40000    7.0        8.80281   12.74545   24.76470   39.45454   83.50000   93.66666  127.0      
+C4	111.50000    6.32631    7.84337   11.58461   23.48648   43.0      109.40000  120.0      148.33333  
+C5	125.66666    5.20800    6.54954   11.5479    27.57142   59.50000  139.66666  196.0      188.0      
+C6	163.0        4.75471    7.29032   16.41666   44.75000  114.33333  167.0      165.0      327.0      
+C7	156.0       14.45454   21.13333   39.50000   78.50000  105.0      157.0      104.33333  157.0      
+C8	 66.20000   66.20000   66.20000   66.20000   66.20000   66.20000   66.20000   66.20000   55.0      
+bestC = 6; bestL = 1; SWR =   4.75471 
+LoZ coarse tune results
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0010_0000  0000_0001   168     6      305      199  High   LoZ    475471  4.7547  
+Final coarse tune results
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0100_0000  0000_0001   300     6      235       47  High   HiZ    150000  1.5000  
+fineStep: Values on entry using CAPACITORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.4737     1.5810     1.6706     1.7702     1.5106     1.6102     1.6864     1.8050     1.9271     60	    0
+cnt < 4 so searching down
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.3762     1.4737     1.5810     1.6706     1.7702     1.5106     1.6102     1.6864     1.8050     59	    0
+1.2791     1.3762     1.4737     1.5810     1.6706     1.7702     1.5106     1.6102     1.6864     58	    0
+1.2026     1.2791     1.3762     1.4737     1.5810     1.6706     1.7702     1.5106     1.6102     57	    0
+1.0078     1.2026     1.2791     1.3762     1.4737     1.5810     1.6706     1.7702     1.5106     56	    0
+1.0076     1.0078     1.2026     1.2791     1.3762     1.4737     1.5810     1.6706     1.7702     55	    0
+1.0074     1.0076     1.0078     1.2026     1.2791     1.3762     1.4737     1.5810     1.6706     54	    0
+1.0073     1.0074     1.0076     1.0078     1.2026     1.2791     1.3762     1.4737     1.5810     53	    0
+1.0071     1.0073     1.0074     1.0076     1.0078     1.2026     1.2791     1.3762     1.4737     52	    0
+1.0069     1.0071     1.0073     1.0074     1.0076     1.0078     1.2026     1.2791     1.3762     51	    0
+1.0067     1.0069     1.0071     1.0073     1.0074     1.0076     1.0078     1.2026     1.2791     50	    0
+1.0066     1.0067     1.0069     1.0071     1.0073     1.0074     1.0076     1.0078     1.2026     49	    0
+1.2028     1.0066     1.0067     1.0069     1.0071     1.0073     1.0074     1.0076     1.0078     48	    1
+1.4203     1.2028     1.0066     1.0067     1.0069     1.0071     1.0073     1.0074     1.0076     47	    2
+1.5128     1.4203     1.2028     1.0066     1.0067     1.0069     1.0071     1.0073     1.0074     46	    3
+1.5778     1.5128     1.4203     1.2028     1.0066     1.0067     1.0069     1.0071     1.0073     45	    4
+fineStep: Values on exit using CAPACITORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_0001  0000_0001   262     6      305        1  High   HiZ    100657  1.0066  
+fineStep: Values on entry using INDUCTORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1135     1.0066     1.2624     1.4338     1.7626     2.0207     2.3514     2.6765     3.8228     0	    1
+We will over/underflow so choosing best value
+fineStep: Values on exit using INDUCTORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_0001  0000_0001   262     6      305        1  High   HiZ    100657  1.0066  
+fineStep: Values on entry using CAPACITORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.5778     1.5147     1.4203     1.2035     1.0066     1.0067     1.0069     1.0071     1.0073     45	    4
+fineStep: Values on exit using CAPACITORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_0001  0000_0001   262     6      305        1  High   HiZ    100657  1.0066  
+fineStep: Values on entry using INDUCTORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1357     1.0066     1.2553     1.4428     1.7597     2.0207     2.3514     2.6765     3.7925     0	    1
+We will over/underflow so choosing best value
+fineStep: Values on exit using INDUCTORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_0001  0000_0001   262     6      304        1  High   HiZ    100660  1.0066
+
+
+7.280 MHz using wire dipole: Note that after capacitors were adjusted, the
+inductors needed to be adjusted also.
+
+initialize_analog_button_array: 0:  -69 - 54
+initialize_analog_button_array: 1:  55 - 153
+initialize_analog_button_array: 2:  154 - 234
+initialize_analog_button_array: 3:  234 - 300
+Arduino antenna tuner ver 1.0.0
+Copyright (C) 2015, Graeme Jury ZL2APV
+available RAM = 1349
+
+Short press, Initiate Autotune when RF present
+1425925
+355924
+1936363
+429032
+740740
+20M rawSWR = 3875000
+348341
+559722
+537086
+589361
+Relays set at zero
+doRelayCoarseSteps(): Caps are connected to Output (HiZ)
+Cap	  L0         L1         L2         L3         L4         L5         L6         L7         L8       
+C0	  4.71794    4.43030    4.19075    3.67010    2.71544    1.72151    1.82075   11.8510    32.78947  
+C1	 32.68421    4.47560    4.18390    3.66666    2.70161    1.66875    1.90099   11.57777   32.68421  
+C2	 34.55555    4.43373    4.17714    3.66326    2.68127    1.63777    1.94416   11.86363   32.78947  
+C3	 32.78947    4.51515    4.24137    3.68020    2.66929    1.58103    2.12222   13.10000   34.66666  
+C4	 34.66666    4.65644    4.36416    3.76142    2.63984    1.49230    2.60810   15.5714    34.66666  
+C5	 36.88235    4.97484    4.60233    3.91919    2.59398    1.66917    4.3030    18.44827   36.88235  
+C6	 39.25000    5.81081    5.38993    4.47311    3.20430    2.82191    7.74074   24.63636   41.93333  
+C7	 41.93333    7.80341    7.28813    6.25663    4.93814    6.16923   14.9677    30.55555   42.6666   
+C8	 45.14285   17.33333   16.25714   15.83870   15.37037   17.26086   27.11764   37.26666   45.14285  
+bestC = 4; bestL = 5; SWR =   1.51692 
+HiZ coarse tune results
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_1000  0001_0000    44   136      409       84  High   HiZ    151692  1.5169  
+doRelayCoarseSteps(): Caps are connected to Input (LoZ
+Cap	  L0         L1         L2         L3         L4         L5         L6         L7         L8       
+C0	  4.84313    4.60000    4.34523    3.86021    2.98245    2.8771     1.64566    8.65079   28.91304  
+C1	 29.34782    4.64779    4.36904    3.89729    3.2666     2.10877    1.62790    8.59375   29.34782  
+C2	 29.60869    4.66037    4.41317    3.90810    3.1769     2.10563    1.67450    8.39393   28.41666  
+C3	 27.96000    4.69811    4.46987    3.98360    3.13574    2.17021    1.63878    8.21739   27.96000  
+C4	 29.48000    4.87179    4.63190    4.15083    3.21818    2.19718    1.61029    8.19444   30.75000  
+C5	 33.33333    5.30872    5.7741     4.56470    3.48113    2.38909    1.57241    8.45454   33.41666  
+C6	 40.71428    6.51145    6.14492    5.51315    4.16666    2.84920    1.66449    9.19277   40.71428  
+C7	 66.85714    8.72222    8.27433    7.36800    5.62820    3.88349    2.12244   11.54794   66.85714  
+C8	105.0       19.24390   18.25581   16.57446   12.93220    9.7317     5.34246   27.11111  118.25000  
+bestC = 5; bestL = 6; SWR =   1.56655 
+LoZ coarse tune results
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0001_0000  0010_0000    88   275      376       83  High   LoZ    156655  1.5665  
+Final coarse tune results
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_1000  0001_0000    44   136      407       79  High   HiZ    148170  1.4817  
+fineStep: Values on entry using CAPACITORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.5697     1.5394     1.5228     1.4924     1.4771     1.4644     1.4687     1.5016     1.5346     4	    5
+cnt > 4 so searching up
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.5394     1.5228     1.4924     1.4771     1.4644     1.4687     1.5016     1.5346     1.5734     5	    4
+fineStep: Values on exit using CAPACITORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_1001  0001_0000    50   136      400       76  High   HiZ    146913  1.4691  
+fineStep: Values on entry using INDUCTORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.8387     1.6943     1.5778     1.4984     1.4860     1.3863     1.3218     1.2894     1.2434     12	    8
+cnt > 4 so searching up
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.6943     1.5778     1.4984     1.4860     1.3863     1.3218     1.2894     1.2434     1.2759     13	    7
+1.5778     1.4984     1.4860     1.3863     1.3218     1.2894     1.2434     1.2759     1.3529     14	    6
+1.4984     1.4860     1.3863     1.3218     1.2894     1.2434     1.2759     1.3529     1.4297     15	    5
+1.4860     1.3863     1.3218     1.2894     1.2434     1.2759     1.3529     1.4297     1.6053     16	    4
+fineStep: Values on exit using INDUCTORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_1001  0001_0100    50   171      344       34  High   HiZ    121935  1.2193  
+fineStep: Values on entry using CAPACITORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1086     1.1095     1.1369     1.1796     1.2186     1.2508     1.3125     1.3754     1.4674     5	    0
+cnt < 4 so searching down
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1428     1.1086     1.1095     1.1369     1.1796     1.2186     1.2508     1.3125     1.3754     4	    1
+1.1657     1.1428     1.1086     1.1095     1.1369     1.1796     1.2186     1.2508     1.3125     3	    2
+1.2006     1.1657     1.1428     1.1086     1.1095     1.1369     1.1796     1.2186     1.2508     2	    3
+1.2178     1.2006     1.1657     1.1428     1.1086     1.1095     1.1369     1.1796     1.2186     1	    4
+fineStep: Values on exit using CAPACITORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0101  0001_0100    28   171      366       15  High   HiZ    108547  1.0855  
+fineStep: Values on entry using INDUCTORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.5532     1.4371     1.3176     1.2151     1.0914     1.0057     1.0058     1.1278     1.2971     16	    5
+cnt > 4 so searching up
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.4371     1.3176     1.2151     1.0914     1.0057     1.0058     1.1278     1.2971     1.3861     17	    4
+fineStep: Values on exit using INDUCTORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0101  0001_0101    28   177      355        1  High   HiZ    100564  1.0056  
+fineStep: Values on entry using CAPACITORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1127     1.0552     1.0055     1.0055     1.0056     1.0057     1.0848     1.1736     1.2517     1	    2
+cnt < 4 so searching down
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1839     1.1127     1.0552     1.0055     1.0055     1.0056     1.0057     1.0848     1.1736     0	    3
+We will over/underflow so choosing best value
+fineStep: Values on exit using CAPACITORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0011  0001_0101    17   177      366        1  High   HiZ    100547  1.0055  
+fineStep: Values on entry using INDUCTORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.4790     1.3647     1.2601     1.1360     1.0055     1.0057     1.0058     1.1645     1.2615     17	    4
+fineStep: Values on exit using INDUCTORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0011  0001_0101    17   177      365        1  High   HiZ    100549  1.0055  
+fineStep: Values on entry using CAPACITORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.1714     1.0894     1.0054     1.0055     1.0056     1.0057     1.0057     1.1176     1.2185     0	    2
+We will over/underflow so choosing best value
+fineStep: Values on exit using CAPACITORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0010  0001_0101    11   177      370        1  High   HiZ    100542  1.0054  
+fineStep: Values on entry using INDUCTORS
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.5045     1.3882     1.2898     1.1704     1.0385     1.0056     1.0057     1.1337     1.2245     17	    5
+cnt > 4 so searching up
+Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  lowRelay cnt
+1.3882     1.2898     1.1704     1.0385     1.0056     1.0057     1.1337     1.2245     1.3188     18	    4
+fineStep: Values on exit using INDUCTORS
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0010  0001_0110    11   188      363        1  High   HiZ    100552  1.0055  
+
+
