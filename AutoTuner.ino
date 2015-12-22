@@ -1273,7 +1273,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   while(cnt != 4) {
     if(((lowRelay == 0) && (cnt < 5)) || ((lowRelay == 247) && (cnt > 3))) {
 #ifdef DEBUG_FINE_STEP
-      Serial.println(F("We will overflow so choosing best value"));
+      Serial.println(F("We will over/underflow so choosing best value"));
 #endif      
       break;
     } // ----------------------------------------------------
@@ -1282,7 +1282,9 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   if(header) Serial.println(F("cnt < 4 so searching down"));
 #endif
       lowRelay--;
-      shiftRight(values, 8);
+      for(uint8_t i = cnt; i > 0; --i){ // Shift the array to the right
+        values[i]=values[i-1];   
+      }
       *pReactance = lowRelay;
       setRelays();
       getSWR();
@@ -1293,7 +1295,9 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   if(header) Serial.println(F("cnt > 4 so searching up"));
 #endif
       lowRelay++;
-      shiftLeft(values, 8);
+      for(uint8_t i=0; i < cnt; i++){ // Shift the array to the left
+        values[i]=values[i+1];
+      }
       *pReactance = lowRelay + 8;
       setRelays();
       getSWR();
@@ -1358,29 +1362,6 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
     Serial.print(lowRelay);
     Serial.print("\t    ");
     Serial.println(cnt);
-  }
-}
-/**********************************************************************************************************/
-
-void shiftLeft(uint32_t values[], uint8_t cnt)
-{
-    // Shift left "cnt" places. The leftmost value drops off, rightmost is left vacant (unchanged).
-    // cnt is equal to 1 less than the number of elements in the array to shift all elements
-
-  for(uint8_t i=0; i < cnt; i++){
-    values[i]=values[i+1];
-  }
-}
-
-/**********************************************************************************************************/
-
-void shiftRight(uint32_t values[], uint8_t cnt)
-{
-    // Shift right "cnt" places. The rightmost value drops off, leftmost is left vacant (unchanged).
-    // cnt must be equal to the number of elements in the array
-
-  for(uint8_t i = cnt; i > 0; --i){
-    values[i]=values[i-1];
   }
 }
 
