@@ -1288,6 +1288,8 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       *pReactance = lowRelay;
       setRelays();
       getSWR();
+      delay(5);
+      getSWR();
       values[0] = _status.rawSWR;     
     } // ----------------------------------------------------
     else { // We won't over/underflow and need to search up
@@ -1300,6 +1302,8 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       }
       *pReactance = lowRelay + 8;
       setRelays();
+      getSWR();
+      delay(5);
       getSWR();
       values[8] = _status.rawSWR;
     } // ----------------------------------------------------
@@ -1370,6 +1374,7 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
 uint8_t findBestValue(uint32_t values[], uint8_t cnt)
 // Parses an array of uint32_t values, whose length is equal to cnt. The position in the array (0 to cnt-1)
 // containing the smallest value is returned. If all positions are of equal value then position 0 is returned.
+// If more than one position contains the lowest value then the first position containing it is returned.
 
 {
   uint32_t bestValue = 0;
@@ -1378,7 +1383,7 @@ uint8_t findBestValue(uint32_t values[], uint8_t cnt)
   bestValue--;  // Initialize by rolling back to set to maximum value
 
   for (uint8_t x = 0; x < cnt; x++) {
-    if(values[x] < bestValue) {
+    if(values[x] <= bestValue) {
       bestValue = values[x];
       bestPosition = x;
     }
