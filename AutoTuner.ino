@@ -12,13 +12,13 @@ Heartbeat    B5   | [ ]D13/SCK        MISO/D12[ ] |   B4
                   | [ ]3.3V           MOSI/D11[ ]~|   B3
                   | [ ]V.ref     ___    SS/D10[ ]~|   B2
              C0   | [ ]A0       / N \       D9[ ]~|   B1
-             C1   | [ ]A1      /  A  \      D8[ ] |   B0
-             C2   | [ ]A2      \  N  /      D7[ ] |   D7
-             C3   | [ ]A3       \_0_/       D6[ ]~|   D6
-             C4   | [ ]A4/SDA               D5[ ]~|   D5
-             C5   | [ ]A5/SCL               D4[ ] |   D4
-                  | [ ]A6              INT1/D3[ ]~|   D3
-                  | [ ]A7              INT0/D2[ ] |   D2
+             C1   | [ ]A1      /  A  \      D8[ ] |   B0 Clock
+             C2   | [ ]A2      \  N  /      D7[ ] |   D7 Latch
+             C3   | [ ]A3       \_0_/       D6[ ]~|   D6 Data
+             C4   | [ ]A4/SDA               D5[ ]~|   D5 Freq Counter Input
+             C5   | [ ]A5/SCL               D4[ ] |   D4 Output Enable
+                  | [ ]A6              INT1/D3[ ]~|   D3 N/C
+                  | [ ]A7              INT0/D2[ ] |   D2 N/C
                   | [ ]5V                  GND[ ] |     
              C6   | [ ]RST                 RST[ ] |   C6
                   | [ ]GND   5V MOSI GND   TX1[ ] |   D0
@@ -94,18 +94,19 @@ byte _cmd = 0;  // Holds the command to be processed
 
 void setup() {
   // First thing up, set C & L Relays to all off.
-  pinMode(Cclock, OUTPUT); // make the Capacitor clock pin an output
-  pinMode(Clatch, OUTPUT); // make the Capacitor latch pin an output
-  pinMode(Cdata , OUTPUT); // make the Capacitor data pin an output
   pinMode(Lclock, OUTPUT); // make the Inductor clock pin an output
   pinMode(Llatch, OUTPUT); // make the Inductor latch pin an output
   pinMode(Ldata , OUTPUT); // make the Inductor data pin an output
   pinMode(coRelay, OUTPUT);
-  digitalWrite(Cclock, LOW);
+//  digitalWrite(Lclock, LOW);
   _status.C_relays = 0;
   _status.L_relays = 0;
   _status.outputZ = loZ; // Caps switched to input side of L network
   setRelays(); // Switch off all the relays & set c/o relay to input.
+// Pin 13 of SR (output enable) is held high with a 10k pullup so random outputs won't operate the relays
+// during power up. It needs to be held low after Arduino is booted and relay values initialised.
+  pinMode(outputEnable, OUTPUT); // Switch off HiZ mode for shift register
+  digitalWrite(outputEnable, LOW);
 
   pinMode(swrGain, OUTPUT);
   pinMode(LEDpin, OUTPUT);
@@ -692,15 +693,13 @@ void setRelays()
   boolean temp;
 
   // Set the C Relays from _status.C_relays;
-  digitalWrite(Clatch, LOW);
+  digitalWrite(Llatch, LOW);
   temp = bitRead(Cmap, 7);
   Cmap = Cmap << 1;
   bitWrite(Cmap, 0, temp);
-  shiftOut(Cdata, Cclock, MSBFIRST, Cmap); // send this binary value to the Capacitor shift register
-  digitalWrite(Clatch, HIGH);
+  shiftOut(Ldata, Lclock, MSBFIRST, Cmap); // send this binary value to the Capacitor shift register
 
   // Set the L Relays from _status.L_relays;
-  digitalWrite(Llatch, LOW);
   temp = bitRead(Lmap, 7);
   Lmap = Lmap << 1;
   bitWrite(Lmap, 0, temp);

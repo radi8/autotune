@@ -28,20 +28,18 @@
 #define SWR_AVERAGE_COUNT  10     // Number of analog readings to combat jitter
 
 // Shift Register for L & C driver Pin assign
-#define Cclock 4           // Pin 11 of 74HC164 U5 to pin 7 of Arduino Nano
-#define Clatch 3           // Pin 12 of 74HC164 U5 to pin 6 of Arduino Nano
-#define Cdata 2            // Pin 14 of 74HC164 U5 to pin 5 of Arduino Nano
+#define outputEnable  4     // Pin 11 of 74HC164 U5 to pin 7 of Arduino Nano
 
-#define Lclock 8           // Pin 11 of 74HC595 U3 to pin 11 of Arduino Nano
-#define Llatch 7           // Pin 12 of 74HC595 U4 to pin 10 of Arduino Nano
-#define Ldata 6            // Pin 14 of 74HC595 U3 to pin 9 of Arduino Nano
+#define Lclock        8     // Pin 11 of 74HC595 U3 to pin 11 of Arduino Nano
+#define Llatch        7     // Pin 12 of 74HC595 U4 to pin 10 of Arduino Nano
+#define Ldata         6     // Pin 14 of 74HC595 U3 to pin 9 of Arduino Nano
 
-#define coRelay        9   // Capacitor set c/o relay
-#define swrGain       12   // Switchable gain for swr amplifiers
-#define BUTTON_PIN    A0   // Push Button (Analog pin used as digital)
-#define LEDpin        13   // A LED is connected to this pin, use for heartbeat
-#define forward       A2   // Measure forward SWR on this pin
-#define reverse       A3   // Measure reverse SWR on this pin
+#define coRelay       9    // Capacitor set c/o relay
+#define swrGain       12    // Switchable gain for swr amplifiers
+#define BUTTON_PIN    A0    // Push Button (Analog pin used as digital)
+#define LEDpin        13    // A LED is connected to this pin, use for heartbeat
+#define forward       A2    // Measure forward SWR on this pin
+#define reverse       A3    // Measure reverse SWR on this pin
 
 #define Button_Debounce_Millis 20   // Delay for pushbutton debounce settle time ms
 #define Relay_Settle_Millis    20   // Delay for relay debounce settle time ms
