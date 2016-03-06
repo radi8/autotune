@@ -70,6 +70,7 @@ struct status {
   unsigned int fwd;
   unsigned int rev;
   unsigned long rawSWR;
+  unsigned long currentSWR;
   boolean ampGain;
   byte C_relays;
   byte L_relays;
@@ -99,6 +100,7 @@ void setup() {
   pinMode(Ldata , OUTPUT); // make the Inductor data pin an output
   pinMode(coRelay, OUTPUT);
 //  digitalWrite(Lclock, LOW);
+  _status.currentSWR = 99999000;
   _status.C_relays = 0;
   _status.L_relays = 0;
   _status.outputZ = loZ; // Caps switched to input side of L network
@@ -208,6 +210,7 @@ void loop() {
             _status.L_relays = 0;
             _status.outputZ = loZ; // Caps switched to input side of L network
             setRelays(); // Switch off all the relays & set c/o relay to input.
+            _cmd = POWERUP;
             lcdPrintSplash();
           }
       }
@@ -287,7 +290,7 @@ void lcdPrintStatus()
   //  if(displayUpdate < millis()) {
   //    displayUpdate = (millis() + 10000);
   lcd.home();
-  dtostrf(float(_status.rawSWR) / 100000, 7, 3, charVal);  //7 is mininum width, 3 is precision;
+  dtostrf(float(_status.currentSWR) / 100000, 7, 3, charVal);  //7 is mininum width, 3 is precision;
   //  float value is copied onto buffer
   for (int i = 0; i < 7; i++)
   {
@@ -341,7 +344,7 @@ void lcdPrintBargraph(boolean range)
   displayAnalog(0, 0, _status.fwd);
   displayAnalog(0, 1, _status.rev);
   if(range) {
-    lcd.setCursor (lcdNumCols-3, lcdNumRows-1);        // go to 2nd to last chr of last line.
+    lcd.setCursor (lcdNumCols-2, lcdNumRows-1);        // go to 2nd to last chr of last line.
     if(_status.ampGain == hi) {   // If amp gain is high, we are in low power mode
       lcd.print(F("Lo"));
     } else {
@@ -365,7 +368,7 @@ byte processCommand(byte cmd)
         if(_status.fwd > TX_LEVEL_THRESHOLD) { // We are transmitting so display bargraph
           lcdPrintBargraph(true);
         } else {          // We are receiving so display splash screen
-          lcdPrintSplash;
+          lcdPrintSplash();
         }
         break;
       }
@@ -377,7 +380,7 @@ byte processCommand(byte cmd)
           lcdPrintBargraph(false);
           cmd = TUNING;
         } else {
-          lcdPrintStatus;          
+          lcdPrintStatus();          
         }
         break;
       }
@@ -426,14 +429,16 @@ byte processCommand(byte cmd)
 #endif
         doRelayFineSteps();
         cmd = TUNED;
+        _status.currentSWR = _status.rawSWR;
         lcdPrintStatus();
       }
    case TUNED:
       { // Update LCD display
         if (_status.fwd > TX_LEVEL_THRESHOLD) {
+          _status.currentSWR = _status.rawSWR;
           lcdPrintBargraph(true);
         } else {
-          lcdPrintStatus;          
+          lcdPrintStatus();          
         }
         break;;
       }      
