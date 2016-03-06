@@ -87,7 +87,7 @@ const unsigned int _capacitors[] = { 6,  11,  22,  44,   88,  168,  300,  660 };
 const unsigned int _strayC = 0;
 
 enum {INDUCTANCE, CAPACITANCE};
-enum commandMode {TUNED, TUNE, TUNING};
+enum {POWERUP, TUNE, TUNING, TUNED};
 byte _cmd = 0;  // Holds the command to be processed
 
 /**********************************************************************************************************/
@@ -336,6 +336,21 @@ void lcdPrintSplash()
 }
 
 /**********************************************************************************************************/
+void lcdPrintBargraph(boolean range)
+{
+  displayAnalog(0, 0, _status.fwd);
+  displayAnalog(0, 1, _status.rev);
+  if(range) {
+    lcd.setCursor (lcdNumCols-3, lcdNumRows-1);        // go to 2nd to last chr of last line.
+    if(_status.ampGain == hi) {   // If amp gain is high, we are in low power mode
+      lcd.print(F("Lo"));
+    } else {
+      lcd.print(F("Hi"));
+    }
+  }
+}
+
+/**********************************************************************************************************/
 byte processCommand(byte cmd)
 {
   unsigned long SWRtmp;
@@ -345,10 +360,13 @@ byte processCommand(byte cmd)
   boolean bestZ;
 
   switch (cmd) {
-    case TUNED:
-      { // Update LCD display
-        //      Serial.print(F("Got to TUNED, cmd = "));
-        //      Serial.println(cmd);
+    case POWERUP:
+      { // No tuning has been performed yet
+        if(_status.fwd > TX_LEVEL_THRESHOLD) { // We are transmitting so display bargraph
+          lcdPrintBargraph(true);
+        } else {          // We are receiving so display splash screen
+          lcdPrintSplash;
+        }
         break;
       }
     case TUNE:
@@ -356,13 +374,12 @@ byte processCommand(byte cmd)
         //      Serial.print(F("Got to TUNE, cmd = "));
         //      Serial.println(cmd);
         if (_status.fwd > TX_LEVEL_THRESHOLD) {
+          lcdPrintBargraph(false);
           cmd = TUNING;
-          break;
+        } else {
+          lcdPrintStatus;          
         }
-        else {
-          cmd = TUNING; // TODO remove this line in final code (debug only)
-          break;
-        }
+        break;
       }
     case TUNING:
       { // Tuning is under way so process until finished
@@ -375,7 +392,7 @@ byte processCommand(byte cmd)
           C_RelaysTmp = _status.C_relays;
           L_RelaysTmp = _status.L_relays;
           bestZ = _status.outputZ;
-#ifdef DEBUG_COARSE_TUNE_STATUS
+#ifdef DEBUG_COARSE_TUNE_STATUS1
           Serial.println(F("HiZ coarse tune results"));
           printStatus(printHeader);
           printStatus(printBody);
@@ -388,7 +405,7 @@ byte processCommand(byte cmd)
             doRelayCoarseSteps(); //Run it again and see if better with C/O relay operated
             //If not better restore relays to input state
             //          getSWR();
-#ifdef DEBUG_COARSE_TUNE_STATUS
+#ifdef DEBUG_COARSE_TUNE_STATUS1
             Serial.println(F("LoZ coarse tune results"));
             printStatus(printHeader);
             printStatus(printBody);
@@ -402,7 +419,7 @@ byte processCommand(byte cmd)
             }
           }
         }
-#ifdef DEBUG_COARSE_TUNE_STATUS
+#ifdef DEBUG_COARSE_TUNE_STATUS1
         Serial.println(F("Final coarse tune results"));
         printStatus(printHeader);
         printStatus(printBody);
@@ -411,6 +428,15 @@ byte processCommand(byte cmd)
         cmd = TUNED;
         lcdPrintStatus();
       }
+   case TUNED:
+      { // Update LCD display
+        if (_status.fwd > TX_LEVEL_THRESHOLD) {
+          lcdPrintBargraph(true);
+        } else {
+          lcdPrintStatus;          
+        }
+        break;;
+      }      
     default:
       cmd = TUNED;
   }
@@ -1113,7 +1139,7 @@ void doRelayCoarseSteps()
   // the C and L combination to give this is set along with rawSWR in the _status array.
   
   // Entry: The caller sets the C/O relay to HiZ or LoZ as required
-  // Exit with relay settings which give best SWR for the C/O relay setting on entry.
+  // Exit with relay settings giving best SWR for the C/O relay setting on entry. Result held in _status.
 
   unsigned long values[9][9];
   unsigned long bestSWR = 99900000;
