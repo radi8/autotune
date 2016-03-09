@@ -186,24 +186,28 @@ void loop() {
   // handle button
   byte button_pressed = handle_button();
   if (button_pressed) {
-    if (_cmd != TUNED) {
-      _cmd = TUNED; // Any press halts a pending tune with no RF applied
+    if (_cmd == TUNING) {
+      _cmd = POWERUP; // Any press halts a tune in process
     }
     else {
       switch (button_pressed) {
         case 1:
-          { // Short press, Bypass tuner
+        { // Leading edge of a button press which we ignore as we process trailing edges only.
+          break;
+        }
+        case 2:
+          { // Short press, Initiate Autotune when RF present
             Serial.println(F("Short press, Initiate Autotune when RF present"));
             _cmd = TUNE;
             break;
           }
-        case 2:
+        case 3:
           { // Medium press, Initiate Autotune when RF present
             Serial.println(F("Medium press, Initiate Autotune when RF present"));
             _cmd = TUNE;
             break;
           }
-        case 3:
+        case 4:
           { // Long press, Not allocated yet
             Serial.println(F("Long press, Bypass tuner"));
             _status.C_relays = 0;
@@ -854,6 +858,11 @@ void print_binary(int v, int num_places)
 /**********************************************************************************************************/
 
 byte handle_button()
+// Returns  0 = No button pressed or no change of button state occurred
+//          1 = Leading edge of button press
+//          2 = Trailing edge of short button press (< 200 mSec)
+//          3 = Trailing edge of medium button press (200 to 1000 mSec)
+//          4 = Trailing edge of long button press (> 1000 mSec)
 {
   static boolean button_was_pressed = true; // True = no press i.e. pullup voltage
   static unsigned long timer = 0;
@@ -870,6 +879,7 @@ byte handle_button()
   if (event) { // The re-read says it is a valid change of button state
     if (!button_now_pressed) { // The button has changed from released to pressed
       timer = millis();   // so start the button press length timer
+      retval = 1;
     }
     else { // The button has changed from pressed to released so calc button press type.
       timer = millis() - timer;
@@ -878,16 +888,16 @@ byte handle_button()
       Serial.println(timer);
 #endif
       if (timer <= 200) { // Short press
-        retval = 1;
-      }
-      else if (timer < 1000) {
         retval = 2;
       }
-      else retval = 3;
+      else if (timer < 1000) {
+        retval = 3;
+      }
+      else retval = 4;
     }
     button_was_pressed = button_now_pressed;
   }
-  return retval; // Will be 0 unless button went from pressed to released
+  return retval;
 }
 
 /**********************************************************************************************************/
