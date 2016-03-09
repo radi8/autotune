@@ -197,19 +197,25 @@ void loop() {
         }
         case 2:
           { // Short press, Initiate Autotune when RF present
+#ifdef DEBUG_BUTTONS
             Serial.println(F("Short press, Initiate Autotune when RF present"));
+#endif            
             _cmd = TUNE;
             break;
           }
         case 3:
           { // Medium press, Initiate Autotune when RF present
+#ifdef DEBUG_BUTTONS
             Serial.println(F("Medium press, Initiate Autotune when RF present"));
+#endif
             _cmd = TUNE;
             break;
           }
         case 4:
           { // Long press, Not allocated yet
+#ifdef DEBUG_BUTTONS
             Serial.println(F("Long press, Bypass tuner"));
+#endif                      
             _status.C_relays = 0;
             _status.L_relays = 0;
             _status.outputZ = loZ; // Caps switched to input side of L network
@@ -220,6 +226,7 @@ void loop() {
       }
     }
   }
+  
   // Do heartbeat of 1 sec on and 1 sec off as non blocking routine
   if (millis() > heartbeat) {
     if (digitalRead(LEDpin)) {
@@ -394,7 +401,15 @@ byte processCommand(byte cmd)
         if (_status.rawSWR > 130000) { // Debug change to force coarse tuning
           //      if(_status.rawSWR > 1) {
           _status.outputZ = hiZ;
-          doRelayCoarseSteps();
+          // doRelayCoarseSteps() returns true if tune aborted with cmd button press
+          if(doRelayCoarseSteps()) { 
+            _status.C_relays = 0;    // set relays back to power on settings.
+            _status.L_relays = 0;
+            _status.outputZ = loZ;
+            setRelays();
+            cmd = POWERUP;
+            break;
+          }
           //Save SWR and relay states and see if better with C/O relay on output
           C_RelaysTmp = _status.C_relays;
           L_RelaysTmp = _status.L_relays;
@@ -869,17 +884,22 @@ byte handle_button()
   boolean event;
   byte retval = 0;
 
-  int button_now_pressed = digitalRead(BUTTON_PIN); // pin low -> pressed
-  event = (button_now_pressed != button_was_pressed);
-  if (event) { // Check if button changed
-    delay(Button_Debounce_Millis);
+// Check for a button change. Boolean event is true if a released button is pressed or
+// a pressed button is released
+  int button_now_pressed = digitalRead(BUTTON_PIN); // pin low = pressed
+  event = (button_now_pressed != button_was_pressed); // Check if button has changed
+  if (event) {
+    delay(Button_Debounce_Millis); // Delay and re-read the button
     int button_now_pressed = digitalRead(BUTTON_PIN); // pin low -> pressed
     event = (button_now_pressed != button_was_pressed);
   }
   if (event) { // The re-read says it is a valid change of button state
     if (!button_now_pressed) { // The button has changed from released to pressed
       timer = millis();   // so start the button press length timer
-      retval = 1;
+#ifdef DEBUG_BUTTONS
+      Serial.print(F("Leading edge of button press detected"));
+#endif      
+      retval = 1; // Return indicating leading edge of a button press
     }
     else { // The button has changed from pressed to released so calc button press type.
       timer = millis() - timer;
@@ -1142,7 +1162,7 @@ void check_mem() {
 
 /**********************************************************************************************************/
 
-void doRelayCoarseSteps()
+boolean doRelayCoarseSteps()
 {
   // This subroutine steps through the capacitor and inductor relays looking for the combination which gives
   // the lowest SWR. Only individual relays are stepped with no multiple C or L combinations so a fine tune
@@ -1152,6 +1172,9 @@ void doRelayCoarseSteps()
   // relays one by one, incrementing the capacitor and repeating the procedure.
   // The SWR is read at each step into an 2 dimensional array which is later parsed for the lowest SWR and
   // the C and L combination to give this is set along with rawSWR in the _status array.
+
+  // A check of the command button is made and tune aborted with a return of true if a press detected. The
+  // caller should perform the abort process.
   
   // Entry: The caller sets the C/O relay to HiZ or LoZ as required
   // Exit with relay settings giving best SWR for the C/O relay setting on entry. Result held in _status.
@@ -1181,6 +1204,10 @@ void doRelayCoarseSteps()
         bitSet(_status.L_relays, x - 1);
       }
       setRelays();
+      // Check at this point for a command button press and abandon tune if so.
+      if(handle_button()) { // Any button change triggers abort tune.
+        return true;
+      }
       getSWR();
       values[c][x] = _status.rawSWR;
     }
@@ -1245,7 +1272,7 @@ void doRelayCoarseSteps()
   sprintf(buffer, "%-05lu ",_status.rawSWR % 100000);
   Serial.println(buffer);
 #endif //DEBUG_COARSE_TUNE_STATUS
- 
+ return false;
 } //end subroutine
 
 /**********************************************************************************************************/
