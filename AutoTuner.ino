@@ -684,6 +684,7 @@ void printStatus(boolean doHeader)
 #endif
 
 /**********************************************************************************************************/
+/*
 void printFineSteps(float bestSWR)
 {
   Serial.print(bestSWR, 4);
@@ -701,24 +702,24 @@ void printFineSteps(float bestSWR)
   print_binary(_status.L_relays, 8);
   Serial.println();
 }
-
+*/
 /**********************************************************************************************************/
 
-unsigned int calcXvalue(bool CorL)
+unsigned int calcXvalue(bool reactance)
 {
-  // We calculate the total values of L or C. CorL is a flag to determine which reactance to sum up.
+  // We calculate the total values of L or C. reactance is a flag for sum capacitors or sum inductors.
   
   unsigned int val = 0;
 
   for (byte cnt = 0; cnt < 8; cnt++) {
-    if (CorL) {   // True do capacitors, false do inductors
+    if (reactance) {   // True do capacitors, false do inductors
       if (bitRead(_status.C_relays, cnt)) val = val + _capacitors[cnt]; // add reactance assigned to set bits only.
     }
     else {
       if (bitRead(_status.L_relays, cnt)) val = val + _inductors[cnt];
     }
   }
-  if (CorL) {
+  if (reactance) {
     val = val + _strayC;
   }
   else {
@@ -757,8 +758,8 @@ void setRelays()
   digitalWrite(Llatch, HIGH);
 
   // Write the total capacitor and inductor values into the "_status" struct.
-  _status.totC = calcXvalue(true);
-  _status.totL = calcXvalue(false);
+  _status.totC = calcXvalue(C);
+  _status.totL = calcXvalue(L);
 
   // Set the HiZ/LoZ Changeover Relay from the value of _status.outputZ
   if (_status.outputZ) {
