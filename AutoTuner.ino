@@ -758,8 +758,8 @@ void setRelays()
   digitalWrite(Llatch, HIGH);
 
   // Write the total capacitor and inductor values into the "_status" struct.
-  _status.totC = calcXvalue(C);
-  _status.totL = calcXvalue(L);
+  _status.totC = calcXvalue(CAPACITANCE);
+  _status.totL = calcXvalue(INDUCTANCE);
 
   // Set the HiZ/LoZ Changeover Relay from the value of _status.outputZ
   if (_status.outputZ) {
@@ -1416,7 +1416,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t lowRelay)
 {
   int x;
-  char buffer[16];
+  char pntBuffer[16];
   
   if(doHeader) {
     for(x = 0; x < 9; x++) {
@@ -1428,8 +1428,10 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
     Serial.println(F("cnt"));
   } else {
     for(x = 0; x < 9; x++) {
-      Serial.print(float(values[x]) / 100000, 4);
-      Serial.print(F("     "));
+//      Serial.print(float(values[x]) / 100000, 4);
+//      Serial.print(F("     "));
+      dtostrf(float(values[x]) / 100000, 8, 4, pntBuffer);  // 8 is mininum width, 4 is decimal places;
+      Serial.print(pntBuffer);
     }
     Serial.print(lowRelay);
     Serial.print("\t    ");

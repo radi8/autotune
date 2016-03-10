@@ -44,8 +44,8 @@
 #define Button_Debounce_Millis 20   // Delay for pushbutton debounce settle time ms
 #define Relay_Settle_Millis    20   // Delay for relay debounce settle time ms
 
-#define C             true    // Capacitor relay set
-#define L             false   // Inductor relay set
+//#define C             true    // Capacitor relay set
+//#define L             false   // Inductor relay set
 #define Up            true    // Debug item, remove in final
 #define Dn            false   // Debug item, remove in final
 #define hiZ           true    // L network set for high impedence loads (capacitors at output side)
