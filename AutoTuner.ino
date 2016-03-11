@@ -391,7 +391,8 @@ byte processCommand(byte cmd)
           lcdPrintBargraph(false);
           cmd = TUNING;
         } else {
-          lcdPrintStatus();          
+          lcd.home();
+          lcd.print("  Tune Pending  ");          
         }
         break;
       }
