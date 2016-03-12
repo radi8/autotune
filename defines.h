@@ -25,7 +25,7 @@
 #define TX_LEVEL_THRESHOLD 20
 #define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
 #define CAPS_at_OUTPUT     HIGH
-#define SWR_AVERAGE_COUNT  10     // Number of analog readings to combat jitter
+#define SWR_AVERAGE_COUNT  16     // Number of analog readings to find a voice peak
 
 // Shift Register for L & C driver Pin assign
 #define outputEnable  4     // Pin 11 of 74HC164 U5 to pin 7 of Arduino Nano

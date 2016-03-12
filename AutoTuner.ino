@@ -787,43 +787,49 @@ void getSWR()
   //       We are using the GLOBAL struct _swr
   //       All globals are prefixed with an underscore e.g. _status.fwd
 
-  unsigned long fwd = 0;
-  unsigned long rev = 0;
+  unsigned int fwd = 0;
+  unsigned int rev = 0;
+  boolean attenuatorFlag = false;
 
+ // When looking at an SSB or AM signal we are wanting a voice peak to calculate the SWR. By taking multiple
+ // reads of fwd and rev voltages we stand a good chance of striking a peak.
+  _status.fwd = 0;
+  _status.rev = 0;
   for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
-    fwd = fwd + analogRead(forward);
-    rev = rev + analogRead(reverse);
+    fwd = analogRead(forward);
+    rev = analogRead(reverse);
+    if (fwd > _status.fwd) _status.fwd = fwd;
+    if (rev > _status.rev) _status.rev = rev;
   }
-  fwd = fwd / SWR_AVERAGE_COUNT;
-  rev = rev / SWR_AVERAGE_COUNT;
-  delay(1);
 
-  if ((fwd < 300) && (_status.ampGain == lo)) {
+ // Now check to see if we need to change the SWR attenuator and flag if so
+  if ((_status.fwd < 300) && (_status.ampGain == lo)) {
     digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
     _status.ampGain = hi;
-    delay(1);
-    fwd = analogRead(forward);
+    attenuatorFlag = true;
   }
   else if (fwd == 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     _status.ampGain = lo;
-    delay(1);
-    fwd = analogRead(forward);
+    attenuatorFlag = true;
   }
-  if (fwd > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
-    fwd = 0;
-    rev = 0;
+
+  if(attenuatorFlag) { // We altered the attenuator so have to read the fwd and rev again.
+    _status.fwd = 0;
+    _status.rev = 0;
     for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
-      fwd = fwd + analogRead(forward);
-      rev = rev + analogRead(reverse);
+      fwd = analogRead(forward);
+      rev = analogRead(reverse);
+      if (fwd > _status.fwd) _status.fwd = fwd;
+      if (rev > _status.rev) _status.rev = rev;
     }
-    fwd = fwd / SWR_AVERAGE_COUNT;
-    rev = rev / SWR_AVERAGE_COUNT;
+  }
+  if (_status.fwd > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
     if (rev == 0) rev = 1;
     if (fwd <= rev) fwd = (rev + 1); //Avoid division by zero or negative.
-    _status.fwd = fwd;
-    _status.rev = rev;
-    _status.rawSWR = ((fwd + rev) * 100000) / (fwd - rev);
+ //   _status.fwd = fwd;
+ //   _status.rev = rev;
+    _status.rawSWR = ((_status.fwd + _status.rev) * 100000) / (_status.fwd - _status.rev);
   }
   else {
     _status.fwd = 0;
@@ -1421,21 +1427,22 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
   
   if(doHeader) {
     for(x = 0; x < 9; x++) {
-      Serial.print(F("Values["));
+      Serial.print(F("  Values["));
       Serial.print(x);
-      Serial.print(F("]  "));
+      Serial.print(F("]"));
     }
-    Serial.print(F("lowRelay "));
+    Serial.print(F("   lowRelay "));
     Serial.println(F("cnt"));
   } else {
     for(x = 0; x < 9; x++) {
 //      Serial.print(float(values[x]) / 100000, 4);
 //      Serial.print(F("     "));
-      dtostrf(float(values[x]) / 100000, 8, 4, pntBuffer);  // 8 is mininum width, 4 is decimal places;
+      dtostrf(float(values[x]) / 100000, 11, 4, pntBuffer);  // 8 is mininum width, 4 is decimal places;
       Serial.print(pntBuffer);
     }
+    Serial.print("   ");
     Serial.print(lowRelay);
-    Serial.print("\t    ");
+    Serial.print("\t ");
     Serial.println(cnt);
   }
 }
