@@ -825,10 +825,11 @@ void getSWR()
     }
   }
   if (_status.fwd > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
-    if (rev == 0) rev = 1;
-    if (fwd <= rev) fwd = (rev + 1); //Avoid division by zero or negative.
- //   _status.fwd = fwd;
- //   _status.rev = rev;
+    if (_status.rev == 0) {
+      _status.rev = 1;
+      _status.fwd++;
+    }
+    if (_status.fwd <= _status.rev) _status.fwd = (_status.rev + 1); //Avoid division by zero or negative.
     _status.rawSWR = ((_status.fwd + _status.rev) * 100000) / (_status.fwd - _status.rev);
   }
   else {
