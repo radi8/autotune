@@ -401,7 +401,7 @@ byte processCommand(byte cmd)
         tryPresets();
         if (_status.rawSWR > 130000) { // Debug change to force coarse tuning
           //      if(_status.rawSWR > 1) {
-          _status.outputZ = hiZ;
+          _status.outputZ = loZ;
           // doRelayCoarseSteps() returns true if tune aborted with cmd button press
           if(doRelayCoarseSteps()) { 
             _status.C_relays = 0;    // set relays back to power on settings.
@@ -416,7 +416,7 @@ byte processCommand(byte cmd)
           L_RelaysTmp = _status.L_relays;
           bestZ = _status.outputZ;
 #ifdef DEBUG_COARSE_TUNE_STATUS1
-          Serial.println(F("HiZ coarse tune results"));
+          Serial.println(F("LoZ coarse tune results"));
           printStatus(printHeader);
           printStatus(printBody);
 #endif
@@ -424,12 +424,12 @@ byte processCommand(byte cmd)
           SWRtmp = _status.rawSWR;
 
           if (_status.rawSWR > 120000) { // Only try again if swr needs improving
-            _status.outputZ = loZ;
+            _status.outputZ = hiZ;
             doRelayCoarseSteps(); //Run it again and see if better with C/O relay operated
             //If not better restore relays to input state
             //          getSWR();
 #ifdef DEBUG_COARSE_TUNE_STATUS1
-            Serial.println(F("LoZ coarse tune results"));
+            Serial.println(F("HiZ coarse tune results"));
             printStatus(printHeader);
             printStatus(printBody);
 #endif
@@ -1188,11 +1188,11 @@ boolean doRelayCoarseSteps()
   // Entry: The caller sets the C/O relay to HiZ or LoZ as required
   // Exit with relay settings giving best SWR for the C/O relay setting on entry. Result held in _status.
 
-  unsigned long values[9][9];
+  uint32_t values[9][9];
   unsigned long bestSWR = 99900000;
   byte bestC = 0;  
   byte bestL = 0;
-  char buffer[16];  
+  char pntBuffer[16];  
 
   // Initialise with no L or C relays operated and C/O relay set by the caller.
   _status.C_relays = 0;
@@ -1245,9 +1245,9 @@ boolean doRelayCoarseSteps()
 #ifdef DEBUG_COARSE_TUNE_STATUS // Print the DEBUG header
   Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
   if (_status.outputZ == hiZ) Serial.print(F("Output (HiZ)"));
-  else Serial.print(F("Input (LoZ"));
+  else Serial.print(F("Input (LoZ)"));
   Serial.println();
-  Serial.print("Cap\t");
+  Serial.print(F("Cap\t  "));
   for(int x = 0; x < 9; x++) {
     Serial.print(F("  L")); 
     Serial.print(x);
@@ -1261,12 +1261,14 @@ boolean doRelayCoarseSteps()
     Serial.print(c);
     Serial.print("\t");
     for(byte x = 0; x < 9; x++) {
-      sprintf(buffer, "%3lu",values[c][x] / 100000);
+      dtostrf(float(values[c][x]) / 100000, 11, 5, pntBuffer);  // 11 is mininum width, 5 is decimal places;
+      Serial.print(pntBuffer);
+/*      sprintf(buffer, "%3lu",values[c][x] / 100000);
       Serial.print(buffer);
       Serial.print(F("."));
       sprintf(buffer, "%-05lu ",values[c][x] % 100000);
       Serial.print(buffer);
-      Serial.print(F(" "));
+      Serial.print(F(" ")); */
     }
     Serial.println("");
   }
@@ -1275,11 +1277,13 @@ boolean doRelayCoarseSteps()
   Serial.print(F("; bestL = "));
   Serial.print(bestL);
   Serial.print(F("; SWR = "));
-  sprintf(buffer, "%3lu",_status.rawSWR / 100000);
-  Serial.print(buffer);
-  Serial.print(F("."));
-  sprintf(buffer, "%-05lu ",_status.rawSWR % 100000);
-  Serial.println(buffer);
+  dtostrf(float(_status.rawSWR) / 100000, 11, 5, pntBuffer);  // 11 is mininum width, 5 is decimal places;
+  Serial.println(pntBuffer);
+//  sprintf(buffer, "%3lu",_status.rawSWR / 100000);
+//  Serial.print(buffer);
+//  Serial.print(F("."));
+//  sprintf(buffer, "%-05lu ",_status.rawSWR % 100000);
+//  Serial.println(buffer);
 #endif //DEBUG_COARSE_TUNE_STATUS
  return false;
 } //end subroutine
