@@ -70,7 +70,25 @@ Due to a screw up in my circuit it is necessary to map the relays to the right p
      ----------------------------------------------------------------------------------
 void getSWR()
 
+Typically when the swr is very low and the reverse voltage is less than the forward conduction of the diode in the Stockton bridge you get a small series of zero reverse readings which all produce an swr of 1. This leaves the correct relay setting ambiguous as can be seen in the table below in the swr1 column. The fix is to make the reverse_voltage = 1 if it is zero and an unambiguous result can be obtained as shown in column swr2. The downside is that swr2 is telling tiny fibs about the actual swr but when you are measuring voltages with a diode down in that part of the curve it will be very non-linear anyway and the error is negligible.
 
+fwd    rev    swr1    swr2
+388    3    1.016    1.016
+388    0    1.000    1.00517
+390    0    1.000    1.00514
+392    0    1.000    1.00512 ***
+387    0    1.000    1.00518
+386    4    1.021    1.021
+
+void measure_swr()
+
+if (forward_voltage > reverse_voltage) {
+  if (reverse_voltage == 0) reverse_voltage = 1;
+  swr = float(forward_voltage + reverse_voltage) / float(forward_voltage - reverse_voltage);
+}
+else {
+  swr = 100;
+}
 
      ----------------------------------------------------------------------------------
 void formatINT(int number)
