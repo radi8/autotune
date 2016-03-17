@@ -1453,7 +1453,8 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
     }
     Serial.print("   ");
     Serial.print(lowRelay);
-    Serial.print("\t ");
+    if(lowRelay < 10) Serial.print("\t");
+    Serial.print("\t");
     Serial.println(cnt);
   }
 }
