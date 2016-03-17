@@ -1193,23 +1193,26 @@ boolean doRelayCoarseSteps()
   byte bestC = 0;  
   byte bestL = 0;
   char pntBuffer[16];  
-
+/*
   // Initialise with no L or C relays operated and C/O relay set by the caller.
+
   _status.C_relays = 0;
   _status.L_relays = 0;
   setRelays();
 //  delay(20); // Extra settling time for an ultra stable initial reading
   getSWR();  //Get SWR with relays at initial state.
   bestSWR = _status.rawSWR;
+*/
+// Step through states of no relays operated to all relays operated
 
   for(byte c =0; c < 9; c++) {
-    if(c != 0) {
-      _status.C_relays = 0;
+    _status.C_relays = 0;
+    if(c != 0) {    
       bitSet(_status.C_relays, c - 1);
     }
     for(byte x = 0; x < 9; x++) {
-      if(x != 0) {
-        _status.L_relays = 0;
+      _status.L_relays = 0;
+      if(x != 0) {        
         bitSet(_status.L_relays, x - 1);
       }
       setRelays();
@@ -1219,8 +1222,8 @@ boolean doRelayCoarseSteps()
       }
       getSWR();
       values[c][x] = _status.rawSWR;
-    }
-  } //endfor    
+    } // end inner for loop
+  } //end outer for loop
 
    // We parse the array looking for the combination of L and C relays which give lowest SWR
   for(byte c =0; c < 9; c++) {
@@ -1268,7 +1271,8 @@ boolean doRelayCoarseSteps()
       Serial.print(F("."));
       sprintf(buffer, "%-05lu ",values[c][x] % 100000);
       Serial.print(buffer);
-      Serial.print(F(" ")); */
+      Serial.print(F(" "));
+*/
     }
     Serial.println("");
   }
@@ -1279,11 +1283,13 @@ boolean doRelayCoarseSteps()
   Serial.print(F("; SWR = "));
   dtostrf(float(_status.rawSWR) / 100000, 11, 5, pntBuffer);  // 11 is mininum width, 5 is decimal places;
   Serial.println(pntBuffer);
+  
 //  sprintf(buffer, "%3lu",_status.rawSWR / 100000);
 //  Serial.print(buffer);
 //  Serial.print(F("."));
 //  sprintf(buffer, "%-05lu ",_status.rawSWR % 100000);
 //  Serial.println(buffer);
+
 #endif //DEBUG_COARSE_TUNE_STATUS
  return false;
 } //end subroutine
