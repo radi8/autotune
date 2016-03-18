@@ -1304,7 +1304,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   // is traversed up or down consecutive relays until the best SWR is centred at values[4]. The associated relays are
   // set in _status array. Parameter reactance determines whether we are stepping _status.C_relays or _status.L_relays.
 
-  uint32_t values[9]; // An array of SWR values centred around the relays set in "_status" at entry
+  uint32_t values[valuesSize]; // An array of SWR values centred around the relays set in "_status" at entry (9)
   uint8_t lowRelay;   // The relay combination which gives the SWR held in Values[0] (0 to 255)
   uint8_t cnt;  // Mostly used to point to a position in the array
   uint8_t *pReactance; // A pointer to either _status.C_relays or _status.L_relays
@@ -1318,27 +1318,27 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 
   // Load the array with the SWR values obtained from the current "_status_X_Relays" and the relays 4 above & below.
   // Check to see that "uint8_t lowRelay" stay in bounds, i.e does not become less than 0 or greater than 255.
-  if((*pReactance  >= 4) && (*pReactance <= 251)) {  // Do only if lowRelay won't over or underflow
-    lowRelay = *pReactance - 4;
+  if((*pReactance  >= valuesCentre) && (*pReactance <= 255-valuesCentre)) {  // Do only if lowRelay won't over or underflow
+    lowRelay = *pReactance - valuesCentre;
   } else {
-    if(*pReactance < 4) { // lowRelay could go out of bounds here so limit its value
+    if(*pReactance < valuesCentre) { // lowRelay could go out of bounds here so limit its value
       lowRelay = 0;
-    } else lowRelay = 247;
+    } else lowRelay = 255-valuesCentre;
   }
   // Loading the array with SWR's from 9 relays centred around current relay
   cnt = 0;
-  for(int x = lowRelay; x < (lowRelay + 9); x++) {
-    *pReactance = x; // Select the relay starting from lowRelay and stepping up over a total of 9 relays.
-    setRelays();     // and operate it
+  for(int x = lowRelay; x < (lowRelay + valuesSize); x++) {
+    *pReactance = x; // Select the relay/s starting from lowRelay and stepping up over a total of 9 relays.
+    setRelays();     // and operate them.
     getSWR();
     values[cnt] = _status.rawSWR;
     cnt++;
-  }        // On exit, _status.X_relays = lowRelays + 8; cnt = 9
+  }        // On exit, _status.X_relays = lowRelays + valuesSize-1; cnt = 9
   
-  displayAnalog(0, 0, _status.fwd);
-  displayAnalog(0, 1, _status.rev);
+//  displayAnalog(0, 0, _status.fwd); // TODO this is not going to display best swr so far so the best value
+//  displayAnalog(0, 1, _status.rev); // needs to be set in status.fwd/rev relays first.
 
-  cnt = findBestValue(values, 9); // Get the array position holding the lowest SWR
+  cnt = findBestValue(values, valuesSize); // Get the array position holding the lowest SWR
 
 // Print the contents of the initialised array and if it is Inductor or Capacitor relays being stepped.
 #ifdef DEBUG_FINE_STEP  
@@ -1352,12 +1352,13 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     printFineValues(printBody, values, cnt, lowRelay);
 #endif  
 
-  // Assume if cnt < 4, we need to search down but not if lowRelay at 0 or we will underflow
-  // If cnt = 4 we have found the SWR dip
-  // If cnt > 4, we need to search up but not if lowRelay at 247 or more else we will overflow
+  // Assume if cnt < valuesCentre, we need to search down but not if lowRelay at 0 or we will underflow
+  // If cnt = valuesCentre we have found the SWR dip
+  // If cnt > valuesCentre, we need to search up but not if lowRelay at 255-valuesSize or more else we will overflow
 
-  while(cnt != 4) {
-    if(((lowRelay == 0) && (cnt < 5)) || ((lowRelay == 247) && (cnt > 3))) {
+  while(cnt != valuesCentre) {
+    if(((lowRelay == 0) && (cnt < valuesSize+1)) || ((lowRelay == 255-valuesSize) && (cnt > valuesSize-1))) {
+      cnt = findBestValue(values, valuesSize); // Get the array position holding the lowest SWR
 #ifdef DEBUG_FINE_STEP
       Serial.println(F("We will over/underflow so choosing best value"));
 #endif      
@@ -1368,12 +1369,12 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   if(header) Serial.println(F("cnt < 4 so searching down"));
 #endif
       lowRelay--;
-      for(uint8_t i = 8; i > 0; --i){ // Shift the array to the right 8 steps
+      for(uint8_t i = valuesSize-1; i > 0; --i){ // Shift the array to the right 8 steps
         values[i]=values[i-1];   
       }
       *pReactance = lowRelay;
       setRelays();
-      getSWR();
+//      getSWR();
       delay(5);
       getSWR();
       values[0] = _status.rawSWR;     
@@ -1383,17 +1384,17 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   if(header) Serial.println(F("cnt > 4 so searching up"));
 #endif
       lowRelay++;
-      for(uint8_t i=0; i < 8; i++){ // Shift the array to the left 8 steps
+      for(uint8_t i=0; i < valuesSize-1; i++){ // Shift the array to the left 8 steps
         values[i]=values[i+1];
       }
-      *pReactance = lowRelay + 8;
+      *pReactance = lowRelay + valuesSize-1;
       setRelays();
-      getSWR();
+//      getSWR();
       delay(5);
       getSWR();
-      values[8] = _status.rawSWR;
+      values[valuesSize-1] = _status.rawSWR;
     } // ----------------------------------------------------
-    cnt = findBestValue(values, 9);
+    cnt = findBestValue(values, valuesSize);
 #ifdef DEBUG_FINE_STEP // Print a table of SWR values in the array at this point
   if(header) {         // Do a header if first time through the "while" loop
     printFineValues(printHeader, values, cnt, lowRelay);
@@ -1409,7 +1410,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   // will correspond to the lowest SWR for this pass of fine tune.
   *pReactance = lowRelay + cnt;
   setRelays();
-  setRelays();     // Extra relay switching for an accurate final reading
+//  setRelays();     // Extra relay switching for an accurate final reading
   delay(20);   // Extra relay settling time for an accurate final reading
   getSWR();
 
@@ -1426,7 +1427,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     printStatus(printHeader);
     printStatus(printBody);
 #endif  
-  return _status.rawSWR;
+  return _status.rawSWR; //TODO don't need to return a global
 }
 
 /**********************************************************************************************************/

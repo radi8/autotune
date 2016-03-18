@@ -44,8 +44,6 @@
 #define Button_Debounce_Millis 20   // Delay for pushbutton debounce settle time ms
 #define Relay_Settle_Millis    20   // Delay for relay debounce settle time ms
 
-//#define C             true    // Capacitor relay set
-//#define L             false   // Inductor relay set
 #define Up            true    // Debug item, remove in final
 #define Dn            false   // Debug item, remove in final
 #define hiZ           true    // L network set for high impedence loads (capacitors at output side)
@@ -55,7 +53,9 @@
 #define printHeader   true    // Tell printStatus() to print the header line
 #define printBody     false   // Tell printStatus() to print the status data
 #define OK_SWR        120000
-
+#define valuesSize 9       // Relay steps to search over fine tuning relays array (odd numbers only).
+// const int valuesCentre = valuesSize/2; // e.g. 9 / 2 = 4
+#define valuesCentre int(valuesSize/2)
 
 // Analog pushbutton settings
 #define analog_buttons_pin A6
