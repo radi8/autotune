@@ -53,7 +53,7 @@
 #define printHeader   true    // Tell printStatus() to print the header line
 #define printBody     false   // Tell printStatus() to print the status data
 #define OK_SWR        120000
-#define valuesSize 9       // Relay steps to search over fine tuning relays array (odd numbers only).
+#define valuesSize 13       // Relay steps to search over fine tuning relays array (odd numbers only).
 // const int valuesCentre = valuesSize/2; // e.g. 9 / 2 = 4
 #define valuesCentre int(valuesSize/2)
 

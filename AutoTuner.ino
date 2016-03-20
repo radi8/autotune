@@ -1331,6 +1331,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     *pReactance = x; // Select the relay/s starting from lowRelay and stepping up over a total of "valuesSize" relays.
     setRelays();     // and operate them.
     getSWR();
+    delay(20);
     values[cnt] = _status.rawSWR;
     cnt++;
   }        // On exit, _status.X_relays = lowRelays + valuesSize-1; cnt = valuesSize
@@ -1354,7 +1355,8 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 
   // Assume if cnt < valuesCentre, we need to search down but not if lowRelay at 0 or we will underflow
   // If cnt = valuesCentre we have found the SWR dip
-  // If cnt > valuesCentre, we need to search up but not if lowRelay at 255-valuesSize or more else we will overflow
+  // If cnt > valuesCentre, we need to search up but not if lowRelay at 255-valuesSize or more else
+  // we will overflow.
 
   while(cnt != valuesCentre) {
     if(((lowRelay == 0) && (cnt < valuesSize+1)) || ((lowRelay == 255-valuesSize) && (cnt > valuesSize-1))) {
@@ -1364,9 +1366,13 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
 #endif      
       break;
     } // ----------------------------------------------------
-    else if(cnt < 4) { // We won't over/underflow and need to search down
+    else if(cnt < valuesCentre) { // We won't over/underflow and need to search down
 #ifdef DEBUG_FINE_STEP
-  if(header) Serial.println(F("cnt < 4 so searching down"));
+  if(header) {
+    Serial.print(F("cnt < "));
+    Serial.print(valuesCentre);
+    Serial.println(F(" so searching down"));
+  }
 #endif
       lowRelay--;
       for(uint8_t i = valuesSize-1; i > 0; --i){ // Shift the array to the right 8 steps
@@ -1381,7 +1387,11 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     } // ----------------------------------------------------
     else { // We won't over/underflow and need to search up
 #ifdef DEBUG_FINE_STEP
-  if(header) Serial.println(F("cnt > 4 so searching up"));
+  if(header) {
+    Serial.print(F("cnt > "));
+    Serial.print(valuesCentre);
+    Serial.println(F(" so searching up"));
+  }
 #endif
       lowRelay++;
       for(uint8_t i=0; i < valuesSize-1; i++){ // Shift the array to the left 8 steps
@@ -1424,6 +1434,8 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     } else {
       Serial.println(F("CAPACITORS"));
     }
+    Serial.print(F("C_Relays = "));
+    Serial.println(_status.C_relays);
     printStatus(printHeader);
     printStatus(printBody);
 #endif  
