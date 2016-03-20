@@ -25,7 +25,7 @@
 #define TX_LEVEL_THRESHOLD 20
 #define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
 #define CAPS_at_OUTPUT     HIGH
-#define SWR_AVERAGE_COUNT  16     // Number of analog readings to find a voice peak
+#define SWR_AVERAGE_COUNT  8     // Number of analog readings to find a voice peak
 
 // Shift Register for L & C driver Pin assign
 #define outputEnable  4     // Pin 11 of 74HC164 U5 to pin 7 of Arduino Nano
@@ -53,7 +53,7 @@
 #define printHeader   true    // Tell printStatus() to print the header line
 #define printBody     false   // Tell printStatus() to print the status data
 #define OK_SWR        120000
-#define valuesSize 13       // Relay steps to search over fine tuning relays array (odd numbers only).
+#define valuesSize 11       // Relay steps to search over fine tuning relays array (odd numbers only).
 // const int valuesCentre = valuesSize/2; // e.g. 9 / 2 = 4
 #define valuesCentre int(valuesSize/2)
 

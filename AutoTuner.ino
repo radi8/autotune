@@ -787,8 +787,8 @@ void getSWR()
   //       We are using the GLOBAL struct _swr
   //       All globals are prefixed with an underscore e.g. _status.fwd
 
-  unsigned int fwd = 0;
-  unsigned int rev = 0;
+//  unsigned long fwd = 0;
+//  unsigned long rev = 0;
   boolean attenuatorFlag = false;
 
  // When looking at an SSB or AM signal we are wanting a voice peak to calculate the SWR. By taking multiple
@@ -796,11 +796,13 @@ void getSWR()
   _status.fwd = 0;
   _status.rev = 0;
   for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
-    fwd = analogRead(forward);
-    rev = analogRead(reverse);
-    if (fwd > _status.fwd) _status.fwd = fwd;
-    if (rev > _status.rev) _status.rev = rev;
-  }
+    _status.fwd = _status.fwd + analogRead(forward);
+    delay(1);
+    _status.rev = _status.rev + analogRead(reverse);
+    delay(1);
+   }
+  _status.fwd = _status.fwd / SWR_AVERAGE_COUNT;
+  _status.rev = _status.rev / SWR_AVERAGE_COUNT;
 
  // Now check to see if we need to change the SWR attenuator and flag if so
   if ((_status.fwd < 300) && (_status.ampGain == lo)) {
@@ -808,7 +810,7 @@ void getSWR()
     _status.ampGain = hi;
     attenuatorFlag = true;
   }
-  else if (fwd == 1023) {
+  else if (_status.fwd == 1023) {
     digitalWrite(swrGain, HIGH);  // Set to lowest gain for amps.
     _status.ampGain = lo;
     attenuatorFlag = true;
@@ -818,11 +820,13 @@ void getSWR()
     _status.fwd = 0;
     _status.rev = 0;
     for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
-      fwd = analogRead(forward);
-      rev = analogRead(reverse);
-      if (fwd > _status.fwd) _status.fwd = fwd;
-      if (rev > _status.rev) _status.rev = rev;
+      _status.fwd = _status.fwd + analogRead(forward);
+      delay(1);
+      _status.rev = _status.rev + analogRead(reverse);
+      delay(1);
     }
+    _status.fwd = _status.fwd / SWR_AVERAGE_COUNT;
+    _status.rev = _status.rev / SWR_AVERAGE_COUNT;
   }
   if (_status.fwd > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
     if (_status.rev == 0) {
@@ -1326,12 +1330,17 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     } else lowRelay = 255-valuesCentre;
   }
   // Loading the array with SWR's from valuesSize relays centred around current relay
+
+  // DEBUG Do this 4 times
+
+//  for(int z = 0; z < 4; z++) {
+    
   cnt = 0;
   for(int x = lowRelay; x < (lowRelay + valuesSize); x++) {
     *pReactance = x; // Select the relay/s starting from lowRelay and stepping up over a total of "valuesSize" relays.
     setRelays();     // and operate them.
     getSWR();
-    delay(20);
+//    delay(20);
     values[cnt] = _status.rawSWR;
     cnt++;
   }        // On exit, _status.X_relays = lowRelays + valuesSize-1; cnt = valuesSize
@@ -1353,6 +1362,10 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     printFineValues(printBody, values, cnt, lowRelay);
 #endif  
 
+//  } 
+//  Serial.println();
+// End DEBUG
+  
   // Assume if cnt < valuesCentre, we need to search down but not if lowRelay at 0 or we will underflow
   // If cnt = valuesCentre we have found the SWR dip
   // If cnt > valuesCentre, we need to search up but not if lowRelay at 255-valuesSize or more else
@@ -1381,7 +1394,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       *pReactance = lowRelay;
       setRelays();
 //      getSWR();
-      delay(5);
+//      delay(5);
       getSWR();
       values[0] = _status.rawSWR;     
     } // ----------------------------------------------------
@@ -1400,7 +1413,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       *pReactance = lowRelay + valuesSize-1;
       setRelays();
 //      getSWR();
-      delay(5);
+//      delay(5);
       getSWR();
       values[valuesSize-1] = _status.rawSWR;
     } // ----------------------------------------------------
