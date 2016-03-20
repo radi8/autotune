@@ -1227,11 +1227,11 @@ boolean doRelayCoarseSteps()
 
    // We parse the array looking for the combination of L and C relays which give lowest SWR
   for(byte c =0; c < 9; c++) {
-    for(byte x = 0; x < 9; x++) {
-      if(values[c][x] < bestSWR) {
-        bestSWR = values[c][x];
+    for(byte l = 0; l < 9; l++) {
+      if(values[c][l] < bestSWR) {
+        bestSWR = values[c][l];
         bestC = c;
-        bestL = x;
+        bestL = l;
       }
     }
   }
@@ -1304,7 +1304,7 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
   // is traversed up or down consecutive relays until the best SWR is centred at values[4]. The associated relays are
   // set in _status array. Parameter reactance determines whether we are stepping _status.C_relays or _status.L_relays.
 
-  uint32_t values[valuesSize]; // An array of SWR values centred around the relays set in "_status" at entry (9)
+  uint32_t values[valuesSize]; // An array of SWR values centred around the relays set in "_status" at entry (valuesSize)
   uint8_t lowRelay;   // The relay combination which gives the SWR held in Values[0] (0 to 255)
   uint8_t cnt;  // Mostly used to point to a position in the array
   uint8_t *pReactance; // A pointer to either _status.C_relays or _status.L_relays
@@ -1325,15 +1325,15 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
       lowRelay = 0;
     } else lowRelay = 255-valuesCentre;
   }
-  // Loading the array with SWR's from 9 relays centred around current relay
+  // Loading the array with SWR's from valuesSize relays centred around current relay
   cnt = 0;
   for(int x = lowRelay; x < (lowRelay + valuesSize); x++) {
-    *pReactance = x; // Select the relay/s starting from lowRelay and stepping up over a total of 9 relays.
+    *pReactance = x; // Select the relay/s starting from lowRelay and stepping up over a total of "valuesSize" relays.
     setRelays();     // and operate them.
     getSWR();
     values[cnt] = _status.rawSWR;
     cnt++;
-  }        // On exit, _status.X_relays = lowRelays + valuesSize-1; cnt = 9
+  }        // On exit, _status.X_relays = lowRelays + valuesSize-1; cnt = valuesSize
   
 //  displayAnalog(0, 0, _status.fwd); // TODO this is not going to display best swr so far so the best value
 //  displayAnalog(0, 1, _status.rev); // needs to be set in status.fwd/rev relays first.
@@ -1438,7 +1438,7 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
   char pntBuffer[16];
   
   if(doHeader) {
-    for(x = 0; x < 9; x++) {
+    for(x = 0; x < valuesSize; x++) {
       Serial.print(F("  Values["));
       Serial.print(x);
       Serial.print(F("]"));
@@ -1446,7 +1446,7 @@ void printFineValues(boolean doHeader, uint32_t values[], uint8_t cnt, uint8_t l
     Serial.print(F("   lowRelay "));
     Serial.println(F("cnt"));
   } else {
-    for(x = 0; x < 9; x++) {
+    for(x = 0; x < valuesSize; x++) {
 //      Serial.print(float(values[x]) / 100000, 4);
 //      Serial.print(F("     "));
       dtostrf(float(values[x]) / 100000, 11, 4, pntBuffer);  // 8 is mininum width, 4 is decimal places;
