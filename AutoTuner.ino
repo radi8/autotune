@@ -793,17 +793,8 @@ void getSWR()
 
  // When looking at an SSB or AM signal we are wanting a voice peak to calculate the SWR. By taking multiple
  // reads of fwd and rev voltages we stand a good chance of striking a peak.
-  _status.fwd = 0;
-  _status.rev = 0;
-  for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
-    _status.fwd = _status.fwd + analogRead(forward);
-    delay(1);
-    _status.rev = _status.rev + analogRead(reverse);
-    delay(1);
-   }
-  _status.fwd = _status.fwd / SWR_AVERAGE_COUNT;
-  _status.rev = _status.rev / SWR_AVERAGE_COUNT;
 
+  readSWR();
  // Now check to see if we need to change the SWR attenuator and flag if so
   if ((_status.fwd < 300) && (_status.ampGain == lo)) {
     digitalWrite(swrGain, LOW);     // Set swr amplifiers to highest gain
@@ -817,16 +808,7 @@ void getSWR()
   }
 
   if(attenuatorFlag) { // We altered the attenuator so have to read the fwd and rev again.
-    _status.fwd = 0;
-    _status.rev = 0;
-    for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
-      _status.fwd = _status.fwd + analogRead(forward);
-      delay(1);
-      _status.rev = _status.rev + analogRead(reverse);
-      delay(1);
-    }
-    _status.fwd = _status.fwd / SWR_AVERAGE_COUNT;
-    _status.rev = _status.rev / SWR_AVERAGE_COUNT;
+    readSWR();
   }
   if (_status.fwd > TX_LEVEL_THRESHOLD) { // Only do this if enough TX power
     if (_status.rev == 0) {
@@ -851,6 +833,21 @@ void getSWR()
   Serial.print(F(", "));
   Serial.println(_status.rawSWR);
 #endif
+}
+
+/**********************************************************************************************************/
+void readSWR()
+{
+  _status.fwd = 0;
+  _status.rev = 0;
+  for (byte x = 1; x < (SWR_AVERAGE_COUNT + 1); x++) {
+    _status.fwd = _status.fwd + analogRead(forward);
+    delayMicroseconds(500);
+    _status.rev = _status.rev + analogRead(reverse);
+    delayMicroseconds(500);
+  }
+  _status.fwd = _status.fwd / SWR_AVERAGE_COUNT;
+  _status.rev = _status.rev / SWR_AVERAGE_COUNT;
 }
 
 /**********************************************************************************************************/
@@ -1340,14 +1337,10 @@ uint32_t fineStep(bool reactance) // Enter with swr and relay status up to date
     *pReactance = x; // Select the relay/s starting from lowRelay and stepping up over a total of "valuesSize" relays.
     setRelays();     // and operate them.
     getSWR();
-//    delay(20);
     values[cnt] = _status.rawSWR;
     cnt++;
   }        // On exit, _status.X_relays = lowRelays + valuesSize-1; cnt = valuesSize
   
-//  displayAnalog(0, 0, _status.fwd); // TODO this is not going to display best swr so far so the best value
-//  displayAnalog(0, 1, _status.rev); // needs to be set in status.fwd/rev relays first.
-
   cnt = findBestValue(values, valuesSize); // Get the array position holding the lowest SWR
 
 // Print the contents of the initialised array and if it is Inductor or Capacitor relays being stepped.
