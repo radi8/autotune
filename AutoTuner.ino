@@ -415,25 +415,24 @@ byte processCommand(byte cmd)
           C_RelaysTmp = _status.C_relays;
           L_RelaysTmp = _status.L_relays;
           bestZ = _status.outputZ;
+          SWRtmp = _status.rawSWR;
+          
 #ifdef DEBUG_COARSE_TUNE_STATUS1
           Serial.println(F("LoZ coarse tune results"));
           printStatus(printHeader);
           printStatus(printBody);
 #endif
-          //        getSWR();
-          SWRtmp = _status.rawSWR;
 
           if (_status.rawSWR > 120000) { // Only try again if swr needs improving
             _status.outputZ = hiZ;
             doRelayCoarseSteps(); //Run it again and see if better with C/O relay operated
-            //If not better restore relays to input state
-            //          getSWR();
+
 #ifdef DEBUG_COARSE_TUNE_STATUS1
             Serial.println(F("HiZ coarse tune results"));
             printStatus(printHeader);
             printStatus(printBody);
 #endif
-            if (SWRtmp <= _status.rawSWR) {            //Capacitors on Input side gave best result so
+            if (SWRtmp <= _status.rawSWR) {         // Capacitors on Input side gave best result so
               _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
               _status.L_relays = L_RelaysTmp;
               _status.outputZ = bestZ;
@@ -1179,7 +1178,7 @@ boolean doRelayCoarseSteps()
   // subroutine is later called to set exact values for L and C.
 
   // This procedure is carried out by initially setting capacitor relays to zero C and stepping the inductor
-  // relays one by one, incrementing the capacitor and repeating the procedure.
+  // relays one by one from no relays to all 8. The capacitor relay is incremented and procedure repeated.
   // The SWR is read at each step into an 2 dimensional array which is later parsed for the lowest SWR and
   // the C and L combination to give this is set along with rawSWR in the _status array.
 
@@ -1194,16 +1193,7 @@ boolean doRelayCoarseSteps()
   byte bestC = 0;  
   byte bestL = 0;
   char pntBuffer[16];  
-/*
-  // Initialise with no L or C relays operated and C/O relay set by the caller.
 
-  _status.C_relays = 0;
-  _status.L_relays = 0;
-  setRelays();
-//  delay(20); // Extra settling time for an ultra stable initial reading
-  getSWR();  //Get SWR with relays at initial state.
-  bestSWR = _status.rawSWR;
-*/
 // Step through states of no relays operated to all relays operated
 
   for(byte c =0; c < 9; c++) {
@@ -1237,7 +1227,7 @@ boolean doRelayCoarseSteps()
     }
   }
 
-  // Now set the relays to give best coarse tune based on bestSWR
+// Now set the relays to give best coarse tune based on bestSWR
   _status.C_relays = 0; // No bits set for no relays operated
   _status.L_relays = 0;
   if(bestC > 0) bitSet(_status.C_relays, bestC - 1); // Set bits 0 .. 7 here (Relays 1 to 8)
@@ -1250,7 +1240,14 @@ boolean doRelayCoarseSteps()
   Serial.print(F("doRelayCoarseSteps(): Caps are connected to "));
   if (_status.outputZ == hiZ) Serial.print(F("Output (HiZ)"));
   else Serial.print(F("Input (LoZ)"));
-  Serial.println();
+  Serial.print(F("; bestC = "));
+  Serial.print(bestC);
+  Serial.print(F("; bestL = "));
+  Serial.print(bestL);
+  Serial.print(F("; SWR = "));
+  dtostrf(float(_status.rawSWR) / 100000, 11, 5, pntBuffer);  // 11 is mininum width, 5 is decimal places;
+  Serial.println(pntBuffer);  
+  
   Serial.print(F("Cap\t  "));
   for(int x = 0; x < 9; x++) {
     Serial.print(F("  L")); 
@@ -1267,30 +1264,11 @@ boolean doRelayCoarseSteps()
     for(byte x = 0; x < 9; x++) {
       dtostrf(float(values[c][x]) / 100000, 11, 5, pntBuffer);  // 11 is mininum width, 5 is decimal places;
       Serial.print(pntBuffer);
-/*      sprintf(buffer, "%3lu",values[c][x] / 100000);
-      Serial.print(buffer);
-      Serial.print(F("."));
-      sprintf(buffer, "%-05lu ",values[c][x] % 100000);
-      Serial.print(buffer);
-      Serial.print(F(" "));
-*/
     }
-    Serial.println("");
+    Serial.println();
   }
-  Serial.print(F("bestC = "));
-  Serial.print(bestC);
-  Serial.print(F("; bestL = "));
-  Serial.print(bestL);
-  Serial.print(F("; SWR = "));
-  dtostrf(float(_status.rawSWR) / 100000, 11, 5, pntBuffer);  // 11 is mininum width, 5 is decimal places;
-  Serial.println(pntBuffer);
+  Serial.println();
   
-//  sprintf(buffer, "%3lu",_status.rawSWR / 100000);
-//  Serial.print(buffer);
-//  Serial.print(F("."));
-//  sprintf(buffer, "%-05lu ",_status.rawSWR % 100000);
-//  Serial.println(buffer);
-
 #endif //DEBUG_COARSE_TUNE_STATUS
  return false;
 } //end subroutine
