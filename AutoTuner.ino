@@ -291,7 +291,7 @@ void displayAnalog(byte col, byte row, int value)
 
 /**********************************************************************************************************/
 
-void lcdPrintStatus()
+void lcdPrintStatus() //19,254 bytes before mod.
 {
   //  static unsigned long displayUpdate = 0;
   float freq = 14.02345;
@@ -309,9 +309,11 @@ void lcdPrintStatus()
   }
 
   // Temporary replace frequency with reverse voltage
-  sprintf(charVal, " %4d  ", _status.rev);
-  lcd.print(charVal);
-
+//  sprintf(charVal, " %4d  ", _status.rev);
+//  lcd.print(charVal);
+  lcd.print(" ");
+  formatINT(_status.rev);
+  lcd.print("  ");
   /*
    lcd.print(" ");
    dtostrf(freq, 6, 3, charVal);  // 6 is mininum width, 3 is precision;
@@ -324,18 +326,45 @@ void lcdPrintStatus()
     lcd.print(" H");
   }
   else lcd.print(" L");
-  lcd.setCursor(0, 1);
+  
+  lcd.setCursor(0, 1); // Switch to start of line 2
 
-  sprintf(charVal, "%4du ", _status.totL);
-  lcd.print(charVal);
+//  sprintf(charVal, "%4du ", _status.totL);
+//  lcd.print(charVal);
+  formatINT(_status.totL);
+  lcd.print("u ");
 
-  sprintf(charVal, "%4dp ", _status.totC);
-  lcd.print(charVal);
+//  sprintf(charVal, "%4dp ", _status.totC);
+//  lcd.print(charVal);
+  formatINT(_status.totC);
+  lcd.print("p ");
+  
+//  sprintf(charVal, "%4d", _status.fwd);
+//  lcd.print(charVal);
+  formatINT(_status.fwd);
 
-  sprintf(charVal, "%4d", _status.fwd);
-  lcd.print(charVal);
   //  } // endif ((millis() - displayUpdate) > 50)
 }
+
+/**********************************************************************************************************/
+// Pads an integer number for printing to be right justified over 4 digits
+// Expects a positive integer up to 4 digits i.e. 0 ... 9999
+void formatINT(int number)
+{
+  if (number < 10)
+  {
+    Serial.print("   ");
+  }
+  else if (number <100)
+  {
+    Serial.print("  ");
+  }
+  else if (number <1000)
+  {
+    Serial.print(" ");
+  }
+  Serial.print(number);
+} //Exit with no padded spaces if number >= 1000
 
 /**********************************************************************************************************/
 
@@ -656,26 +685,44 @@ void printStatus(boolean doHeader)
   if (doHeader) {
     Serial.println(F("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR"));
   } else {
-    char buffer[16];
+//    char buffer[16];
 
     print_binary(_status.C_relays, 8);
     Serial.print(F("  "));
     print_binary(_status.L_relays, 8);
-    sprintf(buffer, "  %4u  ", _status.totC);
-    Serial.print(buffer);
-    sprintf(buffer, "%4u  ", _status.totL);
-    Serial.print(buffer);
-    sprintf(buffer, "   %4u  ", _status.fwd);
-    Serial.print(buffer);
-    sprintf(buffer, "   %4u  ", _status.rev);
-    Serial.print(buffer);
+
+//    sprintf(buffer, "  %4u  ", _status.totC);
+//    Serial.print(buffer);
+  lcd.print("  ");
+  formatINT(_status.totC);
+  lcd.print("  ");
+      
+//    sprintf(buffer, "%4u  ", _status.totL);
+//    Serial.print(buffer);
+  formatINT(_status.totL);
+  lcd.print("  ");
+  
+//    sprintf(buffer, "   %4u  ", _status.fwd);
+//    Serial.print(buffer);
+  lcd.print("   ");
+  formatINT(_status.fwd);
+  lcd.print("  ");
+      
+//    sprintf(buffer, "   %4u  ", _status.rev);
+//    Serial.print(buffer);
+  lcd.print("  ");
+  formatINT(_status.rev);
+  lcd.print("  ");
+     
     if (_status.ampGain == hi) Serial.print(F("High"));
     else Serial.print(F(" Low"));
     Serial.print(F("  "));
     if (_status.outputZ == hiZ) Serial.print(F(" HiZ  "));
     else Serial.print(F(" LoZ  "));
-    sprintf(buffer, "%8lu  ", _status.rawSWR);
-    Serial.print(buffer);
+
+//    sprintf(buffer, "%8lu  ", _status.rawSWR);
+//    Serial.print(buffer);
+    Serial.print(_status.rawSWR);
     // NOTE: sprintf doesn't support floats
     Serial.print(float(_status.rawSWR) / 100000, 4);
     Serial.println(F("  "));
