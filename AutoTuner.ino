@@ -293,13 +293,9 @@ void displayAnalog(byte col, byte row, int value)
 
 void lcdPrintStatus() //19,254 bytes before mod.
 {
-  //  static unsigned long displayUpdate = 0;
   float freq = 14.02345;
-  char charVal[10];          //buffer, temporarily holds data from values
+  char charVal[16];          //buffer, temporarily holds data from values
 
-
-  //  if(displayUpdate < millis()) {
-  //    displayUpdate = (millis() + 10000);
   lcd.home();
   dtostrf(float(_status.currentSWR) / 100000, 7, 3, charVal);  //7 is mininum width, 3 is precision;
   //  float value is copied onto buffer
@@ -309,19 +305,11 @@ void lcdPrintStatus() //19,254 bytes before mod.
   }
 
   // Temporary replace frequency with reverse voltage
-//  sprintf(charVal, " %4d  ", _status.rev);
-//  lcd.print(charVal);
-  lcd.print(" ");
-  formatINT(_status.rev);
+
+  pada2i(_status.rev, charVal, 5);
+  lcd.print(charVal);
   lcd.print("  ");
-  /*
-   lcd.print(" ");
-   dtostrf(freq, 6, 3, charVal);  // 6 is mininum width, 3 is precision;
-   for(int i=0;i<6;i++)
-   {
-   lcd.write(charVal[i]);
-   }
-   */
+ 
   if (_status.outputZ == hiZ) {
     lcd.print(" H");
   }
@@ -329,42 +317,45 @@ void lcdPrintStatus() //19,254 bytes before mod.
   
   lcd.setCursor(0, 1); // Switch to start of line 2
 
-//  sprintf(charVal, "%4du ", _status.totL);
-//  lcd.print(charVal);
-  formatINT(_status.totL);
-  lcd.print("u ");
+  pada2i(_status.totL, charVal, 4);
+  strcat(charVal, "u");
+  lcd.print(charVal);
 
-//  sprintf(charVal, "%4dp ", _status.totC);
-//  lcd.print(charVal);
-  formatINT(_status.totC);
-  lcd.print("p ");
-  
-//  sprintf(charVal, "%4d", _status.fwd);
-//  lcd.print(charVal);
-  formatINT(_status.fwd);
+  pada2i(_status.totC, charVal, 5);
+  strcat(charVal, "p");
+  lcd.print(charVal);
 
-  //  } // endif ((millis() - displayUpdate) > 50)
+  pada2i(_status.fwd, charVal, 5);
+  lcd.print(charVal);
 }
 
 /**********************************************************************************************************/
-// Pads an integer number for printing to be right justified over 4 digits
-// Expects a positive integer up to 4 digits i.e. 0 ... 9999
-void formatINT(int number)
+// Pads an integer number for printing to be right justified over "places" digits
+// Expects an integer up to 10 digits i.e. 0 ... 9999
+// value = number to be converted to string and padded if necessary
+// *myBuffer holds the converted string
+// places = the total number of characters including minus sign. Padding is done with leading spaces.
+
+void pada2i(unsigned long value, char *myBuffer, int places)
 {
-  if (number < 10)
-  {
-    Serial.print("   ");
-  }
-  else if (number <100)
-  {
-    Serial.print("  ");
-  }
-  else if (number <1000)
-  {
-    Serial.print(" ");
-  }
-  Serial.print(number);
-} //Exit with no padded spaces if number >= 1000
+  int cnt;
+  int stringLen;
+
+  itoa(value, myBuffer, 10);
+  stringLen = strlen(myBuffer);
+  cnt = places - stringLen;
+
+  if(cnt > 0) {
+  // Shift array to right cnt places including the terminator
+    for(int x = stringLen + 1; x >= 0; x--) {
+      myBuffer[x + cnt] = myBuffer[x];
+    }
+  // Fill leading edge with spaces
+    for(int x = cnt - 1; x >= 0; x--) {
+      myBuffer[x] = ' ';
+    }
+  }  
+}
 
 /**********************************************************************************************************/
 
@@ -682,6 +673,9 @@ void doRelayFineSteps()
 #ifdef PRINT_STATUS
 void printStatus(boolean doHeader)
 {
+
+char charVal[16];
+
   if (doHeader) {
     Serial.println(F("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR"));
   } else {
@@ -691,41 +685,50 @@ void printStatus(boolean doHeader)
     Serial.print(F("  "));
     print_binary(_status.L_relays, 8);
 
-//    sprintf(buffer, "  %4u  ", _status.totC);
-//    Serial.print(buffer);
-  lcd.print("  ");
-  formatINT(_status.totC);
-  lcd.print("  ");
+  pada2i(_status.totC, charVal, 6);
+//  strcat(charVal, "p");
+  Serial.print(charVal);
+//  lcd.print("  ");
+//  formatINT(_status.totC);
+//  lcd.print("  ");
       
 //    sprintf(buffer, "%4u  ", _status.totL);
 //    Serial.print(buffer);
-  formatINT(_status.totL);
-  lcd.print("  ");
+  pada2i(_status.totL, charVal, 6);
+  Serial.print(charVal);
+//  formatINT(_status.totL);
+//  lcd.print("  ");
   
 //    sprintf(buffer, "   %4u  ", _status.fwd);
 //    Serial.print(buffer);
-  lcd.print("   ");
-  formatINT(_status.fwd);
-  lcd.print("  ");
+
+  pada2i(_status.fwd, charVal, 9);
+  Serial.print(charVal);
+//  lcd.print("   ");
+//  formatINT(_status.fwd);
+//  lcd.print("  ");
       
 //    sprintf(buffer, "   %4u  ", _status.rev);
 //    Serial.print(buffer);
-  lcd.print("  ");
-  formatINT(_status.rev);
-  lcd.print("  ");
+
+  pada2i(_status.rev, charVal, 9);
+  Serial.print(charVal);
+//  lcd.print("  ");
+//  formatINT(_status.rev);
+//  lcd.print("  ");
      
-    if (_status.ampGain == hi) Serial.print(F("High"));
-    else Serial.print(F(" Low"));
+    if (_status.ampGain == hi) Serial.print(F("  High"));
+    else Serial.print(F("   Low"));
     Serial.print(F("  "));
     if (_status.outputZ == hiZ) Serial.print(F(" HiZ  "));
     else Serial.print(F(" LoZ  "));
 
 //    sprintf(buffer, "%8lu  ", _status.rawSWR);
-//    Serial.print(buffer);
+    Serial.print("  ");
     Serial.print(_status.rawSWR);
     // NOTE: sprintf doesn't support floats
-    Serial.print(float(_status.rawSWR) / 100000, 4);
-    Serial.println(F("  "));
+    Serial.print(F("  "));
+    Serial.println(float(_status.rawSWR) / 100000, 4);   
   }
 }
 #endif
