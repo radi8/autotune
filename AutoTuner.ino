@@ -123,7 +123,7 @@ void setup() {
   lcd.begin(lcdNumRows, lcdNumCols);
   //  lcd.clear(); //TODO check if this can be removed as splash will write whole screen
   // -- do some delay: some times I've got broken visualization
-  delay(100);
+  delay(100); // TODO Is this really necessary?
   lcd.createChar(1, p1);
   lcd.createChar(2, p2);
   lcd.createChar(3, p3);
@@ -290,6 +290,9 @@ void displayAnalog(byte col, byte row, int value)
 }
 
 /**********************************************************************************************************/
+// TODO There is a problem when running this in that if there is no transmit the swr and fwd and
+//       rev voltages are lost. Probably a _statusHistory struct needs to be created to preserve
+//       the last RF reading taken and the lcdPrintStatus reads data from that.
 
 void lcdPrintStatus() //19,254 bytes before mod.
 {
@@ -306,7 +309,7 @@ void lcdPrintStatus() //19,254 bytes before mod.
 
   // Temporary replace frequency with reverse voltage
 
-  pada2i(_status.rev, charVal, 5);
+  pad_utoa(_status.rev, charVal, 5);
   lcd.print(charVal);
   lcd.print("  ");
  
@@ -317,15 +320,15 @@ void lcdPrintStatus() //19,254 bytes before mod.
   
   lcd.setCursor(0, 1); // Switch to start of line 2
 
-  pada2i(_status.totL, charVal, 4);
+  pad_utoa(_status.totL, charVal, 4);
   strcat(charVal, "u");
   lcd.print(charVal);
 
-  pada2i(_status.totC, charVal, 5);
+  pad_utoa(_status.totC, charVal, 5);
   strcat(charVal, "p");
   lcd.print(charVal);
 
-  pada2i(_status.fwd, charVal, 5);
+  pad_utoa(_status.fwd, charVal, 5);
   lcd.print(charVal);
 }
 
@@ -335,27 +338,112 @@ void lcdPrintStatus() //19,254 bytes before mod.
 // value = number to be converted to string and padded if necessary
 // *myBuffer holds the converted string
 // places = the total number of characters including minus sign. Padding is done with leading spaces.
+// TODO Call subroutine pad_utoa
 
-void pada2i(unsigned long value, char *myBuffer, int places)
+void pad_utoa(unsigned long value, char *myBuffer, int places)
 {
-  int cnt;
-  int stringLen;
+  uint8_t cnt;
+  uint8_t bufLen = 16;
+  int stringLength;
+  int x;
 
-  itoa(value, myBuffer, 10);
-  stringLen = strlen(myBuffer);
-  cnt = places - stringLen;
+//  itoa(value, myBuffer, 10); // TODO Write a utoa() to shorten the code see getDecStr() below!!
+//  getDecStr (myBuffer, 16, value);
+  
+  for(cnt=2; cnt<=bufLen; cnt++)
+  {
+/*    
+    Serial.print("cnt = ");
+    Serial.print(cnt);
+    Serial.print(", bufLen - cnt = ");
+    Serial.println(bufLen - cnt);
+*/    
+    myBuffer[bufLen-cnt] = (uint8_t) ((value % 10UL) + '0');
+    value /= 10;
+  }
+/*  
+  Serial.print("cnt - 2 = ");
+  Serial.println(cnt-2);
+*/  
+  myBuffer[cnt-2] = '\0';
+/*
+  Serial.println("                                 0123456789012345");
+  Serial.print("Initial value of myBuffer is ... ");
+  Serial.println(myBuffer);
+*/  
+  // Convert leading zeros to spaces
+  cnt = 0;
+  while(myBuffer[cnt] == '0'){
+    myBuffer[cnt] = ' ';
+    cnt++;
+  }
 
-  if(cnt > 0) {
-  // Shift array to right cnt places including the terminator
-    for(int x = stringLen + 1; x >= 0; x--) {
-      myBuffer[x + cnt] = myBuffer[x];
-    }
-  // Fill leading edge with spaces
-    for(int x = cnt - 1; x >= 0; x--) {
-      myBuffer[x] = ' ';
-    }
-  }  
+  // add a zero if we have an all spaces string
+  if(cnt == (bufLen-1)) {
+    cnt--;
+    myBuffer[cnt] = '0'; // At this stage, cnt points to the first alpha numeric.
+  }
+/*
+  Serial.print("    The value of myBuffer is ... ");
+  Serial.println(myBuffer);
+  Serial.println(cnt);
+  Serial.println(bufLen-1);
+  Serial.println();
+*/  
+  stringLength = bufLen - cnt; //StringLength includes the '\0' terminator
+/*  
+  Serial.print("stringLength = ");
+  Serial.println(stringLength);
+  Serial.print("places + 1 - stringLength = ");
+  Serial.println(places+1 - stringLength);
+*/  
+  if(places+1 - stringLength <= 0) {
+    x = 0;
+    places = 15;
+  } else {
+    x = places+1 - stringLength;
+  }
+//  Serial.println("0123456789012345");
+  for(x; x <= places; x++) {
+    myBuffer[x] = myBuffer[cnt];
+/*   
+    Serial.print(myBuffer);
+    Serial.print(",  ");
+    Serial.print(x);
+    Serial.print(",  ");
+    Serial.println(cnt);
+  */
+    cnt++;    
+  }
+//  Serial.println(myBuffer);
 }
+
+/**********************************************************************************************************/
+// Converts an unsigned long number (uint32_t) whose maximum value is 4294967295 into a string with leading
+// spaces to pad the string to len.
+
+void getDecStr (char* str, uint8_t len, uint32_t val)
+{
+  uint8_t i;
+
+  for(i=1; i<=len; i++)
+  {
+    str[len-i] = (uint8_t) ((val % 10UL) + '0');
+    val/=10;
+  }
+  str[i-1] = '\0';
+  
+  // Convert leading zeros to spaces
+  i = 0;
+  while(str[i] == '0'){
+    str[i] = ' ';
+    i++;
+  }
+  
+  // add a zero if we have an all spaces string
+  if(i == len) str[i-1] = '0';
+}
+
 
 /**********************************************************************************************************/
 
@@ -679,53 +767,31 @@ char charVal[16];
   if (doHeader) {
     Serial.println(F("C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR"));
   } else {
-//    char buffer[16];
-
     print_binary(_status.C_relays, 8);
     Serial.print(F("  "));
     print_binary(_status.L_relays, 8);
 
-  pada2i(_status.totC, charVal, 6);
-//  strcat(charVal, "p");
-  Serial.print(charVal);
-//  lcd.print("  ");
-//  formatINT(_status.totC);
-//  lcd.print("  ");
-      
-//    sprintf(buffer, "%4u  ", _status.totL);
-//    Serial.print(buffer);
-  pada2i(_status.totL, charVal, 6);
-  Serial.print(charVal);
-//  formatINT(_status.totL);
-//  lcd.print("  ");
-  
-//    sprintf(buffer, "   %4u  ", _status.fwd);
-//    Serial.print(buffer);
+    pad_utoa(_status.totC, charVal, 6);
+    Serial.print(charVal);
 
-  pada2i(_status.fwd, charVal, 9);
-  Serial.print(charVal);
-//  lcd.print("   ");
-//  formatINT(_status.fwd);
-//  lcd.print("  ");
-      
-//    sprintf(buffer, "   %4u  ", _status.rev);
-//    Serial.print(buffer);
+    pad_utoa(_status.totL, charVal, 6);
+    Serial.print(charVal);
 
-  pada2i(_status.rev, charVal, 9);
-  Serial.print(charVal);
-//  lcd.print("  ");
-//  formatINT(_status.rev);
-//  lcd.print("  ");
-     
+    pad_utoa(_status.fwd, charVal, 9);
+    Serial.print(charVal);
+
+    pad_utoa(_status.rev, charVal, 9);
+    Serial.print(charVal);
+
     if (_status.ampGain == hi) Serial.print(F("  High"));
     else Serial.print(F("   Low"));
-    Serial.print(F("  "));
-    if (_status.outputZ == hiZ) Serial.print(F(" HiZ  "));
-    else Serial.print(F(" LoZ  "));
+  
+    if (_status.outputZ == hiZ) Serial.print(F("   HiZ"));
+    else Serial.print(F("   LoZ"));
 
-//    sprintf(buffer, "%8lu  ", _status.rawSWR);
-    Serial.print("  ");
-    Serial.print(_status.rawSWR);
+    pad_utoa(_status.rawSWR, charVal, 10);
+    Serial.print(charVal);
+    
     // NOTE: sprintf doesn't support floats
     Serial.print(F("  "));
     Serial.println(float(_status.rawSWR) / 100000, 4);   
