@@ -28,7 +28,7 @@
 #define SWR_AVERAGE_COUNT  8     // Number of analog readings to find a voice peak
 
 // Shift Register for L & C driver Pin assign
-#define outputEnable  4     // Pin 11 of 74HC164 U5 to pin 7 of Arduino Nano
+#define outputEnable  4     // Pin 13 of 74HC164 U5 to pin 7 of Arduino Nano
 
 #define Lclock        8     // Pin 11 of 74HC595 U3 to pin 11 of Arduino Nano
 #define Llatch        7     // Pin 12 of 74HC595 U4 to pin 10 of Arduino Nano
