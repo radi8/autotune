@@ -586,17 +586,17 @@ void tryPresets()
   // Presets for wire antenna
 
   // Try 80 M wire antenna centred on 3.525 mHz
-  _status.C_relays = B01110111; // Debug settings for C and L relays
-  _status.L_relays = B00001111;
+  _status.C_relays = B11011000; // Debug settings for C and L relays
+  _status.L_relays = B00011101;
   _status.outputZ  = hiZ;
   setRelays();
   getSWR();
   Serial.println(_status.rawSWR);
   statusTemp = _status;
 
-  // Try 80 M wire antenna centred on 3.6 mHz
-  _status.C_relays = B00001110; // Debug settings for C and L relays
-  _status.L_relays = B00000101;
+  // Try 80 M wire antenna centred on 3.615 mHz
+  _status.C_relays = B01000000; // Debug settings for C and L relays
+  _status.L_relays = B00010010;
   _status.outputZ  = hiZ;
   setRelays();
   getSWR();
@@ -605,8 +605,8 @@ void tryPresets()
     statusTemp = _status;
   }
 
-  // Try 80 M wire antenna centred on 3.8 mHz
-  _status.C_relays = B11000011; // Debug settings for C and L relays
+  // Try 80 M wire antenna centred on 3.677 mHz
+  _status.C_relays = B11111100; // Debug settings for C and L relays
   _status.L_relays = B00001011;
   _status.outputZ  = loZ;
   setRelays();
