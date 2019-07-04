@@ -73,11 +73,12 @@ struct status {
   unsigned long rawSWR;
   unsigned long currentSWR;
   boolean ampGain;
+  unsigned int freq;
   byte C_relays;
   byte L_relays;
+  boolean outputZ;
   unsigned int totC;
   unsigned int totL;
-  boolean outputZ;
 }
 _status;
 
@@ -141,6 +142,7 @@ void setup() {
   }
 
   initialize_analog_button_array();
+  //EEPROM[EEPROM.length()-1] = 0; //Uncomment this to force a reload of EEPROM values
   eeprom_initialise();
 
   Serial.println(F("Arduino antenna tuner ver 1.0.0"));
@@ -260,7 +262,7 @@ void eeprom_initialise()
   int eeAddress = 0;
   
   if (EEPROM[EEPROM.length()-1] != 720){
-    val.freq = 3525; val.L = B00011101; val.C = B11011000; val.Z = 1;      //Values for 3.525 MHz
+    val.freq = 3525; val.L = B00011101; val.C = B11011000; val.Z = hiZ;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
     val.freq = 3615; val.L = B01000000; val.C = B00010010; val.Z = 0;      //Values for 3.525 MHz
@@ -269,13 +271,13 @@ void eeprom_initialise()
     val.freq = 3677; val.L = B00001011; val.C = B11111100; val.Z = 0;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7020; val.L = B00010001; val.C = B00011101; val.Z = 1;      //Values for 3.525 MHz
+    val.freq = 7020; val.L = B00010001; val.C = B00011101; val.Z = hiZ;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7060; val.L = B00011001; val.C = B00001101; val.Z = 1;      //Values for 3.525 MHz
+    val.freq = 7060; val.L = B00011001; val.C = B00001101; val.Z = hiZ;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7100; val.L = B00011110; val.C = B00000000; val.Z = 1;      //Values for 3.525 MHz
+    val.freq = 7100; val.L = B00011110; val.C = B00000000; val.Z = hiZ;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
     val.freq = 7160; val.L = B00100010; val.C = B00100010; val.Z = 0;      //Values for 3.525 MHz
@@ -284,10 +286,13 @@ void eeprom_initialise()
     val.freq = 7200; val.L = B00011111; val.C = B01000000; val.Z = 0;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 10120; val.L = B00000100; val.C = B00000011; val.Z = 1;       //Values for 3.525 MHz
+    val.freq = 10120; val.L = B00000100; val.C = B00000100; val.Z = hiZ;       //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 10140; val.L = B00000011; val.C = B00000100; val.Z = 0;      //Values for 3.525 MHz
+    val.freq = 10140; val.L = B00000100; val.C = B00000110; val.Z = loZ;      //Values for 3.525 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 0; val.L = 0; val.C = 0; val.Z = 0;      //Zero values for a terminator
     EEPROM.put(eeAddress, val);
     EEPROM[EEPROM.length()-1] = 720; //Put a marker to show that data has been loaded into the eeprom
     Serial.println(F("EEPROM initialised"));
@@ -301,18 +306,36 @@ void eeprom_initialise()
 void tryPresets()
 {
   status statusTemp;
-
-  // Presets for wire antenna
+  int eeAddress = 0;
 
   // Try 80 M wire antenna centred on 3.525 mHz
+/*  
   _status.C_relays = B11011000; // Debug settings for C and L relays
   _status.L_relays = B00011101;
   _status.outputZ  = hiZ;
-  setRelays();
-  getSWR();
-  Serial.println(_status.rawSWR);
-  statusTemp = _status;
+*/
+  statusTemp.rawSWR = 4294967295; //Force _status to be copied to statusTemp first time through the while loop
+  EEPROM.get(eeAddress, _status.freq);
+  while(_status.freq) {
+    eeAddress += sizeof(unsigned int);  // Step off freq to L
+    EEPROM.get(eeAddress, _status.L_relays);
+    eeAddress += sizeof(byte);          // Step off L to C
+    EEPROM.get(eeAddress, _status.C_relays);
+    eeAddress += sizeof(byte);          // Step off C to Z
+    EEPROM.get(eeAddress, _status.outputZ);
+    eeAddress += sizeof(byte);  
+    setRelays();
+    getSWR();
+    Serial.print(F("Freq = ")); Serial.print(_status.freq);
+    Serial.print(F(";  rawSWR = ")); Serial.println(_status.rawSWR);
+    statusTemp = _status;
+    if (_status.rawSWR < statusTemp.rawSWR) {
+      statusTemp = _status;
+    }
+    EEPROM.get(eeAddress, _status.freq); //Get next frequency or 0000 if at end
+  }
 
+/*  
   // Try 80 M wire antenna centred on 3.615 mHz
   _status.C_relays = B00111111; // Debug settings for C and L relays
   _status.L_relays = B00010001;
@@ -414,7 +437,7 @@ void tryPresets()
   if (_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
   }
-/*
+
   // Fallback of no relays operated
 
   _status.C_relays = B00000000; // Debug settings for C and L relays
