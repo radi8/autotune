@@ -91,7 +91,7 @@ const unsigned int _strayC = 0;
 enum {INDUCTANCE, CAPACITANCE};
 enum {POWERUP, TUNE, TUNING, TUNED};
 byte _cmd = 0;  // Holds the command to be processed
-const uint8_t tuneSWR = 5000; //If rawSWR > than this value, force a coarse tune cycle (using 130000 will force tune)
+const unsigned long tuneSWR = 200000; //If rawSWR > than this value, force a coarse tune cycle (using 130000 will force tune)
 
 /**********************************************************************************************************/
 
@@ -263,7 +263,7 @@ void eeprom_initialise()
     val.freq = 3525; val.L = B00011101; val.C = B11011000; val.Z = 1;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 3615; val.L = B01000000; val.C = B00010010; val.Z = 1;      //Values for 3.525 MHz
+    val.freq = 3615; val.L = B01000000; val.C = B00010010; val.Z = 0;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);                          //Move address to the next struct item
     val.freq = 3677; val.L = B00001011; val.C = B11111100; val.Z = 0;      //Values for 3.525 MHz
@@ -290,6 +290,7 @@ void eeprom_initialise()
     val.freq = 10140; val.L = B00000011; val.C = B00000100; val.Z = 0;      //Values for 3.525 MHz
     EEPROM.put(eeAddress, val);
     EEPROM[EEPROM.length()-1] = 720; //Put a marker to show that data has been loaded into the eeprom
+    Serial.println(F("EEPROM initialised"));
   }
 }
 
@@ -313,9 +314,9 @@ void tryPresets()
   statusTemp = _status;
 
   // Try 80 M wire antenna centred on 3.615 mHz
-  _status.C_relays = B01000000; // Debug settings for C and L relays
-  _status.L_relays = B00010010;
-  _status.outputZ  = hiZ;
+  _status.C_relays = B00111111; // Debug settings for C and L relays
+  _status.L_relays = B00010001;
+  _status.outputZ  = loZ;
   setRelays();
   getSWR();
   Serial.println(_status.rawSWR);
@@ -329,6 +330,7 @@ void tryPresets()
   _status.outputZ  = loZ;
   setRelays();
   getSWR();
+  Serial.print(F("3.677 rawSWR = "));
   Serial.println(_status.rawSWR);
   if (_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
@@ -390,7 +392,7 @@ void tryPresets()
   }
 
   // Try 30 M wire antenna centred on 10.120 mHz
-  _status.C_relays = B01000011; // Debug settings for C and L relays
+  _status.C_relays = B00000100; // Debug settings for C and L relays
   _status.L_relays = B00000100;
   _status.outputZ  = hiZ;
   setRelays();
@@ -401,8 +403,8 @@ void tryPresets()
   }
 
   // Try 30 M wire antenna centred on 10.140 mHz
-  _status.C_relays = 000000100; // Debug settings for C and L relays
-  _status.L_relays = B00000011;
+  _status.C_relays = B00000110; // Debug settings for C and L relays
+  _status.L_relays = B00000100;
   _status.outputZ  = loZ;
   setRelays();
   //  delay(50);
@@ -412,7 +414,7 @@ void tryPresets()
   if (_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
   }
-
+/*
   // Fallback of no relays operated
 
   _status.C_relays = B00000000; // Debug settings for C and L relays
@@ -423,7 +425,9 @@ void tryPresets()
   if (_status.rawSWR < statusTemp.rawSWR) {
     statusTemp = _status;
   }
-
+*/
+  Serial.print(F("Best statusTemp.rawSWR = "));
+  Serial.println(statusTemp.rawSWR);
   _status = statusTemp;
   setRelays();
   getSWR();
@@ -696,7 +700,10 @@ byte processCommand(byte cmd)
     case TUNING:
       { // Tuning is under way so process until finished
         tryPresets();
+        Serial.print(F("At processCmd, _status.rawSWR = "));
+        Serial.println(_status.rawSWR);
         if (_status.rawSWR > tuneSWR) {
+          Serial.println("Got to here somehow");
           _status.outputZ = loZ;
           // doRelayCoarseSteps() returns true if tune aborted with cmd button press
           if(doRelayCoarseSteps()) { 
