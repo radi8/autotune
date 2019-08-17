@@ -3,7 +3,7 @@
 #define DEBUG_FINE_STEP
 //#define DEBUG_RELAY_STATE
 #define DEBUG_COARSE_TUNE_STATUS
-#define DEBUG_TUNE_SUMMARY
+//#define DEBUG_TUNE_SUMMARY
 //#define DEBUG_status
 
 // We need the printStatus() subroutine for any of these debugs
@@ -13,8 +13,8 @@
 #define PRINT_STATUS
 #elif defined DEBUG_RELAY_FINE_STEPS
 #define PRINT_STATUS
-#elif defined DEBUG_RELAY_STATE
-#define PRINT_STATUS
+//#elif defined DEBUG_RELAY_STATE
+//#define PRINT_STATUS
 #endif
 
 #define DEBUG_BUTTON_ARRAY
@@ -22,10 +22,13 @@
 //#define DEBUG_BUTTONS
 //#define DEBUG_STEP_BUTTON
 
+const uint8_t numLrelays =  9;    // There are actually 9 states 0,1,2,4,8,16,32,64,128,256
+const uint8_t numCrelays =  9;
 #define TX_LEVEL_THRESHOLD 20
-#define CAPS_at_INPUT      LOW    //For digitalWrites to Capacitor I/O changeover relay
-#define CAPS_at_OUTPUT     HIGH
-#define SWR_AVERAGE_COUNT  8     // Number of analog readings to find a voice peak
+#define CAPS_at_INPUT       LOW   //For digitalWrites to Capacitor I/O changeover relay
+#define CAPS_at_OUTPUT      HIGH
+#define SWR_AVERAGE_COUNT   8     // Number of analog readings to find a voice peak
+#define ARRAY_SIZE          25
 
 // Shift Register for L & C driver Pin assign
 #define outputEnable  4     // Pin 13 of 74HC164 U5 to pin 7 of Arduino Nano
@@ -53,7 +56,8 @@
 #define printHeader   true    // Tell printStatus() to print the header line
 #define printBody     false   // Tell printStatus() to print the status data
 #define OK_SWR        120000
-#define valuesSize 11       // Relay steps to search over fine tuning relays array (odd numbers only).
+#define XSize 5       // Capacitance Relay array to search over when fine tuning.
+#define YSize 5       // Inductance Relay array to search over when fine tuning
 // const int valuesCentre = valuesSize/2; // e.g. 9 / 2 = 4
 #define valuesCentre int(valuesSize/2)
 
@@ -71,4 +75,3 @@
 
 // Housekeeping defines
 #define baudRate 115200
-
