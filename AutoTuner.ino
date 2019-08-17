@@ -1467,7 +1467,7 @@ void print_binary(int v, int num_places)
 void lcdPrintSplash()
 {
   lcd.home();                   // go home
-  lcd.print(F("ARDUINO TUNER by"));
+  lcd.print(F("AutoTune v2.0.0 "));
   lcd.setCursor (0, 1);        // go to the next line
   lcd.print(F("ZL2APV (c) 2015 "));
   //  lcd.backlight(); // finish with backlight on
