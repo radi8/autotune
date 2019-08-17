@@ -904,19 +904,51 @@ void getSWR()
 void readSWR()
 {
   // ToDo: write code to check for a value which does not match the others and drop it and get another.
+  float Vf[SWR_AVERAGE_COUNT]; // Currently set to 8
+  float Vr[SWR_AVERAGE_COUNT];
+  float VfHi = 0;
+  float VrHi = 0;
+  float VfLo = 1023;
+  float VrLo = 1023;
 
-  _status.fwd = 0;
-  _status.rev = 0;
-  for (byte x = 1; x <= SWR_AVERAGE_COUNT; x++) {
-    _status.fwd = _status.fwd + analogRead(forward);
-    //    delayMicroseconds(500);
-    _status.rev = _status.rev + analogRead(reverse);
+  // Fill the arrays with forward and reverse values
+  //------------------------------------------------
+  for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
+    Vf[x] = analogRead(forward);
+    Vr[x] = analogRead(reverse);
     delayMicroseconds(50);
   }
+
+  // Test the array for values that deviate too far
+  // ----------------------------------------------
+  for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
+    if (Vf[x] > VfHi) VfHi = Vf[x];
+    if (Vf[x] < VfLo) VfLo = Vf[x];
+    if (Vr[x] > VrHi) VrHi = Vr[x];
+    if (Vr[x] < VrLo) VrLo = Vr[x];
+  }
+  // At this point we are holding the highest and lowest values of both forward and reverse voltages that we read.
+/*
+  if ((VfLo * 1.1 < VfHi) || (VrLo * 1.1 < VrHi)) {
+    Serial.print(F("VfHi, VfLo, VrHi, VrLo = "));
+    Serial.print(VfHi); Serial.print(F(", "));
+    Serial.print(VfLo); Serial.print(F(", "));
+    Serial.print(VrHi); Serial.print(F(", "));
+    Serial.print(VrLo); Serial.println(F(", "));
+  }
+*/
+  // Replace all the array values which are more than 10% deviation with the high value
+  // ----------------------------------------------------------------------------------
+  for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
+    if ((VfHi * 0.9) > Vf[x]) Vf[x] = VfHi;
+    if ((VrHi * 0.9) > Vr[x]) Vr[x] = VrHi;
+    _status.fwd = _status.fwd + Vf[x];
+    _status.rev = _status.rev + Vr[x];
+  }
+
   _status.fwd = _status.fwd / SWR_AVERAGE_COUNT;
   _status.rev = _status.rev / SWR_AVERAGE_COUNT;
-  //  Serial.print(F("_status.fwd = ")); Serial.print(_status.fwd);
-  //  Serial.print(F(", _status.rev = ")); Serial.println(_status.rev);
+
 }
 
 //----------------------------------------------------------------------------------------------------------
