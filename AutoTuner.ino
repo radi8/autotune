@@ -695,6 +695,7 @@ void tryPresets()
     EEPROM.get(eeAddress, _status.outputZ);
     eeAddress += sizeof(byte);
     setRelays();
+    delay(Relay_Settle_Millis); //Add 20 mSec of settling time before taking the SWR reading
     getSWR();
     Serial.print(F("Freq, L, C, Z, RL, SWR = "));
     Serial.print(_status.freq);
@@ -719,7 +720,7 @@ void tryPresets()
   _status.L_relays = Lrelays;
   _status.outputZ = loadZ;
   setRelays();
-  delay(20); //Add 20 mSec of settling time before taking the SWR reading
+  delay(Relay_Settle_Millis); //Add 20 mSec of settling time before taking the SWR reading
   getSWR();
   Serial.print(F("Freq, L, C, Z, RL, SWR = "));
   Serial.print(_status.freq);
@@ -796,7 +797,7 @@ boolean doRelayCoarseSteps()
   if (bestC > 0) bitSet(_status.C_relays, bestC - 1); // Set bits 0 .. 7 here (Relays 1 to 8)
   if (bestL > 0) bitSet(_status.L_relays, bestL - 1);
   setRelays();
-  delay(20); // Extra settling time for an ultra stable final reading
+  delay(Relay_Settle_Millis); // Extra settling time for an ultra stable final reading
   getSWR();  //Get SWR with relays at final state.
 
 #ifdef DEBUG_COARSE_TUNE_STATUS // Print the DEBUG header
