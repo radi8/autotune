@@ -313,7 +313,7 @@ byte processCommand(byte cmd)
             printStatus(printHeader);
             printStatus(printBody);
 #endif
-            if (SWRtmp >= _status.retLoss) {         // Capacitors on Input side gave best result so
+            if (SWRtmp > _status.retLoss) {         // Capacitors on Input side gave best result so
               _status.C_relays = C_RelaysTmp;       // set relays back to where they were on input.
               _status.L_relays = L_RelaysTmp;
               _status.outputZ = bestZ;
@@ -446,6 +446,7 @@ void fineStep(bool LC) // Enter with swr and relay status up to date
 
   arrayStartRelay = *pReactance - ARRAY_SIZE / 2;
 #ifdef DEBUG_FINE_STEP
+  Serial.println();
   Serial.print("arrayStartRelay value 1 = "); Serial.println(arrayStartRelay);
 #endif
   if (*pReactance <= ARRAY_SIZE / 2) {
@@ -632,37 +633,46 @@ void eeprom_initialise()
   int eeAddress = 0;
 
   if (EEPROM[EEPROM.length() - 1] != 120) {
-    val.freq = 3525; val.L = B00011101; val.C = B11011000; val.Z = hiZ;      //Values for 3.525 MHz
+    val.freq = 3525; val.L = B00011101; val.C = B11011000; val.Z = hiZ;   // 250u, 1092p
     EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 3615; val.L = B01000000; val.C = B00010010; val.Z = 0;      //Values for 3.615 MHz
+    eeAddress += sizeof(MyValues);//Move address to the next struct item
+    val.freq = 3568; val.L = B00010111; val.C = B01110011; val.Z = hiZ;   // 194u, 573p
     EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 3677; val.L = B00001011; val.C = B11111100; val.Z = 0;      //Values for 3.677 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7020; val.L = B00010001; val.C = B00011101; val.Z = hiZ;      //Values for 7.020 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7060; val.L = B00011001; val.C = B00001101; val.Z = hiZ;      //Values for 7.060 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7100; val.L = B00011110; val.C = B00000000; val.Z = hiZ;      //Values for 7.100 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7160; val.L = B00100010; val.C = B00100010; val.Z = 0;      //Values for 7.160 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 7200; val.L = B00011111; val.C = B01000000; val.Z = 0;      //Values for 7.200 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          //Move address to the next struct item
-    val.freq = 10120; val.L = B00000100; val.C = B00000100; val.Z = hiZ;       //Values for 10.120 MHz
+    eeAddress += sizeof(MyValues);                          
+    val.freq = 3615; val.L = B00010111; val.C = B10010011; val.Z = loZ;   // 194u, 765p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 10140; val.L = B00000100; val.C = B00000110; val.Z = loZ;      //Values for 10.140 MHz
+    val.freq = 3666; val.L = B00001100; val.C = B11111111; val.Z = loZ;   // 108u, 1299p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 0; val.L = 0; val.C = 0; val.Z = 0;      //Zero values for a terminator
+    val.freq = 3677; val.L = B00001011; val.C = B11111100; val.Z = loZ;   // 96u, 1092p
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 3695; val.L = B00000111; val.C = B11111111; val.Z = loZ;   // 58u, 1299p
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 7020; val.L = B00010001; val.C = B00011101; val.Z = hiZ;   //Values for 7.020 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 7060; val.L = B00011001; val.C = B00001101; val.Z = hiZ;   //Values for 7.060 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 7100; val.L = B00011110; val.C = B00000000; val.Z = hiZ;   //Values for 7.100 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 7160; val.L = B00100010; val.C = B00100010; val.Z = loZ;   //Values for 7.160 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 7200; val.L = B00011111; val.C = B01000000; val.Z = loZ;   //Values for 7.200 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 10120; val.L = B00000100; val.C = B00000100; val.Z = hiZ;  //Values for 10.120 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 10140; val.L = B00000100; val.C = B00000110; val.Z = loZ;  //Values for 10.140 MHz
+    EEPROM.put(eeAddress, val);
+    eeAddress += sizeof(MyValues);
+    val.freq = 0; val.L = 0; val.C = 0; val.Z = loZ;      //Zero values for a terminator
     EEPROM.put(eeAddress, val);
     EEPROM[EEPROM.length() - 1] = 120; //Put a marker to show that data has been loaded into the eeprom
     Serial.println(F("EEPROM initialised"));
@@ -928,15 +938,15 @@ void readSWR()
     if (Vr[x] < VrLo) VrLo = Vr[x];
   }
   // At this point we are holding the highest and lowest values of both forward and reverse voltages that we read.
-/*
-  if ((VfLo * 1.1 < VfHi) || (VrLo * 1.1 < VrHi)) {
-    Serial.print(F("VfHi, VfLo, VrHi, VrLo = "));
-    Serial.print(VfHi); Serial.print(F(", "));
-    Serial.print(VfLo); Serial.print(F(", "));
-    Serial.print(VrHi); Serial.print(F(", "));
-    Serial.print(VrLo); Serial.println(F(", "));
-  }
-*/
+  /*
+    if ((VfLo * 1.1 < VfHi) || (VrLo * 1.1 < VrHi)) {
+      Serial.print(F("VfHi, VfLo, VrHi, VrLo = "));
+      Serial.print(VfHi); Serial.print(F(", "));
+      Serial.print(VfLo); Serial.print(F(", "));
+      Serial.print(VrHi); Serial.print(F(", "));
+      Serial.print(VrLo); Serial.println(F(", "));
+    }
+  */
   // Replace all the array values which are more than 10% deviation with the high value
   // ----------------------------------------------------------------------------------
   for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
