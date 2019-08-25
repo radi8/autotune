@@ -91,6 +91,7 @@ enum {POWERUP, TUNE, TUNING, TUNED};
 byte _cmd = POWERUP;  // Holds the command to be processed
 const float tuneSWR = 18; //If retLoss < this value, forces a coarse tune. (Small value forces a tune)
 
+boolean preset;  // TODO remove this debug info on final version
 //----------------------------------------------------------------------------------------------------------
 
 void setup()
@@ -273,7 +274,9 @@ byte processCommand(byte cmd)
       }
     case TUNING:
       { // Tuning is under way so process until finished
+        preset = true;  // TODO remove this debug info on final version
         tryPresets();
+        preset = false;  // TODO remove this debug info on final version
 #ifdef DEBUG_COARSE_TUNE_STATUS
         Serial.print(F("@processCmd() .. _status.retLoss = "));
         Serial.println(_status.retLoss, 5);
@@ -638,7 +641,7 @@ void eeprom_initialise()
     eeAddress += sizeof(MyValues);//Move address to the next struct item
     val.freq = 3568; val.L = B00010111; val.C = B01110011; val.Z = hiZ;   // 194u, 573p
     EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);                          
+    eeAddress += sizeof(MyValues);
     val.freq = 3615; val.L = B00010111; val.C = B10010011; val.Z = loZ;   // 194u, 765p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
@@ -707,10 +710,12 @@ void tryPresets()
     setRelays();
     delay(Relay_Settle_Millis); //Add 20 mSec of settling time before taking the SWR reading
     getSWR();
-    Serial.print(F("Freq, L, C, Z, RL, SWR = "));
+    Serial.print(F("Freq, L, C, Vf, Vr,  Z, RL, SWR = "));
     Serial.print(_status.freq);
     Serial.print(F(",  ")); Serial.print(_status.L_relays);
     Serial.print(F(",  ")); Serial.print(_status.C_relays);
+    Serial.print(F(",  ")); Serial.print(_status.fwd);
+    Serial.print(F(",  ")); Serial.print(_status.rev);
     Serial.print(F(",  ")); Serial.print(_status.outputZ);
     Serial.print(F(",  ")); Serial.print(_status.retLoss, 5);
     Serial.print(F(",  ")); Serial.println((pow(10, (_status.retLoss / 20)) + 1) / (pow(10, (_status.retLoss / 20)) - 1));
@@ -725,6 +730,7 @@ void tryPresets()
   }
   Serial.print(F("@void tryPresets() .. Best returnLoss = "));
   Serial.println(returnLoss, 5);
+  Serial.println(F("--------------------"));  // TODO remove this debug info on final version
   _status.freq = frequency;
   _status.C_relays = Crelays;
   _status.L_relays = Lrelays;
@@ -732,10 +738,13 @@ void tryPresets()
   setRelays();
   delay(Relay_Settle_Millis); //Add 20 mSec of settling time before taking the SWR reading
   getSWR();
-  Serial.print(F("Freq, L, C, Z, RL, SWR = "));
+  Serial.println(F("--------------------"));  // TODO remove this debug info on final version
+  Serial.print(F("Freq, L, C, Vf, Vr, Z, RL, SWR = "));
   Serial.print(_status.freq);
   Serial.print(F(",  ")); Serial.print(_status.L_relays);
   Serial.print(F(",  ")); Serial.print(_status.C_relays);
+  Serial.print(F(",  ")); Serial.print(_status.fwd);
+  Serial.print(F(",  ")); Serial.print(_status.rev);
   Serial.print(F(",  ")); Serial.print(_status.outputZ);
   Serial.print(F(",  ")); Serial.print(_status.retLoss, 5);
   Serial.print(F(",  ")); Serial.println((pow(10, (_status.retLoss / 20)) + 1) / (pow(10, (_status.retLoss / 20)) - 1));
@@ -929,6 +938,17 @@ void readSWR()
     delayMicroseconds(50);
   }
 
+  if (preset) { // TODO remove this debug info on final version
+    for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
+      Serial.print(Vf[x]); Serial.print("\t");
+    }
+    Serial.println();
+    for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
+      Serial.print(Vr[x]); Serial.print("\t");
+    }
+    Serial.println();
+  }
+
   // Test the array for values that deviate too far
   // ----------------------------------------------
   for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
@@ -947,11 +967,13 @@ void readSWR()
       Serial.print(VrLo); Serial.println(F(", "));
     }
   */
+  _status.fwd = 0;
+  _status.rev = 0;
   // Replace all the array values which are more than 10% deviation with the high value
   // ----------------------------------------------------------------------------------
   for (byte x = 0; x < SWR_AVERAGE_COUNT; x++) {
-    if ((VfHi * 0.9) > Vf[x]) Vf[x] = VfHi;
-    if ((VrHi * 0.9) > Vr[x]) Vr[x] = VrHi;
+    if ((VfHi * 0.95) > Vf[x]) Vf[x] = VfHi;
+    if ((VrHi * 0.95) > Vr[x]) Vr[x] = VrHi;
     _status.fwd = _status.fwd + Vf[x];
     _status.rev = _status.rev + Vr[x];
   }
