@@ -1,0 +1,265 @@
+Freq = 3525;  rawSWR = 742424
+Freq = 3615;  rawSWR = 1169230
+Freq = 3677;  rawSWR = 239622
+Freq = 7020;  rawSWR = 99900000
+Freq = 7060;  rawSWR = 567469
+Freq = 7100;  rawSWR = 691666
+Freq = 7160;  rawSWR = 582222
+Freq = 7200;  rawSWR = 505825
+Freq = 10120;  rawSWR = 301459
+Freq = 10140;  rawSWR = 301459
+Best statusTemp.rawSWR = 239622
+At processCmd, _status.rawSWR = 111764
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     3.6034     3.6034     3.5812     3.6034     3.5812   250	0
+cnt < 5 so searching down
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.0065     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     3.6034     3.6034     3.5812     3.6034   249	0
+     1.0065     1.0065     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     3.6034     3.6034     3.5812   248	1
+     1.0066     1.0065     1.0065     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     3.6034     3.6034   247	2
+     1.0066     1.0066     1.0065     1.0065     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     3.6034   246	3
+     1.0066     1.0066     1.0066     1.0065     1.0065     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066   245	4
+     1.0066     1.0066     1.0066     1.0066     1.0065     1.0065     1.0065     1.0066     1.0066     1.0066     1.0066   244	5
+fineStep: Values on exit using CAPACITORS
+C_Relays = 249
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+1111_1001  0000_1011  1266    96      304        1  High   LoZ    100660  1.0066
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.7524     1.5893     1.2433     1.0067     1.0067     1.0066     1.2086     1.3574     1.5141     1.6838     1.8507   6		5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 249
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+1111_1001  0000_1011  1266    96      302        1  High   LoZ    100664  1.0066
+
+-------------------------------------------------------------------------------------------------------------------
+
+initialize_analog_button_array: 0:  -69 - 54
+initialize_analog_button_array: 1:  55 - 153
+initialize_analog_button_array: 2:  154 - 234
+initialize_analog_button_array: 3:  234 - 300
+EEPROM initialised
+Arduino antenna tuner ver 1.0.0
+Copyright (C) 2015, Graeme Jury ZL2APV
+available RAM = 1343
+
+Freq = 3525;  rawSWR = 726865
+Freq = 3615;  rawSWR = 1125925
+Freq = 3677;  rawSWR = 101986
+Freq = 7020;  rawSWR = 446391
+Freq = 7060;  rawSWR = 590000
+Freq = 7100;  rawSWR = 700000
+Freq = 7160;  rawSWR = 587640
+Freq = 7200;  rawSWR = 503883
+Freq = 10120;  rawSWR = 301470
+Freq = 10140;  rawSWR = 300000
+Best statusTemp.rawSWR = 101986
+At processCmd, _status.rawSWR = 109589
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.0066     1.0066     1.0066     1.0066     1.0066     1.0066     3.5862     3.5862     3.5641     3.5254     3.5042   250	3
+cnt < 5 so searching down
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     1.0066     3.5862     3.5862     3.5641     3.5254   249	0
+     1.0066     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     1.0066     3.5862     3.5862     3.5641   248	1
+     1.0066     1.0066     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     1.0066     3.5862     3.5862   247	2
+     1.0066     1.0066     1.0066     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     1.0066     3.5862   246	3
+     1.0066     1.0066     1.0066     1.0066     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066     1.0066   245	4
+     1.0066     1.0066     1.0066     1.0066     1.0066     1.0065     1.0066     1.0066     1.0066     1.0066     1.0066   244	5
+fineStep: Values on exit using CAPACITORS
+C_Relays = 249
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+1111_1001  0000_1011  1266    96      304        1  High   LoZ    100660  1.0066
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+   999.0000     1.8247     1.2357     1.0067     1.0067     1.0066     1.2166     1.3588     1.5161     1.6752     1.7544   6		5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 249
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+1111_1001  0000_1011  1266    96      302        1  High   LoZ    100664  1.0066
+Freq = 3525;  rawSWR = 582051
+Freq = 3615;  rawSWR = 593617
+Freq = 3677;  rawSWR = 268421
+Freq = 7020;  rawSWR = 158715
+Freq = 7060;  rawSWR = 211602
+Freq = 7100;  rawSWR = 258750
+Freq = 7160;  rawSWR = 223655
+Freq = 7200;  rawSWR = 187203
+Freq = 10120;  rawSWR = 140000
+Freq = 10140;  rawSWR = 137209
+Best statusTemp.rawSWR = 137209
+At processCmd, _status.rawSWR = 137209
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3643     1.3643     1.3643     1.3735     1.3735     1.3828     1.3843     1.3922     1.3922     1.4016     1.4016   1		2
+cnt < 5 so searching down
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3643     1.3643     1.3643     1.3643     1.3735     1.3735     1.3828     1.3843     1.3922     1.3922     1.4016   0		3
+We will over/underflow so choosing best value
+fineStep: Values on exit using CAPACITORS
+C_Relays = 3
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0011  0000_0100    17    35      304       48  High   LoZ    137500  1.3750
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.5892     2.4286   999.0000     1.4286     1.3843     1.3502     1.3256     1.3000     1.2682     1.2605     1.7284   0		9
+We will over/underflow so choosing best value
+fineStep: Values on exit using INDUCTORS
+C_Relays = 3
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0011  0000_1001    17    79      295       35  High   LoZ    126923  1.2692
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2682     1.2595     1.2595     1.2509     2.1884   999.0000     1.2424     1.2424     1.2491     1.2500     1.2500   0		7
+We will over/underflow so choosing best value
+fineStep: Values on exit using CAPACITORS
+C_Relays = 7
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0111  0000_1001    39    79      296       33  High   LoZ    125095  1.2509
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3813     1.3475     1.3142     1.2901     1.4947   999.0000     1.2357     1.2273     1.2366     1.2462     1.2734   4		7
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3475     1.3142     1.2901     1.4947   999.0000     1.2357     1.2273     1.2366     1.2462     1.2734     1.3108   5		6
+     1.3142     1.2901     1.4947   999.0000     1.2357     1.2273     1.2366     1.2462     1.2734     1.3108     1.3175   6		5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 7
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_0111  0000_1011    39    96      295       32  High   LoZ    124334  1.2433
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2433     1.2433     1.2433     1.2433     1.2433     1.2433     1.2424     1.2424     1.2424     1.2424     1.2424   2		10
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2433     1.2433     1.2433     1.2433     1.2433     1.2424     1.2424     1.2424     1.2424     1.2424     1.2340   3		10
+     1.2433     1.2433     1.2433     1.2433     1.2424     1.2424     1.2424     1.2424     1.2424     1.2340     1.2247   4		10
+     1.2433     1.2433     1.2433     1.2424     1.2424     1.2424     1.2424     1.2424     1.2340     1.2247     1.2172   5		10
+     1.2433     1.2433     1.2424     1.2424     1.2424     1.2424     1.2424     1.2340     1.2247     1.2172     1.2239   6		9
+     1.2433     1.2424     1.2424     1.2424     1.2424     1.2424     1.2340     1.2247     1.2172     1.2239     1.2322   7		8
+     1.2424     1.2424     1.2424     1.2424     1.2424     1.2340     1.2247     1.2172     1.2239     1.2322     1.2322   8		7
+     1.2424     1.2424     1.2424     1.2424     1.2340     1.2247     1.2172     1.2239     1.2322     1.2322     1.2239   9		6
+     1.2424     1.2424     1.2424     1.2340     1.2247     1.2172     1.2239     1.2322     1.2322     1.2239     1.2239   10	5
+fineStep: Values on exit using CAPACITORS
+C_Relays = 15
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_1111  0000_1011    83    96      296       30  High   LoZ    122556  1.2256
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3372     1.3130     1.2642     1.2481     1.2491     1.2424     1.2433     1.2443     1.2538     1.2724     1.2703   6		5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 15
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0000_1111  0000_1011    83    96      297       30  High   LoZ    122471  1.2247
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2424     1.2424     1.2415     1.2415     1.2331     1.2247     1.2230     1.2156     3.0000   999.0000     1.2156   10	10
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2424     1.2415     1.2415     1.2331     1.2247     1.2230     1.2156     3.0000   999.0000     1.2156     1.2239   11	9
+     1.2415     1.2415     1.2331     1.2247     1.2230     1.2156     3.0000   999.0000     1.2156     1.2239     1.2239   12	8
+     1.2415     1.2331     1.2247     1.2230     1.2156     3.0000   999.0000     1.2156     1.2239     1.2239     1.2239   13	7
+     1.2331     1.2247     1.2230     1.2156     3.0000   999.0000     1.2156     1.2239     1.2239     1.2239     1.2230   14	6
+     1.2247     1.2230     1.2156     3.0000   999.0000     1.2156     1.2239     1.2239     1.2239     1.2230     1.2148   15	10
+     1.2230     1.2156     3.0000   999.0000     1.2156     1.2239     1.2239     1.2239     1.2230     1.2148     1.2148   16	10
+     1.2156     3.0000   999.0000     1.2156     1.2239     1.2239     1.2239     1.2230     1.2148     1.2148     1.2148   17	10
+     3.0000   999.0000     1.2156     1.2239     1.2239     1.2239     1.2230     1.2148     1.2148     1.2148     1.2230   18	9
+   999.0000     1.2156     1.2239     1.2239     1.2239     1.2230     1.2148     1.2148     1.2148     1.2230     1.2230   19	8
+     1.2156     1.2239     1.2239     1.2239     1.2230     1.2148     1.2148     1.2148     1.2230     1.2230     1.2148   20	10
+     1.2239     1.2239     1.2239     1.2230     1.2148     1.2148     1.2148     1.2230     1.2230     1.2148     1.2066   21	10
+     1.2239     1.2239     1.2230     1.2148     1.2148     1.2148     1.2230     1.2230     1.2148     1.2066     1.2132   22	9
+     1.2239     1.2230     1.2148     1.2148     1.2148     1.2230     1.2230     1.2148     1.2066     1.2132     1.2132   23	8
+     1.2230     1.2148     1.2148     1.2148     1.2230     1.2230     1.2148     1.2066     1.2132     1.2132     1.2132   24	7
+     1.2148     1.2148     1.2148     1.2230     1.2230     1.2148     1.2066     1.2132     1.2132     1.2132     1.2132   25	6
+     1.2148     1.2148     1.2230     1.2230     1.2148     1.2066     1.2132     1.2132     1.2132     1.2132     1.2125   26	5
+fineStep: Values on exit using CAPACITORS
+C_Relays = 31
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0001_1111  0000_1011   171    96      299       28  High   LoZ    120664  1.2066
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3891     1.3372     1.2528     1.2206     1.2132     1.2066     1.2066     1.2082     1.2172     1.2264     1.2331   6		6
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3372     1.2528     1.2206     1.2132     1.2066     1.2066     1.2082     1.2172     1.2264     1.2331     1.2424   7		5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 31
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0001_1111  0000_1100   171   108      299       28  High   LoZ    120664  1.2066
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2148     1.2148     1.2148     1.2148     1.2230     1.2148     1.2305     1.2222     1.2140     1.2059     1.2051   26	10
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.2148     1.2148     1.2148     1.2230     1.2148     1.2305     1.2222     1.2140     1.2059     1.2051     1.1891   27	10
+     1.2148     1.2148     1.2230     1.2148     1.2305     1.2222     1.2140     1.2059     1.2051     1.1891     1.1971   28	9
+     1.2148     1.2230     1.2148     1.2305     1.2222     1.2140     1.2059     1.2051     1.1891     1.1971     1.1891   29	10
+     1.2230     1.2148     1.2305     1.2222     1.2140     1.2059     1.2051     1.1891     1.1971     1.1891     1.1971   30	9
+     1.2148     1.2305     1.2222     1.2140     1.2059     1.2051     1.1891     1.1971     1.1891     1.1971     1.1891   31	10
+     1.2305     1.2222     1.2140     1.2059     1.2051     1.1891     1.1971     1.1891     1.1971     1.1891     1.1811   32	10
+     1.2222     1.2140     1.2059     1.2051     1.1891     1.1971     1.1891     1.1971     1.1891     1.1811     1.1811   33	10
+     1.2140     1.2059     1.2051     1.1891     1.1971     1.1891     1.1971     1.1891     1.1811     1.1811     1.1805   34	10
+     1.2059     1.2051     1.1891     1.1971     1.1891     1.1971     1.1891     1.1811     1.1811     1.1805     1.1805   35	10
+     1.2051     1.1891     1.1971     1.1891     1.1971     1.1891     1.1811     1.1811     1.1805     1.1805     1.1811   36	9
+     1.1891     1.1971     1.1891     1.1971     1.1891     1.1811     1.1811     1.1805     1.1805     1.1811     1.1811   37	8
+     1.1971     1.1891     1.1971     1.1891     1.1811     1.1811     1.1805     1.1805     1.1811     1.1811     1.1884   38	7
+     1.1891     1.1971     1.1891     1.1811     1.1811     1.1805     1.1805     1.1811     1.1811     1.1884     1.1720   39	10
+     1.1971     1.1891     1.1811     1.1811     1.1805     1.1805     1.1811     1.1811     1.1884     1.1720     1.1720   40	10
+     1.1891     1.1811     1.1811     1.1805     1.1805     1.1811     1.1811     1.1884     1.1720     1.1720     1.1649   41	10
+     1.1811     1.1811     1.1805     1.1805     1.1811     1.1811     1.1884     1.1720     1.1720     1.1649     1.1720   42	9
+     1.1811     1.1805     1.1805     1.1811     1.1811     1.1884     1.1720     1.1720     1.1649     1.1720     1.1643   43	10
+     1.1805     1.1805     1.1811     1.1811     1.1884     1.1720     1.1720     1.1649     1.1720     1.1643     1.1566   44	10
+     1.1805     1.1811     1.1811     1.1884     1.1720     1.1720     1.1649     1.1720     1.1643     1.1566     1.1571   45	9
+     1.1811     1.1811     1.1884     1.1720     1.1720     1.1649     1.1720     1.1643     1.1566     1.1571     1.1643   46	8
+     1.1811     1.1884     1.1720     1.1720     1.1649     1.1720     1.1643     1.1566     1.1571     1.1643     1.1566   47	10
+     1.1884     1.1720     1.1720     1.1649     1.1720     1.1643     1.1566     1.1571     1.1643     1.1566     1.1566   48	10
+     1.1720     1.1720     1.1649     1.1720     1.1643     1.1566     1.1571     1.1643     1.1566     1.1566     1.1489   49	10
+     1.1720     1.1649     1.1720     1.1643     1.1566     1.1571     1.1643     1.1566     1.1566     1.1489     1.1566   50	9
+     1.1649     1.1720     1.1643     1.1566     1.1571     1.1643     1.1566     1.1566     1.1489     1.1566     1.1643   51	8
+     1.1720     1.1643     1.1566     1.1571     1.1643     1.1566     1.1566     1.1489     1.1566     1.1643     1.1643   52	7
+     1.1643     1.1566     1.1571     1.1643     1.1566     1.1566     1.1489     1.1566     1.1643     1.1643     1.1643   53	6
+     1.1566     1.1571     1.1643     1.1566     1.1566     1.1489     1.1566     1.1643     1.1643     1.1643     1.1792   54	5
+fineStep: Values on exit using CAPACITORS
+C_Relays = 59
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_1011  0000_1100   317   108      303       22  High   LoZ    115658  1.1566
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.5203     1.3784     1.3182     1.2593     1.2109     1.1643     1.1268     1.0976     1.0270     1.0759     1.0067   7		10
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.3784     1.3182     1.2593     1.2109     1.1643     1.1268     1.0976     1.0270     1.0759     1.0067     1.0067   8		10
+     1.3182     1.2593     1.2109     1.1643     1.1268     1.0976     1.0270     1.0759     1.0067     1.0067     1.0067   9		9
+     1.2593     1.2109     1.1643     1.1268     1.0976     1.0270     1.0759     1.0067     1.0067     1.0067     1.0982   10	8
+     1.2109     1.1643     1.1268     1.0976     1.0270     1.0759     1.0067     1.0067     1.0067     1.0982     1.1511   11	7
+     1.1643     1.1268     1.0976     1.0270     1.0759     1.0067     1.0067     1.0067     1.0982     1.1511     1.2066   12	6
+     1.1268     1.0976     1.0270     1.0759     1.0067     1.0067     1.0067     1.0982     1.1511     1.2066     1.2481   13	5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 59
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_1011  0001_0010   317   153      301        1  High   LoZ    100666  1.0067
+fineStep: Values on entry using CAPACITORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.1201     1.1053     1.1201     1.0979     1.0979     1.0548     1.0616     1.0066     1.0066     1.0067     1.1272   54	8
+cnt > 5 so searching up
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.1053     1.1201     1.0979     1.0979     1.0548     1.0616     1.0066     1.0066     1.0067     1.1272     1.1123   55	7
+     1.1201     1.0979     1.0979     1.0548     1.0616     1.0066     1.0066     1.0067     1.1272     1.1123     1.1123   56	6
+     1.0979     1.0979     1.0548     1.0616     1.0066     1.0066     1.0067     1.1272     1.1123     1.1123     1.0903   57	5
+fineStep: Values on exit using CAPACITORS
+C_Relays = 62
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_1110  0001_0010   333   153      302        1  High   LoZ    100664  1.0066
+fineStep: Values on entry using INDUCTORS
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.1115     1.0268     1.0066     1.0066     1.0066     1.0066     1.0067     1.0067     1.1131     1.1818     1.2313   13	3
+cnt < 5 so searching down
+  Values[0]  Values[1]  Values[2]  Values[3]  Values[4]  Values[5]  Values[6]  Values[7]  Values[8]  Values[9]  Values[10]   lowRelay cnt
+     1.1637     1.1115     1.0268     1.0066     1.0066     1.0066     1.0066     1.0067     1.0067     1.1131     1.1818   12	4
+     1.2182     1.1637     1.1115     1.0268     1.0066     1.0066     1.0066     1.0066     1.0067     1.0067     1.1131   11	5
+fineStep: Values on exit using INDUCTORS
+C_Relays = 62
+C_relays   L_relays   totC  totL  fwdVolt  revVolt  Gain  outZ    rawSWR  SWR
+0011_1110  0001_0000   333   136      302        7  High   LoZ    104745  1.0474
+
