@@ -7,7 +7,7 @@
                                +-----+
                   +------------| USB |------------+
                   |            +-----+            |
-  Heartbeat    B5   | [ ]D13/SCK        MISO/D12[ ] |   B4
+  Heartbeat  B5   | [ ]D13/SCK        MISO/D12[ ] |   B4
                   | [ ]3.3V           MOSI/D11[ ]~|   B3
                   | [ ]V.ref     ___    SS/D10[ ]~|   B2
              C0   | [ ]A0       / N \       D9[ ]~|   B1
@@ -63,6 +63,9 @@ byte p6[8] = {
 // Global variables always start with an underscore
 int _Button_array_max_value[num_of_analog_buttons];
 int _Button_array_min_value[num_of_analog_buttons];
+String rx_str = "";
+boolean not_number = false;
+unsigned int eepromTermAddr = 0;
 
 struct status {
   float fwd;
@@ -76,8 +79,14 @@ struct status {
   boolean outputZ;
   unsigned int totC;
   unsigned int totL;
-}
-_status;
+} _status;
+
+struct MyValues {
+  unsigned int freq;
+  byte L;
+  byte C;
+  byte Z;
+} val;
 
 //         Inductor definitions     L1   L2   L3   L4    L5    L6    L7    L8
 const unsigned int  _inductors[] = { 6,  17,  35,  73,  136,  275,  568, 1099 };  // inductor values in nH
@@ -139,13 +148,18 @@ void setup()
   }
 
   initialize_analog_button_array();
-  //EEPROM[EEPROM.length()-1] = 0; //Uncomment this to force a reload of EEPROM values
-  eeprom_initialise();
+//  EEPROM[EEPROM.length()-1] = 0;  //Uncomment this to force a reload of EEPROM values
+//  eeprom_initialise();            // and this line too
 
   Serial.println(F("Arduino antenna tuner ver 2.0.0"));
   Serial.println(F("Copyright (C) 2015, Graeme Jury ZL2APV"));
   Serial.println();
-
+  EEPROM.get(eepromTermAddr, val.freq); // Initialise the terminator address for the eeprom
+  while (val.freq) {
+    eepromTermAddr += sizeof(MyValues);
+    EEPROM.get(eepromTermAddr, val.freq);
+  }
+  eeprom_Print();
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -154,7 +168,8 @@ void loop()
 
   byte buttonNumber;
   static unsigned long heartbeat = millis();
-
+  
+  pollSerial();
   getSWR();
   //  Serial.print(F("_cmd = ")); Serial.println(_cmd);
   _cmd = processCommand(_cmd);
@@ -619,60 +634,242 @@ void findbestRetLoss(uint8_t arrayStartRelay, uint8_t* pReactance, float values[
 }
 
 //--------------------------------------------------------------------------------------------------------/
+
+void eeprom_Load(unsigned int freq)
+{
+  // Loads the passed frequency into the eeprom table of presets
+  // If freq = 0 then the table is cleared and reset to address 0 as start/end of table
+  // If frequency is higher than any other in the table it will be appended
+  // If frequency is lower than any table entry it will be pre-pended
+  // Otherwise the frequency will be inserted so as to keep the table in ascending frequency.
+
+  int eeAddress = 0;
+  int eeAddrHi = 0;
+  boolean endFlag = false;
+
+  if (freq == 0) {
+    eepromTermAddr = 0;
+    EEPROM.put(eepromTermAddr, 0);
+    Serial.println(F("Relay table has been zeroed"));
+  } else {
+    EEPROM.get(eeAddress, val.freq);
+    if (val.freq == 0) {
+      //    endFlag = true; // If 1st addr = 0 (terminator) then we have a non loaded eeprom
+      EEPROM.put(eeAddress, freq);
+      eepromTermAddr += sizeof(MyValues);
+      EEPROM.put(eepromTermAddr, 0);
+      Serial.print(F("eeAddress = ")); Serial.print(eeAddress);
+      Serial.print(F(", eepromTermAddr = ")); Serial.println(eeAddress);
+    }
+    while ((val.freq) || (endFlag)) {
+      // We only get here if val.freq is a non zero number or we want to append the frequency
+      if (val.freq == freq) {
+        // The frequency we are entering matches a frequency already in the presets
+        // so simply overwrite it.
+        val.L = _status.L_relays;
+        val.C = _status.C_relays;
+        val.Z = _status.outputZ;
+        EEPROM.put(eeAddress, val);
+        Serial.print(F("freq ")); Serial.print(val.freq); Serial.print(F(" written to presets at address "));
+        Serial.println(eeAddress);
+        break;
+      } else {
+        Serial.print(F("val.freq = ")); Serial.print(val.freq);
+        Serial.print(F(";  freq = ")); Serial.print(freq);
+        Serial.print(F(";  eeAddress = ")); Serial.println(eeAddress);
+        // -------------------------------------------------------
+        if ((val.freq > freq) || (endFlag)) { // Don't process for frequencies less than the entry frequency
+          // val.freq must be greater than freq or we have reached the end to get here.
+
+          // We are going to insert the tune values in the address before this one
+          // (which is held in eeAddrHi). All the values above will need to be
+          // shifted up one to allow the tune data to be inserted.
+          Serial.println();
+
+          eeAddrHi = eeAddress;
+          eeAddress = eepromTermAddr;;
+          eepromTermAddr += sizeof(MyValues);//Move address to one struct item beyond
+          EEPROM.put(eepromTermAddr, 0);
+          Serial.print(F("Entering while loop, eeAddrHi = ")); Serial.print(eeAddrHi);
+          Serial.print(F(";  eeAddress = ")); Serial.print(eeAddress);
+          Serial.print(F(";  eepromTermAddr = ")); Serial.println(eepromTermAddr);
+
+          while ((eeAddress >= eeAddrHi) || (eeAddress == 0)) {
+            EEPROM.get(eeAddress, val.freq);
+            Serial.print(F("Start address = ")); Serial.print(eeAddress); Serial.print(F("  val.freq = ")); Serial.print(val.freq);
+            eeAddress += sizeof(unsigned int);  // Step off freq to L
+            EEPROM.get(eeAddress, val.L);
+            eeAddress += sizeof(byte);          // Step off L to C
+            EEPROM.get(eeAddress, val.C);
+            eeAddress += sizeof(byte);          // Step off C to Z
+            EEPROM.get(eeAddress, val.Z);
+            eeAddress += sizeof(byte);
+            EEPROM.put(eeAddress, val);
+            Serial.print(F("  Finish address = ")); Serial.println(eeAddress);
+            eeAddress -= (sizeof(MyValues) * 2);
+          }
+
+          val.freq = freq;
+          val.L = _status.L_relays;
+          val.C = _status.C_relays;
+          val.Z = _status.outputZ;
+          eeAddress = eeAddrHi;
+          EEPROM.put(eeAddress, val);
+          Serial.print(F("insert freq ")); Serial.print(val.freq); Serial.print(F(" written to presets at address "));
+          Serial.println(eeAddress);
+          eeAddress = (eepromTermAddr - sizeof(MyValues));
+          break;
+        }
+        // -------------------------------------------------------
+
+        eeAddress += sizeof(MyValues);//Move address to the next struct item
+        //      Serial.print(F("eeAddress = ")); Serial.println(eeAddress);
+        EEPROM.get(eeAddress, val.freq); //Get next frequency or 0000 if at end
+        if (val.freq == 0) endFlag = true;
+        //      Serial.print(F("Exiting else, val.freq = ")); Serial.println(val.freq);
+      }
+    }
+    EEPROM.put(eepromTermAddr, 0);
+    Serial.print(F("eeprom_Load() exit freq ")); Serial.print(val.freq);
+    Serial.print(F(", eepromTermAddr = ")); Serial.println(eepromTermAddr);
+    eeprom_Print();
+  }
+}
+
+//--------------------------------------------------------------------------------------------------------/
+
+void eeprom_Print()
+{
+  int eeAddress = 0;
+
+  Serial.println(F("-------------------"));
+  Serial.println(F("Freq, L_relays, C_Relays, outputZ, Address"));
+  EEPROM.get(eeAddress, val.freq);
+  while (val.freq) {
+    eeAddress += sizeof(unsigned int);  // Step off freq to L
+    EEPROM.get(eeAddress, val.L);
+    eeAddress += sizeof(byte);          // Step off L to C
+    EEPROM.get(eeAddress, val.C);
+    eeAddress += sizeof(byte);          // Step off C to Z
+    EEPROM.get(eeAddress, val.Z);
+    eeAddress += sizeof(byte);
+
+    Serial.print(val.freq);
+    Serial.print(F("\t")); Serial.print(val.L);
+    Serial.print(F("\t  ")); Serial.print(val.C);
+    Serial.print(F("\t   ")); Serial.print(val.Z);
+    Serial.print(F("\t    ")); Serial.println(eeAddress - sizeof(MyValues));
+
+    EEPROM.get(eeAddress, val.freq); //Get next frequency or 0000 if at end
+  }
+  Serial.print(val.freq);
+  Serial.print(F("  eepromTermAddr = ")); Serial.println(eepromTermAddr);
+  Serial.println(F("-------------------")); Serial.println();
+}
+
+//--------------------------------------------------------------------------------------------------------/
+
+
+void pollSerial()
+{
+  // Uses the following globals ...
+  // String rx_str = "";
+  // boolean not_number = false;
+  
+  unsigned int freq;
+  char rx_byte = 0;
+  
+  if (Serial.available() > 0) {    // is a character available?
+    rx_byte = Serial.read();       // get the character
+
+    if ((rx_byte >= '0') && (rx_byte <= '9')) {
+      rx_str += rx_byte;
+    }
+    else if (rx_byte == '\n') {
+      // end of string
+      if (not_number) {
+        Serial.println("Invalid Frequency");
+      }
+      else {
+        freq = rx_str.toInt();
+        // print the result
+        Serial.print(F("freq = "));
+        Serial.print(rx_str);
+        Serial.print(F(", L_Relay = "));
+        Serial.print(_status.L_relays);
+        Serial.print(F(", C_Relay = "));
+        Serial.print(_status.C_relays);
+        Serial.print(F(", outputZ = "));
+        Serial.println(_status.outputZ);
+        eeprom_Load(freq);
+        Serial.println(F("Enter a frequency to add to eeprom"));
+      }
+      not_number = false;         // reset flag
+      rx_str = "";                // clear the string for reuse
+    }
+    else {
+      // non-number character received
+      not_number = true;    // flag a non-number
+    }
+  } // end: if (Serial.available() > 0)
+}
+
+//--------------------------------------------------------------------------------------------------------/
+
 void eeprom_initialise()
 {
   // this routine loads some preset values into eeprom for fast tuning. In the final version this will become
   // redundant as the values will be loaded by frequency with the counter installation. A magic number is
   // loaded into the last byte of the eeprom to indicate that it is already loaded with tune values and we
   // don't duplicate the data at each switch on.
-
+/*
   struct MyValues {
     unsigned int freq;
     byte L;
     byte C;
     byte Z;
   } val;
-
+*/
   int eeAddress = 0;
 
   if (EEPROM[EEPROM.length() - 1] != 120) {
-    val.freq = 3525; val.L = B00011101; val.C = B11011000; val.Z = hiZ;   // 250u, 1092p
+    val.freq = 3535; val.L = B00111001; val.C = B01010100; val.Z = loZ;   // 490u, 410p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);//Move address to the next struct item
-    val.freq = 3568; val.L = B00010111; val.C = B01110011; val.Z = hiZ;   // 194u, 573p
+    val.freq = 3605; val.L = B00111000; val.C = B10011100; val.Z = loZ;   // 194u, 573p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3615; val.L = B00010111; val.C = B10010011; val.Z = loZ;   // 194u, 765p
+    val.freq = 3660; val.L = B00001001; val.C = B11010101; val.Z = loZ;   // 194u, 765p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3666; val.L = B00001100; val.C = B11111111; val.Z = loZ;   // 108u, 1299p
+    val.freq = 3770; val.L = B00000011; val.C = B10011101; val.Z = hiZ;   // 108u, 1299p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3677; val.L = B00001011; val.C = B11111100; val.Z = loZ;   // 96u, 1092p
+    val.freq = 3800; val.L = B00111111; val.C = B01001110; val.Z = hiZ;   // 96u, 1092p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3695; val.L = B00000111; val.C = B11111111; val.Z = loZ;   // 58u, 1299p
+    val.freq = 3900; val.L = B01001010; val.C = B00011101; val.Z = hiZ;   // 58u, 1299p
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7020; val.L = B00010001; val.C = B00011101; val.Z = hiZ;   //Values for 7.020 MHz
+    val.freq = 7010; val.L = B00000001; val.C = B00000000; val.Z = hiZ;   //Values for 7.020 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7060; val.L = B00011001; val.C = B00001101; val.Z = hiZ;   //Values for 7.060 MHz
+    val.freq = 7060; val.L = B00000010; val.C = B00100000; val.Z = loZ;   //Values for 7.060 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7100; val.L = B00011110; val.C = B00000000; val.Z = hiZ;   //Values for 7.100 MHz
+    val.freq = 7200; val.L = B00001110; val.C = B00111111; val.Z = hiZ;   //Values for 7.100 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7160; val.L = B00100010; val.C = B00100010; val.Z = loZ;   //Values for 7.160 MHz
+    val.freq = 10120; val.L = B0010100; val.C = B00110001; val.Z = hiZ;   //Values for 7.160 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7200; val.L = B00011111; val.C = B01000000; val.Z = loZ;   //Values for 7.200 MHz
+    val.freq = 14050; val.L = B0001101; val.C = B00010000; val.Z = hiZ;   //Values for 7.200 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 10120; val.L = B00000100; val.C = B00000100; val.Z = hiZ;  //Values for 10.120 MHz
+    val.freq = 14200; val.L = B0001110; val.C = B00001010; val.Z = hiZ;  //Values for 10.120 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 10140; val.L = B00000100; val.C = B00000110; val.Z = loZ;  //Values for 10.140 MHz
+    val.freq = 18100; val.L = B00001010; val.C = B00000011; val.Z = hiZ;  //Values for 10.140 MHz
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
     val.freq = 0; val.L = 0; val.C = 0; val.Z = loZ;      //Zero values for a terminator
