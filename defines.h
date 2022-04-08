@@ -31,11 +31,11 @@ const uint8_t numCrelays =  9;
 #define ARRAY_SIZE          25
 
 // Shift Register for L & C driver Pin assign
-#define outputEnable  4     // Pin 13 of 74HC164 U5 to pin 7 of Arduino Nano
+#define outputEnable  4     // Pin 13 of 74HC164's U4 & U5 to pin 7 of Arduino Nano
 
-#define Lclock        8     // Pin 11 of 74HC595 U3 to pin 11 of Arduino Nano
-#define Llatch        7     // Pin 12 of 74HC595 U4 to pin 10 of Arduino Nano
-#define Ldata         6     // Pin 14 of 74HC595 U3 to pin 9 of Arduino Nano
+#define Clock        8     // Pin 11 of 74HC595's U4 & U5 to pin 11 of Arduino Nano
+#define Latch        7     // Pin 12 of 74HC595's U4 & U5 to pin 10 of Arduino Nano
+#define Data         6     // Pin 14 of 74HC595 U4 to pin 9 of Arduino Nano
 
 #define coRelay       9    // Capacitor set c/o relay
 #define swrGain       12    // Switchable gain for swr amplifiers

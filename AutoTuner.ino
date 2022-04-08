@@ -106,11 +106,11 @@ boolean preset;  // TODO remove this debug info on final version
 void setup()
 {
   // First thing up, set C & L Relays to all off.
-  pinMode(Lclock, OUTPUT); // make the Inductor clock pin an output
-  pinMode(Llatch, OUTPUT); // make the Inductor latch pin an output
-  pinMode(Ldata , OUTPUT); // make the Inductor data pin an output
+  pinMode(Clock, OUTPUT); // make the 74HC164's clock pin an output
+  pinMode(Latch, OUTPUT); // make the 74HC164's latch pin an output
+  pinMode(Data , OUTPUT); // make the 74HC164 U4's data pin an output
   pinMode(coRelay, OUTPUT);
-  digitalWrite(Lclock, LOW);
+  digitalWrite(Clock, LOW);
   _status.C_relays = 0;
   _status.L_relays = 0;
   _status.outputZ = loZ; // Caps switched to input side of L network
@@ -1195,18 +1195,18 @@ void setRelays()
   boolean temp;
 
   // Set the C Relays from _status.C_relays;
-  digitalWrite(Llatch, LOW);
+  digitalWrite(Latch, LOW);
   temp = bitRead(Cmap, 7);
   Cmap = Cmap << 1;
   bitWrite(Cmap, 0, temp);
-  shiftOut(Ldata, Lclock, MSBFIRST, Cmap); // send this binary value to the Capacitor shift register
+  shiftOut(Data, Clock, MSBFIRST, Cmap); // send this binary value to the Capacitor shift register
 
   // Set the L Relays from _status.L_relays;
   temp = bitRead(Lmap, 7);
   Lmap = Lmap << 1;
   bitWrite(Lmap, 0, temp);
-  shiftOut(Ldata, Lclock, MSBFIRST, Lmap); // send this binary value to the Inductor shift register
-  digitalWrite(Llatch, HIGH);
+  shiftOut(Data, Clock, MSBFIRST, Lmap); // send this binary value to the Inductor shift register
+  digitalWrite(Latch, HIGH);
 
   // Write the total capacitor and inductor values into the "_status" struct.
   _status.totC = calcXvalue(CAPACITANCE);
@@ -1262,7 +1262,7 @@ byte handle_button()
 
   static boolean button_was_pressed = true; // True = no press i.e. pullup voltage
   static unsigned long timer = 0;
-  boolean event;
+  boolean event = false;
   byte retval = 0;
 
   // Check for a button change. Boolean event is true if a released button is pressed or
