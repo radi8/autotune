@@ -822,6 +822,7 @@ void eeprom_initialise()
   // redundant as the values will be loaded by frequency with the counter installation. A magic number is
   // loaded into the last byte of the eeprom to indicate that it is already loaded with tune values and we
   // don't duplicate the data at each switch on.
+  // The FT8 frequency for each band is used as the preset frequency
 /*
   struct MyValues {
     unsigned int freq;
@@ -833,45 +834,31 @@ void eeprom_initialise()
   int eeAddress = 0;
 
   if (EEPROM[EEPROM.length() - 1] != 120) {
-    val.freq = 3535; val.L = B00111001; val.C = B01010100; val.Z = loZ;   // 490u, 410p
+    val.freq = 3573; val.L = B00101001; val.C = B10010001; val.Z = loZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);//Move address to the next struct item
-    val.freq = 3605; val.L = B00111000; val.C = B10011100; val.Z = loZ;   // 194u, 573p
+    val.freq = 7074; val.L = B00000000; val.C = B00011100; val.Z = loZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3660; val.L = B00001001; val.C = B11010101; val.Z = loZ;   // 194u, 765p
+    val.freq = 10136; val.L = B00010100; val.C = B00110000; val.Z = hiZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3770; val.L = B00000011; val.C = B10011101; val.Z = hiZ;   // 108u, 1299p
+    val.freq = 14074; val.L = B00001100; val.C = B00010000; val.Z = hiZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3800; val.L = B00111111; val.C = B01001110; val.Z = hiZ;   // 96u, 1092p
+    val.freq = 18100; val.L = B00001010; val.C = B00000011; val.Z = hiZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 3900; val.L = B01001010; val.C = B00011101; val.Z = hiZ;   // 58u, 1299p
+    val.freq = 21074; val.L = B00000111; val.C = B00001110; val.Z = hiZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7010; val.L = B00000001; val.C = B00000000; val.Z = hiZ;   //Values for 7.020 MHz
+    val.freq = 24915; val.L = B00000101; val.C = B00000111; val.Z = hiZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7060; val.L = B00000010; val.C = B00100000; val.Z = loZ;   //Values for 7.060 MHz
+    val.freq = 28074; val.L = B00000000; val.C = B00000010; val.Z = hiZ;   // 
     EEPROM.put(eeAddress, val);
     eeAddress += sizeof(MyValues);
-    val.freq = 7200; val.L = B00001110; val.C = B00111111; val.Z = hiZ;   //Values for 7.100 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);
-    val.freq = 10120; val.L = B0010100; val.C = B00110001; val.Z = hiZ;   //Values for 7.160 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);
-    val.freq = 14050; val.L = B0001101; val.C = B00010000; val.Z = hiZ;   //Values for 7.200 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);
-    val.freq = 14200; val.L = B0001110; val.C = B00001010; val.Z = hiZ;  //Values for 10.120 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);
-    val.freq = 18100; val.L = B00001010; val.C = B00000011; val.Z = hiZ;  //Values for 10.140 MHz
-    EEPROM.put(eeAddress, val);
-    eeAddress += sizeof(MyValues);
+
     val.freq = 0; val.L = 0; val.C = 0; val.Z = loZ;      //Zero values for a terminator
     EEPROM.put(eeAddress, val);
     EEPROM[EEPROM.length() - 1] = 120; //Put a marker to show that data has been loaded into the eeprom
