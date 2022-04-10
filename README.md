@@ -29,7 +29,7 @@ The 8 capacitor relays are driven from D2 ... D9 via
 a ULN2003 driver chip
 
 The 8 inductor relays are driven from D12 ... D19 pins.
-(D14 ... D19 = A0 ... A5) which are set up as digital
+(D14 ... D19 are mapped onto A0 ... A5) which are set up as digital
 outputs. Again the relays are interfaced via a ULN2003
 driver chip.
 
