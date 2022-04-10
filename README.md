@@ -1,10 +1,7 @@
 
-# AutoTune
+# AutoTune [![Badge License]][License]
 
 *Control An Autotuner With Arduino*
-
-Licenced under GNU GENERAL PUBLIC LICENSE
-Version 2, June 1991
 
 The autotuner is the kitset from the EB104.com website.
 Any tuner of the LC type with 8 shunt capacitors and 8
@@ -42,3 +39,9 @@ button press.
 
 Bit out of date now. Will sort out readme soon.
 
+
+<!----------------------------------------------------------------------------->
+
+[Badge License]: https://img.shields.io/badge/License-GPL_v2-blue.svg
+
+[License]: LICENSE
