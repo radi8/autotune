@@ -1,7 +1,7 @@
-autotune
-========
 
-Arduino software to control an autotuner
+# AutoTune
+
+*Control An Autotuner With Arduino*
 
 Licenced under GNU GENERAL PUBLIC LICENSE
 Version 2, June 1991
