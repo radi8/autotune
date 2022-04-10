@@ -1,11 +1,11 @@
 
 # Autotune [![Badge License]][License]
 
-*Control An Autotuner With Arduino*
+*Control An Autotuner With Arduino Code*
 
 <br>
 
-The **Autotuner** is the kitset from the `EB104.com` website.
+The **Autotuner** is the kitset from the `EB104.com` website.
 
 <br>
 
@@ -15,7 +15,7 @@ Any tuner of the LC type with 8 shunt capacitors and <br>
 8 series inductors plus facility to switch capacitors to <br>
 either end of inductors will do the job.
 
-The relays should be `12V` / `24V` types.
+The relays should be `12V` / `24V` types.
 
 <br>
 
