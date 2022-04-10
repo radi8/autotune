@@ -1,13 +1,25 @@
 
-# AutoTune [![Badge License]][License]
+# Autotune [![Badge License]][License]
 
 *Control An Autotuner With Arduino*
 
-The autotuner is the kitset from the EB104.com website.
-Any tuner of the LC type with 8 shunt capacitors and 8
-series inductors plus facility to switch capacitors
-to either end of inductors will do the job. The relays
-should be 12 volt or 24 volt types.
+<br>
+
+The **Autotuner** is the kitset from the `EB104.com` website.
+
+<br>
+
+## Requirements
+
+Any tuner of the LC type with 8 shunt capacitors and <br>
+8 series inductors plus facility to switch capacitors to <br>
+either end of inductors will do the job.
+
+The relays should be `12V` / `24V` types.
+
+<br>
+
+## Connections
 
 The output of a Stockton or Breune style bridge are
 connected to the forward and reverse power inputs
